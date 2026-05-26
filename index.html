@@ -158,12 +158,13 @@
       <button class="logout-btn" onclick="doLogout()" title="Çıkış">⏻</button>
     </div>
     <nav id="nav">
-      <button class="active" onclick="setTab('dashboard')">▦ &nbsp;<span class="nav-lbl" data-key="dashboard">Panel</span></button>
-      <button onclick="setTab('customers')">👥 &nbsp;<span class="nav-lbl" data-key="customers">Müşteriler</span></button>
-      <button onclick="setTab('pipeline')">◈ &nbsp;<span class="nav-lbl" data-key="pipeline">Satış</span></button>
-      <button onclick="setTab('tasks')">✓ &nbsp;<span class="nav-lbl" data-key="tasks">Görevler</span></button>
-      <button onclick="setTab('history')">◷ &nbsp;<span class="nav-lbl" data-key="history">Geçmiş</span></button>
-      <button onclick="setTab('reports')">↗ &nbsp;<span class="nav-lbl" data-key="reports">Raporlar</span></button>
+      <button data-tab="dashboard" class="active" onclick="setTab('dashboard')">▦ &nbsp;<span class="nav-lbl" data-key="dashboard">Panel</span></button>
+      <button data-tab="customers" onclick="setTab('customers')">👥 &nbsp;<span class="nav-lbl" data-key="customers">Müşteriler</span></button>
+      <button data-tab="pipeline" onclick="setTab('pipeline')">◈ &nbsp;<span class="nav-lbl" data-key="pipeline">Satış</span></button>
+      <button data-tab="tasks" onclick="setTab('tasks')">✓ &nbsp;<span class="nav-lbl" data-key="tasks">Görevler</span></button>
+      <button data-tab="history" onclick="setTab('history')">◷ &nbsp;<span class="nav-lbl" data-key="history">Geçmiş</span></button>
+      <button data-tab="reports" onclick="setTab('reports')">↗ &nbsp;<span class="nav-lbl" data-key="reports">Raporlar</span></button>
+      <button data-tab="users" id="nav-users" style="display:none" onclick="setTab('users')">👤 &nbsp;<span class="nav-lbl" data-key="users">Kullanıcılar</span></button>
     </nav>
     <div class="sidebar-footer" id="sidebar-footer">...</div>
   </div>
@@ -224,6 +225,14 @@ const T={
     loginSub:"Müşteri Yönetim Sistemi",loginUser:"Kullanıcı Adı",loginPass:"Şifre",loginBtn:"Giriş Yap",
     loginErr:"Hatalı kullanıcı adı veya şifre",loginLoading:"Giriş yapılıyor...",
     logout:"Çıkış yap",reminderToday:"Bugün",reminderTasks:"görevin var!",
+    users:"Kullanıcılar",addUser:"+ Kullanıcı",newUser:"Yeni Kullanıcı",editUser:"Kullanıcı Düzenle",
+    roleAdmin:"Yönetici",roleSales:"Satış Temsilcisi",roleReader:"Okuyucu",
+    fdisplayName:"Ad Soyad",fpassword:"Şifre",fnewPass:"Yeni Şifre",fRole:"Yetki",
+    fnewPassHint:"(boş bırakırsanız şifre değişmez)",
+    noUsers:"Kayıtlı kullanıcı bulunamadı",
+    userAdded:"Kullanıcı eklendi",userUpdated:"Kullanıcı güncellendi",userDeleted:"Kullanıcı silindi",
+    cantDeleteSelf:"Kendi hesabınızı silemezsiniz",usernameExists:"Bu kullanıcı adı zaten kullanımda",
+    passRequired:"Yeni kullanıcı için şifre zorunludur",usernameRequired:"Kullanıcı adı zorunludur",
   },
   en:{live:"Live · Shared",saving:"saving...",role:"Role",search:"Search...",
     dashboard:"Dashboard",customers:"Customers",pipeline:"Pipeline",tasks:"Tasks",history:"History",reports:"Reports",
@@ -259,12 +268,20 @@ const T={
     loginSub:"Customer Management System",loginUser:"Username",loginPass:"Password",loginBtn:"Login",
     loginErr:"Invalid username or password",loginLoading:"Logging in...",
     logout:"Logout",reminderToday:"Today you have",reminderTasks:"tasks!",
+    users:"Users",addUser:"+ Add User",newUser:"New User",editUser:"Edit User",
+    roleAdmin:"Admin",roleSales:"Sales Rep",roleReader:"Reader",
+    fdisplayName:"Full Name",fpassword:"Password",fnewPass:"New Password",fRole:"Role",
+    fnewPassHint:"(leave blank to keep current password)",
+    noUsers:"No users found",
+    userAdded:"User added",userUpdated:"User updated",userDeleted:"User deleted",
+    cantDeleteSelf:"You cannot delete your own account",usernameExists:"This username is already taken",
+    passRequired:"Password is required for new users",usernameRequired:"Username is required",
   }
 };
 
 let lang="tr",t=T.tr;
 let currentUser=null; // {id,username,role,display_name}
-let state={customers:[],deals:[],tasks:[],history:[]};
+let state={customers:[],deals:[],tasks:[],history:[],users:[]};
 let currentTab="dashboard",searchQuery="",charts={};
 
 const STAGE_KEYS=["gorusme","teklif","muzakere","kazanildi","kaybedildi"];
@@ -377,6 +394,7 @@ async function showApp(){
   document.getElementById("user-role").textContent=currentUser.role;
   document.getElementById("user-role").style.color=color;
   await loadAll();
+  if(canManageUsers()){document.getElementById("nav-users").style.display="";await loadUsers();}
   render();
   const today=new Date().toISOString().slice(0,10);
   const due=state.tasks.filter(tk=>!tk.done&&tk.dueDate===today);
@@ -427,7 +445,13 @@ function months(){return lang==="tr"?MONTHS_TR:MONTHS_EN;}
 function toast(msg,type="ok"){const el=document.createElement("div");el.className=`toast ${type}`;el.textContent=msg;document.getElementById("toast-container").appendChild(el);setTimeout(()=>el.remove(),3000);}
 function exportCSV(data,fn){const keys=Object.keys(data[0]);const rows=[keys.join(","),...data.map(r=>keys.map(k=>`"${String(r[k]||"")}"`).join(","))];const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([rows.join("\n")],{type:"text/csv"}));a.download=fn;a.click();}
 function updateFooter(){if(!currentUser)return;document.getElementById("sidebar-footer").textContent=`${state.customers.length} ${t.footerCustomers} · ${state.deals.filter(d=>d.stage==="kazanildi").length} ${t.footerWon}`;}
-function setTab(tab){currentTab=tab;document.getElementById("page-title").textContent=t[tab];document.querySelectorAll("nav button").forEach((b,i)=>{b.className=["dashboard","customers","pipeline","tasks","history","reports"][i]===tab?"active":""});render();}
+function setTab(tab){
+  currentTab=tab;
+  document.getElementById("page-title").textContent=t[tab]||tab;
+  document.querySelectorAll("nav button[data-tab]").forEach(b=>{b.className=b.dataset.tab===tab?"active":"";});
+  if(tab==="users"&&canManageUsers())loadUsers().then(()=>render());
+  else render();
+}
 function onSearch(v){searchQuery=v;document.getElementById("search-clear").style.display=v?"block":"none";render();}
 function clearSearch(){searchQuery="";document.getElementById("search-input").value="";document.getElementById("search-clear").style.display="none";render();}
 function matches(fields){if(!searchQuery)return true;return fields.some(f=>f&&String(f).toLowerCase().includes(searchQuery.toLowerCase()));}
@@ -442,6 +466,7 @@ function render(){
   else if(currentTab==="tasks")c.innerHTML=renderTasks();
   else if(currentTab==="history")c.innerHTML=renderHistory();
   else if(currentTab==="reports"){c.innerHTML=renderReports();renderCharts();}
+  else if(currentTab==="users")c.innerHTML=renderUsers();
 }
 function renderTopbarActions(){
   const el=document.getElementById("topbar-actions");let html="";
@@ -450,6 +475,7 @@ function renderTopbarActions(){
   else if(canEdit()&&currentTab==="tasks")html=`<button class="btn" onclick="openModal('task')">${t.addTask}</button>`;
   else if(canEdit()&&currentTab==="history")html=`<button class="btn" onclick="openModal('history')">${t.addRecord}</button>`;
   else if(currentTab==="reports")html=`<button class="btn sec" onclick="exportCSV(state.deals,'deals.csv')">${t.csvDeals}</button>`;
+  else if(canManageUsers()&&currentTab==="users")html=`<button class="btn" onclick="openUserModal(0)">${t.addUser}</button>`;
   el.innerHTML=html;
 }
 function renderDashboard(){
@@ -567,6 +593,111 @@ async function sendEmail(customerId){
   const subject=document.getElementById("f-subject")?.value;
   state.history.push({id:Date.now(),customerId:+customerId,type:"email",date:new Date().toISOString().slice(0,10),note:`${lang==="tr"?"Konu":"Subject"}: ${subject}`,by:currentUser.username});
   await persist("history");toast(t.toastEmailSent);closeModal();render();
+}
+
+// ── USER MANAGEMENT
+function canManageUsers(){return currentUser&&currentUser.role==="admin";}
+
+async function loadUsers(){
+  try{
+    const r=await fetch(`${SUPA_URL}/rest/v1/crm_users?select=id,username,role,display_name&order=id`,{headers:H});
+    if(r.ok)state.users=await r.json();
+  }catch{}
+}
+
+function renderUsers(){
+  if(!canManageUsers())return`<div class="empty">${lang==="tr"?"Bu sayfaya erişim yetkiniz yok.":"You do not have access to this page."}</div>`;
+  if(!state.users.length)return`<div class="empty">${t.noUsers}</div>`;
+  return`<div style="max-width:700px;display:flex;flex-direction:column;gap:9px">
+    ${state.users.map(u=>{
+      const isMe=u.id===currentUser.id;
+      const color=ROLE_COLORS[u.role]||"#6ee7b7";
+      const roleLabel=u.role==="admin"?t.roleAdmin:u.role==="satis"?t.roleSales:t.roleReader;
+      return`<div class="card" style="display:flex;align-items:center;gap:14px">
+        <div style="width:40px;height:40px;border-radius:50%;background:${color}22;display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:800;color:${color};border:2px solid ${color}44;flex-shrink:0">${(u.display_name||u.username)[0].toUpperCase()}</div>
+        <div style="flex:1;min-width:0">
+          <div style="font-weight:700;font-size:14px">${u.display_name||u.username}${isMe?` <span style="font-size:10px;background:#1a2236;border-radius:10px;padding:1px 7px;color:#4a607d">${lang==="tr"?"siz":"you"}</span>`:""}</div>
+          <div style="font-size:12px;color:#4a607d;margin-top:1px">@${u.username}</div>
+        </div>
+        <span class="badge" style="background:${color}18;color:${color};min-width:90px;text-align:center;padding:4px 10px">${roleLabel}</span>
+        <div style="display:flex;gap:6px">
+          <button class="sm-btn" onclick="openUserModal(${u.id})" style="padding:4px 10px">✎ ${lang==="tr"?"Düzenle":"Edit"}</button>
+          ${!isMe?`<button class="sm-btn danger" onclick="deleteUser(${u.id})" style="padding:4px 10px">✕</button>`:""}
+        </div>
+      </div>`;
+    }).join("")}
+  </div>`;
+}
+
+function openUserModal(editId){
+  const user=editId?state.users.find(u=>u.id===editId):null;
+  const title=editId?t.editUser:t.newUser;
+  const roleOpts=[["admin",t.roleAdmin],["satis",t.roleSales],["okuyucu",t.roleReader]].map(([v,l])=>`<option value="${v}"${user?.role===v?" selected":""}>${l}</option>`).join("");
+  const passLabel=editId?t.fnewPass:t.fpassword;
+  const passPlaceholder=editId?t.fnewPassHint:"••••••••";
+  const body=`
+    <div class="field"><label>${t.fdisplayName}</label><input id="u-displayName" value="${user?.display_name||""}" placeholder="${t.nameHolder}"/></div>
+    <div class="field"><label>${t.loginUser}</label><input id="u-username" value="${user?.username||""}" placeholder="${lang==="tr"?"kullanici_adi":"username"}" ${editId?'readonly style="opacity:.5;cursor:not-allowed"':""}/></div>
+    <div class="field"><label>${passLabel}</label><input id="u-password" type="password" placeholder="${passPlaceholder}"/>
+      ${editId?`<div style="font-size:10px;color:#3d5270;margin-top:3px">${t.fnewPassHint}</div>`:""}
+    </div>
+    <div class="field"><label>${t.fRole}</label><select id="u-role">${roleOpts}</select></div>`;
+  const overlay=document.createElement("div");
+  overlay.id="modal-overlay";overlay.className="modal-overlay";
+  overlay.onclick=e=>{if(e.target===overlay)closeModal();};
+  overlay.innerHTML=`<div class="modal"><div class="modal-title"><span>${title}</span><button onclick="closeModal()">✕</button></div>${body}<div class="modal-actions"><button class="cancel" onclick="closeModal()">${t.cancel}</button><button class="save" onclick="saveUser(${editId||0})">${t.save}</button></div></div>`;
+  document.body.appendChild(overlay);
+}
+
+async function saveUser(editId){
+  const username=document.getElementById("u-username")?.value?.trim();
+  const displayName=document.getElementById("u-displayName")?.value?.trim();
+  const password=document.getElementById("u-password")?.value;
+  const role=document.getElementById("u-role")?.value;
+  if(!username){toast(t.usernameRequired,"err");return;}
+  if(!editId&&!password){toast(t.passRequired,"err");return;}
+  if(editId){
+    const updates={display_name:displayName,role};
+    if(password)updates.password=password;
+    try{
+      const r=await fetch(`${SUPA_URL}/rest/v1/crm_users?id=eq.${editId}`,{method:"PATCH",headers:{...H,"Prefer":"return=minimal"},body:JSON.stringify(updates)});
+      if(!r.ok){toast(lang==="tr"?"Güncelleme başarısız":"Update failed","err");return;}
+      state.users=state.users.map(u=>u.id===editId?{...u,...updates}:u);
+      if(editId===currentUser.id){
+        currentUser={...currentUser,display_name:displayName,role};
+        sessionStorage.setItem("crm_user",JSON.stringify(currentUser));
+        const color=ROLE_COLORS[role]||"#6ee7b7";
+        document.getElementById("user-name").textContent=displayName||username;
+        document.getElementById("user-avatar").textContent=(displayName||username)[0].toUpperCase();
+        document.getElementById("user-role").textContent=role;
+        document.getElementById("user-role").style.color=color;
+      }
+      toast(t.userUpdated);
+    }catch{toast(lang==="tr"?"Hata oluştu":"An error occurred","err");return;}
+  } else {
+    const exists=state.users.some(u=>u.username===username);
+    if(exists){toast(t.usernameExists,"err");return;}
+    try{
+      const r=await fetch(`${SUPA_URL}/rest/v1/crm_users`,{method:"POST",headers:{...H,"Prefer":"return=representation"},body:JSON.stringify({username,password,role,display_name:displayName})});
+      if(!r.ok){toast(lang==="tr"?"Kullanıcı eklenemedi":"Failed to add user","err");return;}
+      const newUsers=await r.json();
+      const added=Array.isArray(newUsers)?newUsers[0]:newUsers;
+      state.users.push({id:added.id,username,role,display_name:displayName});
+      toast(t.userAdded);
+    }catch{toast(lang==="tr"?"Hata oluştu":"An error occurred","err");return;}
+  }
+  closeModal();render();
+}
+
+async function deleteUser(id){
+  if(!canManageUsers())return;
+  if(id===currentUser.id){toast(t.cantDeleteSelf,"err");return;}
+  try{
+    const r=await fetch(`${SUPA_URL}/rest/v1/crm_users?id=eq.${id}`,{method:"DELETE",headers:H});
+    if(!r.ok){toast(lang==="tr"?"Silinemedi":"Delete failed","err");return;}
+    state.users=state.users.filter(u=>u.id!==id);
+    toast(t.userDeleted,"warn");render();
+  }catch{toast(lang==="tr"?"Hata":"Error","err");}
 }
 
 // ── INIT
