@@ -1,0 +1,582 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>CRM Pro</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800;900&display=swap');
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:'DM Sans',sans-serif;background:#090d14;color:#dde4ef;height:100vh;display:flex;overflow:hidden}
+  ::-webkit-scrollbar{width:4px;height:4px}
+  ::-webkit-scrollbar-track{background:#090d14}
+  ::-webkit-scrollbar-thumb{background:#1a2236;border-radius:4px}
+  input,select,textarea{font-family:'DM Sans',sans-serif}
+  @keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+  @keyframes fadeIn{from{opacity:0;transform:translateY(-8px)}to{opacity:1;transform:translateY(0)}}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  @keyframes shake{0%,100%{transform:translateX(0)}20%,60%{transform:translateX(-8px)}40%,80%{transform:translateX(8px)}}
+
+  /* LOGIN */
+  #login-screen{position:fixed;inset:0;background:#090d14;display:flex;align-items:center;justify-content:center;z-index:200;flex-direction:column;gap:0}
+  .login-box{background:#0d1320;border:1px solid #1a2236;border-radius:16px;padding:36px;width:360px;animation:fadeIn .3s ease}
+  .login-logo{font-size:28px;font-weight:900;background:linear-gradient(135deg,#6ee7b7,#60a5fa);-webkit-background-clip:text;-webkit-text-fill-color:transparent;letter-spacing:-1px;margin-bottom:4px}
+  .login-sub{font-size:12px;color:#3d5270;margin-bottom:28px}
+  .login-field{margin-bottom:14px}
+  .login-field label{display:block;font-size:11px;color:#3d5270;margin-bottom:5px;font-weight:600;text-transform:uppercase;letter-spacing:.5px}
+  .login-field input{width:100%;background:#131b2a;border:1px solid #1a2236;border-radius:9px;padding:10px 13px;color:#dde4ef;font-size:14px;outline:none;transition:border-color .15s}
+  .login-field input:focus{border-color:#6ee7b744}
+  .login-btn{width:100%;background:#6ee7b7;color:#090d14;border:none;border-radius:9px;padding:11px;font-weight:800;font-size:14px;cursor:pointer;margin-top:4px;font-family:'DM Sans',sans-serif;transition:opacity .15s}
+  .login-btn:hover{opacity:.9}
+  .login-err{color:#f87171;font-size:12px;margin-top:10px;text-align:center;min-height:16px}
+  .login-lang{display:flex;gap:8px;margin-bottom:20px}
+  .login-lang button{flex:1;padding:6px;border-radius:7px;border:1px solid #1a2236;background:#131b2a;color:#4a607d;font-size:12px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif}
+  .login-lang button.active{background:#1e2d40;color:#6ee7b7;border-color:#6ee7b744}
+  .shake{animation:shake .3s ease}
+
+  /* APP */
+  #app{display:none;width:100%;height:100%}
+  #sidebar{width:210px;background:#0d1320;border-right:1px solid #1a2236;display:flex;flex-direction:column;flex-shrink:0}
+  #main{flex:1;display:flex;flex-direction:column;overflow:hidden}
+  #topbar{background:#0d1320;border-bottom:1px solid #1a2236;padding:11px 20px;display:flex;align-items:center;gap:10px;flex-shrink:0}
+  #content{flex:1;overflow-y:auto;padding:20px}
+  .logo{padding:18px 16px 14px;border-bottom:1px solid #1a2236}
+  .logo h1{font-size:20px;font-weight:900;background:linear-gradient(135deg,#6ee7b7,#60a5fa);-webkit-background-clip:text;-webkit-text-fill-color:transparent;letter-spacing:-1px}
+  .sync-dot{width:6px;height:6px;border-radius:50%;background:#34d399;animation:pulse 2s infinite;display:inline-block;margin-right:5px}
+  .sync-label{font-size:11px;color:#34d399;font-weight:600}
+  .user-box{padding:10px 12px;border-bottom:1px solid #1a2236;display:flex;align-items:center;gap:8px}
+  .user-avatar{width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:800;flex-shrink:0}
+  .user-info{flex:1;min-width:0}
+  .user-name{font-size:12px;font-weight:700;color:#dde4ef;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .user-role{font-size:10px;color:#3d5270}
+  .logout-btn{background:none;border:none;color:#3d5270;cursor:pointer;font-size:14px;padding:2px;flex-shrink:0}
+  .logout-btn:hover{color:#f87171}
+  .lang-box{padding:8px 12px;border-bottom:1px solid #1a2236;display:flex;gap:6px}
+  .lang-btn{flex:1;padding:5px;border-radius:7px;border:1px solid #1a2236;background:#131b2a;color:#4a607d;font-size:12px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .15s}
+  .lang-btn.active{background:#1e2d40;color:#6ee7b7;border-color:#6ee7b744}
+  nav button{width:100%;display:flex;align-items:center;gap:10px;padding:9px 16px;background:transparent;color:#4a607d;border:none;cursor:pointer;font-size:13px;font-weight:500;border-left:2px solid transparent;transition:all .12s;text-align:left;font-family:'DM Sans',sans-serif}
+  nav button.active{background:#131b2a;color:#6ee7b7;font-weight:700;border-left-color:#6ee7b7}
+  nav button:hover:not(.active){color:#94a3b8}
+  .sidebar-footer{padding:10px 14px;border-top:1px solid #1a2236;font-size:11px;color:#3d5270;margin-top:auto}
+  .search-wrap{position:relative;max-width:320px;flex:1}
+  .search-wrap input{width:100%;background:#131b2a;border:1px solid #1a2236;border-radius:8px;padding:7px 28px 7px 28px;color:#dde4ef;font-size:13px;outline:none}
+  .search-icon{position:absolute;left:9px;top:50%;transform:translateY(-50%);color:#3d5270;font-size:13px;pointer-events:none}
+  .search-clear{position:absolute;right:8px;top:50%;transform:translateY(-50%);background:none;border:none;color:#4a607d;cursor:pointer;font-size:13px}
+  .btn{background:#6ee7b7;color:#090d14;border:none;border-radius:8px;padding:6px 13px;font-weight:700;font-size:12px;cursor:pointer;white-space:nowrap;font-family:'DM Sans',sans-serif}
+  .btn.sec{background:#131b2a;color:#4a607d;border:1px solid #1a2236}
+  .btn:hover{opacity:.9}
+  .sm-btn{background:#131b2a;color:#4a607d;border:1px solid #1a2236;border-radius:6px;padding:3px 7px;font-size:12px;cursor:pointer;font-family:'DM Sans',sans-serif}
+  .sm-btn.danger{background:#f8717118;color:#f87171;border-color:#f8717133}
+  .card{background:#0d1320;border:1px solid #1a2236;border-radius:12px;padding:16px}
+  .grid4{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+  .grid3{display:grid;grid-template-columns:repeat(auto-fill,minmax(270px,1fr));gap:13px}
+  .kpi-val{font-size:24px;font-weight:900;letter-spacing:-1px}
+  .kpi-lbl{font-size:12px;color:#dde4ef;margin-top:3px;font-weight:600}
+  .kpi-sub{font-size:11px;color:#3d5270;margin-top:1px}
+  .badge{font-size:11px;padding:2px 9px;border-radius:20px;height:fit-content}
+  .section-title{font-weight:700;margin-bottom:12px;font-size:13px;color:#6ee7b7}
+  .modal-overlay{position:fixed;inset:0;background:#00000099;display:flex;align-items:center;justify-content:center;z-index:100}
+  .modal{background:#0d1320;border:1px solid #1a2236;border-radius:14px;padding:24px;width:410px;max-height:88vh;overflow-y:auto}
+  .modal-title{display:flex;justify-content:space-between;align-items:center;margin-bottom:18px}
+  .modal-title span{font-weight:800;font-size:15px}
+  .modal-title button{background:none;border:none;color:#3d5270;font-size:17px;cursor:pointer}
+  .field{margin-bottom:12px}
+  .field label{display:block;font-size:11px;color:#3d5270;margin-bottom:4px;font-weight:600;text-transform:uppercase;letter-spacing:.5px}
+  .field input,.field select,.field textarea{width:100%;background:#131b2a;border:1px solid #1a2236;border-radius:8px;padding:7px 10px;color:#dde4ef;font-size:13px;outline:none;font-family:'DM Sans',sans-serif}
+  .field select option{background:#131b2a}
+  .field textarea{resize:vertical}
+  .modal-actions{display:flex;gap:9px;margin-top:16px}
+  .modal-actions button{flex:1;padding:8px;border-radius:8px;cursor:pointer;font-weight:700;font-size:13px;border:none;font-family:'DM Sans',sans-serif}
+  .modal-actions .cancel{background:#131b2a;color:#4a607d;border:1px solid #1a2236;flex:1}
+  .modal-actions .save{background:#6ee7b7;color:#090d14;flex:2}
+  .toast-wrap{position:fixed;top:16px;right:16px;z-index:999;display:flex;flex-direction:column;gap:8px}
+  .toast{padding:9px 14px;border-radius:10px;font-size:13px;font-weight:600;animation:fadeIn .2s ease}
+  .toast.ok{background:#34d39918;border:1px solid #34d39944;color:#34d399}
+  .toast.warn{background:#f59e0b18;border:1px solid #f59e0b44;color:#f59e0b}
+  .toast.err{background:#f8717118;border:1px solid #f8717144;color:#f87171}
+  .pipeline-col{min-width:220px;flex:0 0 220px}
+  .pipeline-header{border-radius:9px;padding:9px 12px;margin-bottom:9px;display:flex;justify-content:space-between;align-items:center}
+  .deal-card{background:#0d1320;border:1px solid #1a2236;border-radius:10px;padding:13px;margin-bottom:8px}
+  .progress-bar{height:3px;background:#1a2236;border-radius:2px;margin-bottom:5px;overflow:hidden}
+  .progress-fill{height:100%;border-radius:2px}
+  .timeline-item{display:flex;gap:14px;margin-bottom:4px}
+  .timeline-dot{width:36px;height:36px;border-radius:50%;background:#131b2a;border:1px solid #1a2236;display:flex;align-items:center;justify-content:center;font-size:15px;flex-shrink:0}
+  .timeline-line{width:1px;flex:1;background:#1a2236;margin:3px 0}
+  .empty{text-align:center;color:#3d5270;padding:36px 0;font-size:13px}
+  .loading{display:flex;align-items:center;justify-content:center;height:100%;flex-direction:column;gap:16px}
+  .spinner{font-size:32px;animation:spin 1s linear infinite;color:#6ee7b7}
+  .stat-row{display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid #1a2236}
+  .stat-row span:first-child{font-size:12px;color:#4a607d}
+  .stat-row span:last-child{font-size:13px;font-weight:700}
+</style>
+</head>
+<body>
+
+<div id="toast-container" class="toast-wrap"></div>
+
+<!-- LOGIN -->
+<div id="login-screen">
+  <div class="login-box">
+    <div class="login-logo">CRM Pro</div>
+    <div class="login-sub" id="login-sub">Müşteri Yönetim Sistemi</div>
+    <div class="login-lang">
+      <button class="active" id="ll-tr" onclick="setLang('tr');setLoginLang('tr')">🇹🇷 Türkçe</button>
+      <button id="ll-en" onclick="setLang('en');setLoginLang('en')">🇬🇧 English</button>
+    </div>
+    <div class="login-field">
+      <label id="lbl-username">Kullanıcı Adı</label>
+      <input type="text" id="login-username" placeholder="admin" onkeydown="if(event.key==='Enter')doLogin()"/>
+    </div>
+    <div class="login-field">
+      <label id="lbl-password">Şifre</label>
+      <input type="password" id="login-password" placeholder="••••••••" onkeydown="if(event.key==='Enter')doLogin()"/>
+    </div>
+    <button class="login-btn" id="login-btn" onclick="doLogin()">Giriş Yap</button>
+    <div class="login-err" id="login-err"></div>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="app">
+  <div id="sidebar">
+    <div class="logo">
+      <h1>CRM Pro</h1>
+      <div style="margin-top:4px"><span class="sync-dot"></span><span class="sync-label" id="sync-label">Canlı · Paylaşımlı</span><span id="syncing-label" style="font-size:10px;color:#3d5270;margin-left:6px;display:none">...</span></div>
+    </div>
+    <div class="lang-box">
+      <button class="lang-btn active" id="lang-tr" onclick="setLang('tr')">🇹🇷 Türkçe</button>
+      <button class="lang-btn" id="lang-en" onclick="setLang('en')">🇬🇧 English</button>
+    </div>
+    <div class="user-box">
+      <div class="user-avatar" id="user-avatar" style="background:#1e2d40;color:#6ee7b7">A</div>
+      <div class="user-info">
+        <div class="user-name" id="user-name">Admin</div>
+        <div class="user-role" id="user-role">admin</div>
+      </div>
+      <button class="logout-btn" onclick="doLogout()" title="Çıkış">⏻</button>
+    </div>
+    <nav id="nav">
+      <button class="active" onclick="setTab('dashboard')">▦ &nbsp;<span class="nav-lbl" data-key="dashboard">Panel</span></button>
+      <button onclick="setTab('customers')">👥 &nbsp;<span class="nav-lbl" data-key="customers">Müşteriler</span></button>
+      <button onclick="setTab('pipeline')">◈ &nbsp;<span class="nav-lbl" data-key="pipeline">Satış</span></button>
+      <button onclick="setTab('tasks')">✓ &nbsp;<span class="nav-lbl" data-key="tasks">Görevler</span></button>
+      <button onclick="setTab('history')">◷ &nbsp;<span class="nav-lbl" data-key="history">Geçmiş</span></button>
+      <button onclick="setTab('reports')">↗ &nbsp;<span class="nav-lbl" data-key="reports">Raporlar</span></button>
+    </nav>
+    <div class="sidebar-footer" id="sidebar-footer">...</div>
+  </div>
+  <div id="main">
+    <div id="topbar">
+      <div id="page-title" style="font-size:16px;font-weight:700;min-width:110px">Panel</div>
+      <div class="search-wrap">
+        <span class="search-icon">🔍</span>
+        <input type="text" id="search-input" placeholder="Ara..." oninput="onSearch(this.value)"/>
+        <button class="search-clear" id="search-clear" style="display:none" onclick="clearSearch()">✕</button>
+      </div>
+      <div style="flex:1"></div>
+      <div id="topbar-actions"></div>
+    </div>
+    <div id="content">
+      <div class="loading"><div class="spinner">◈</div></div>
+    </div>
+  </div>
+</div>
+
+<script>
+const SUPA_URL="https://abtmfoetnhswccliuawn.supabase.co";
+const SUPA_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFidG1mb2V0bmhzd2NjbGl1YXduIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk0NTMwMzIsImV4cCI6MjA5NTAyOTAzMn0.G_gyNgy1HZmaGSRvZ9aLDO-XneqU_K036APAEArhFMU";
+const H={"Content-Type":"application/json","apikey":SUPA_KEY,"Authorization":"Bearer "+SUPA_KEY};
+
+const T={
+  tr:{live:"Canlı · Paylaşımlı",saving:"kaydediliyor...",role:"Rol",search:"Ara...",
+    dashboard:"Panel",customers:"Müşteriler",pipeline:"Satış",tasks:"Görevler",history:"Geçmiş",reports:"Raporlar",
+    addCustomer:"+ Müşteri",addDeal:"+ Fırsat",addTask:"+ Görev",addRecord:"+ Kayıt",csvCustomers:"⬇ CSV",csvDeals:"⬇ Fırsatlar",
+    totalCustomers:"Toplam Müşteri",revenue:"Kazanılan Gelir",pipeline_val:"Pipeline",openTasks:"Açık Görevler",
+    active:"aktif",potential:"potansiyel",passive:"pasif",weighted:"ağırlıklı",deals:"fırsat",
+    monthlyRevenue:"Aylık Gelir (₺)",upcomingTasks:"Yaklaşan Görevler",noTasks:"Açık görev yok 🎉",
+    stageChart:"◈ Fırsat Aşamaları",statusChart:"👥 Müşteri Durumu",revenueChart:"📈 Aylık Kazanılan Gelir",
+    summary:"📊 Özet",topCustomers:"🏆 En Değerli Müşteriler",
+    totalDealVal:"Toplam Fırsat Değeri",avgDeal:"Ortalama Fırsat",convRate:"Dönüşüm Oranı",
+    completedTasks:"Tamamlanan Görevler",contactRecords:"İletişim Kaydı",
+    deals_count:"fırsat",contacts_count:"iletişim",
+    high:"Yüksek",medium:"Orta",low:"Düşük",priority:"Öncelik",open:"açık",
+    noCustomer:"Müşteri bulunamadı",noDeal:"Fırsat bulunamadı",noTask:"Görev bulunamadı",noRecord:"Kayıt bulunamadı",
+    editCustomer:"Müşteri Düzenle",newCustomer:"Yeni Müşteri",editDeal:"Fırsatı Düzenle",newDeal:"Yeni Fırsat",
+    newTask:"Yeni Görev",contactRecord:"İletişim Kaydı",sendEmail:"✉️ E-posta Gönder",
+    fname:"Ad Soyad *",femail:"E-posta",fphone:"Telefon",fcompany:"Şirket",fstatus:"Durum",fvalue:"Değer (₺)",fassignee:"Sorumlu",
+    ftitle:"Başlık *",fcustomer:"Müşteri *",fcustomerOpt:"Müşteri",fstage:"Aşama",fdueDate:"Kapanış Tarihi",fprobability:"Olasılık",
+    ftask:"Görev *",fdate:"Tarih",fpriority:"Öncelik",fnote:"Not",ftype:"Tür",frecord:"Not *",
+    fto:"Alıcı",fsubject:"Konu",fbody:"İçerik",
+    selectOpt:"Seçin",selectOptOpt:"Seçin (opsiyonel)",
+    statusActive:"Aktif",statusPotential:"Potansiyel",statusPassive:"Pasif",
+    stageGorusme:"Görüşme",stageTeklif:"Teklif",stageMuzakere:"Müzakere",stageKazanildi:"Kazanıldı",stageKaybedildi:"Kaybedildi",
+    typeCall:"📞 Arama",typeEmail:"✉️ E-posta",typeMeeting:"🤝 Toplantı",typeNote:"📝 Not",
+    pHigh:"Yüksek",pMedium:"Orta",pLow:"Düşük",
+    cancel:"İptal",save:"Kaydet",send:"Gönder",simNote:"* Simülasyon — geçmişe kaydeder",
+    toastUpdated:"güncellendi",toastAdded:"eklendi",toastDeleted:"Silindi",
+    toastEmailSent:"✉️ E-posta gönderildi",toastRecordAdded:"Kayıt eklendi",
+    nameHolder:"Ad Soyad",emailHolder:"email@firma.com",phoneHolder:"0532 000 0000",companyHolder:"Şirket adı",
+    dealHolder:"Fırsat başlığı",taskHolder:"Görev açıklaması",notesHolder:"Görüşme notları...",extraHolder:"Ek bilgi...",
+    subjectHolder:"E-posta konusu",bodyHolder:"Mesajınızı yazın...",
+    footerCustomers:"müşteri",footerWon:"kazanıldı",
+    loginSub:"Müşteri Yönetim Sistemi",loginUser:"Kullanıcı Adı",loginPass:"Şifre",loginBtn:"Giriş Yap",
+    loginErr:"Hatalı kullanıcı adı veya şifre",loginLoading:"Giriş yapılıyor...",
+    logout:"Çıkış yap",reminderToday:"Bugün",reminderTasks:"görevin var!",
+  },
+  en:{live:"Live · Shared",saving:"saving...",role:"Role",search:"Search...",
+    dashboard:"Dashboard",customers:"Customers",pipeline:"Pipeline",tasks:"Tasks",history:"History",reports:"Reports",
+    addCustomer:"+ Customer",addDeal:"+ Deal",addTask:"+ Task",addRecord:"+ Record",csvCustomers:"⬇ CSV",csvDeals:"⬇ Deals CSV",
+    totalCustomers:"Total Customers",revenue:"Won Revenue",pipeline_val:"Pipeline",openTasks:"Open Tasks",
+    active:"active",potential:"potential",passive:"passive",weighted:"weighted",deals:"deals",
+    monthlyRevenue:"Monthly Revenue (₺)",upcomingTasks:"Upcoming Tasks",noTasks:"No open tasks 🎉",
+    stageChart:"◈ Deal Stages",statusChart:"👥 Customer Status",revenueChart:"📈 Monthly Won Revenue",
+    summary:"📊 Summary",topCustomers:"🏆 Top Customers",
+    totalDealVal:"Total Deal Value",avgDeal:"Average Deal",convRate:"Conversion Rate",
+    completedTasks:"Completed Tasks",contactRecords:"Contact Records",
+    deals_count:"deals",contacts_count:"contacts",
+    high:"High",medium:"Medium",low:"Low",priority:"Priority",open:"open",
+    noCustomer:"No customers found",noDeal:"No deals found",noTask:"No tasks found",noRecord:"No records found",
+    editCustomer:"Edit Customer",newCustomer:"New Customer",editDeal:"Edit Deal",newDeal:"New Deal",
+    newTask:"New Task",contactRecord:"Contact Record",sendEmail:"✉️ Send Email",
+    fname:"Full Name *",femail:"Email",fphone:"Phone",fcompany:"Company",fstatus:"Status",fvalue:"Value (₺)",fassignee:"Assigned To",
+    ftitle:"Title *",fcustomer:"Customer *",fcustomerOpt:"Customer",fstage:"Stage",fdueDate:"Close Date",fprobability:"Probability",
+    ftask:"Task *",fdate:"Date",fpriority:"Priority",fnote:"Note",ftype:"Type",frecord:"Note *",
+    fto:"To",fsubject:"Subject",fbody:"Body",
+    selectOpt:"Select",selectOptOpt:"Select (optional)",
+    statusActive:"Active",statusPotential:"Potential",statusPassive:"Passive",
+    stageGorusme:"Meeting",stageTeklif:"Proposal",stageMuzakere:"Negotiation",stageKazanildi:"Won",stageKaybedildi:"Lost",
+    typeCall:"📞 Call",typeEmail:"✉️ Email",typeMeeting:"🤝 Meeting",typeNote:"📝 Note",
+    pHigh:"High",pMedium:"Medium",pLow:"Low",
+    cancel:"Cancel",save:"Save",send:"Send",simNote:"* Simulation — saves to history",
+    toastUpdated:"updated",toastAdded:"added",toastDeleted:"Deleted",
+    toastEmailSent:"✉️ Email sent",toastRecordAdded:"Record added",
+    nameHolder:"Full Name",emailHolder:"email@company.com",phoneHolder:"+1 555 000 0000",companyHolder:"Company name",
+    dealHolder:"Deal title",taskHolder:"Task description",notesHolder:"Meeting notes...",extraHolder:"Additional info...",
+    subjectHolder:"Email subject",bodyHolder:"Type your message...",
+    footerCustomers:"customers",footerWon:"won",
+    loginSub:"Customer Management System",loginUser:"Username",loginPass:"Password",loginBtn:"Login",
+    loginErr:"Invalid username or password",loginLoading:"Logging in...",
+    logout:"Logout",reminderToday:"Today you have",reminderTasks:"tasks!",
+  }
+};
+
+let lang="tr",t=T.tr;
+let currentUser=null; // {id,username,role,display_name}
+let state={customers:[],deals:[],tasks:[],history:[]};
+let currentTab="dashboard",searchQuery="",charts={};
+
+const STAGE_KEYS=["gorusme","teklif","muzakere","kazanildi","kaybedildi"];
+const STAGE_COLORS={gorusme:"#60a5fa",teklif:"#f59e0b",muzakere:"#a78bfa",kazanildi:"#34d399",kaybedildi:"#f87171"};
+const STATUS_COLORS={aktif:"#34d399",potansiyel:"#60a5fa",pasif:"#94a3b8"};
+const PRIO_COLORS={yuksek:"#f87171",orta:"#f59e0b",dusuk:"#60a5fa"};
+const TYPE_ICONS={arama:"📞",email:"✉️",toplanti:"🤝",not:"📝"};
+const MONTHS_TR=["Oca","Şub","Mar","Nis","May","Haz","Tem","Ağu","Eyl","Eki","Kas","Ara"];
+const MONTHS_EN=["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+const ROLE_COLORS={admin:"#6ee7b7",satis:"#60a5fa",okuyucu:"#f59e0b"};
+
+const SEED={
+  customers:[
+    {id:1,name:"Ahmet Yılmaz",email:"ahmet@firma.com",phone:"0532 111 2233",company:"Yılmaz A.Ş.",status:"aktif",value:15000,createdAt:"2024-01-15",assignee:"admin"},
+    {id:2,name:"Fatma Kaya",email:"fatma@kaya.com",phone:"0544 222 3344",company:"Kaya Ltd.",status:"potansiyel",value:8500,createdAt:"2024-02-10",assignee:"satis"},
+    {id:3,name:"Mehmet Demir",email:"mehmet@demir.net",phone:"0555 333 4455",company:"Demir Grup",status:"pasif",value:3200,createdAt:"2024-03-05",assignee:"admin"},
+    {id:4,name:"Zeynep Arslan",email:"zeynep@arslan.com",phone:"0533 444 5566",company:"Arslan Holding",status:"aktif",value:42000,createdAt:"2024-04-01",assignee:"satis"},
+  ],
+  deals:[
+    {id:1,title:"Web Sitesi Projesi",customerId:1,stage:"teklif",value:12000,dueDate:"2024-06-30",probability:70},
+    {id:2,title:"Mobil Uygulama",customerId:2,stage:"gorusme",value:25000,dueDate:"2024-07-15",probability:40},
+    {id:3,title:"Danışmanlık Hizmeti",customerId:1,stage:"kazanildi",value:5000,dueDate:"2024-05-20",probability:100},
+    {id:4,title:"Sunucu Altyapısı",customerId:3,stage:"kaybedildi",value:8000,dueDate:"2024-04-10",probability:0},
+    {id:5,title:"ERP Entegrasyonu",customerId:4,stage:"muzakere",value:38000,dueDate:"2024-08-01",probability:65},
+  ],
+  tasks:[
+    {id:1,title:"Ahmet ile toplantı",customerId:1,dueDate:"2024-06-25",priority:"yuksek",done:false,note:"Teklif sunumu hazırla",assignee:"admin"},
+    {id:2,title:"Fatma'ya teklif gönder",customerId:2,dueDate:"2024-06-28",priority:"orta",done:false,note:"Fiyat listesini güncelle",assignee:"satis"},
+    {id:3,title:"Sözleşme imzalama",customerId:1,dueDate:"2024-06-20",priority:"yuksek",done:true,note:"",assignee:"admin"},
+  ],
+  history:[
+    {id:1,customerId:1,type:"arama",date:"2024-06-10",note:"Proje detayları görüşüldü."},
+    {id:2,customerId:2,type:"email",date:"2024-06-12",note:"Tanışma e-postası gönderildi."},
+    {id:3,customerId:1,type:"toplanti",date:"2024-06-15",note:"Ofiste sunum yapıldı."},
+    {id:4,customerId:4,type:"arama",date:"2024-05-30",note:"ERP ihtiyaçları değerlendirildi."},
+  ]
+};
+
+// ── LANG
+function setLang(l){
+  lang=l;t=T[l];
+  document.getElementById("lang-tr").className="lang-btn"+(l==="tr"?" active":"");
+  document.getElementById("lang-en").className="lang-btn"+(l==="en"?" active":"");
+  document.querySelectorAll(".nav-lbl").forEach(el=>el.textContent=t[el.dataset.key]);
+  document.getElementById("sync-label").textContent=t.live;
+  document.getElementById("search-input").placeholder=t.search;
+  if(currentUser) document.getElementById("page-title").textContent=t[currentTab];
+  updateFooter();
+  if(currentUser) render();
+}
+function setLoginLang(l){
+  document.getElementById("ll-tr").className="login-lang button"+(l==="tr"?" active":"");
+  document.getElementById("ll-en").className="login-lang button"+(l==="en"?" active":"");
+  document.getElementById("ll-tr").className=l==="tr"?"active":"";
+  document.getElementById("ll-en").className=l==="en"?"active":"";
+  document.getElementById("login-sub").textContent=T[l].loginSub;
+  document.getElementById("lbl-username").textContent=T[l].loginUser;
+  document.getElementById("lbl-password").textContent=T[l].loginPass;
+  document.getElementById("login-btn").textContent=T[l].loginBtn;
+  document.getElementById("login-err").textContent="";
+}
+
+// ── AUTH
+async function doLogin(){
+  const username=document.getElementById("login-username").value.trim();
+  const password=document.getElementById("login-password").value;
+  if(!username||!password){document.getElementById("login-err").textContent=t.loginErr;shake();return;}
+  const btn=document.getElementById("login-btn");
+  btn.textContent=t.loginLoading;btn.disabled=true;
+  try{
+    const r=await fetch(`${SUPA_URL}/rest/v1/crm_users?username=eq.${encodeURIComponent(username)}&password=eq.${encodeURIComponent(password)}&select=*`,{headers:{...H,"Prefer":"return=representation"}});
+    const data=await r.json();
+    if(data&&data.length>0){
+      currentUser=data[0];
+      sessionStorage.setItem("crm_user",JSON.stringify(currentUser));
+      await showApp();
+    } else {
+      document.getElementById("login-err").textContent=t.loginErr;
+      shake();
+    }
+  } catch(e){
+    document.getElementById("login-err").textContent=t.loginErr;shake();
+  }
+  btn.textContent=t.loginBtn;btn.disabled=false;
+}
+
+function shake(){
+  const box=document.querySelector(".login-box");
+  box.classList.remove("shake");
+  setTimeout(()=>box.classList.add("shake"),10);
+}
+
+function doLogout(){
+  currentUser=null;
+  sessionStorage.removeItem("crm_user");
+  document.getElementById("app").style.display="none";
+  document.getElementById("login-screen").style.display="flex";
+  document.getElementById("login-password").value="";
+  document.getElementById("login-err").textContent="";
+}
+
+async function showApp(){
+  document.getElementById("login-screen").style.display="none";
+  document.getElementById("app").style.display="flex";
+  // update sidebar user info
+  const color=ROLE_COLORS[currentUser.role]||"#6ee7b7";
+  document.getElementById("user-avatar").textContent=(currentUser.display_name||currentUser.username)[0].toUpperCase();
+  document.getElementById("user-avatar").style.color=color;
+  document.getElementById("user-name").textContent=currentUser.display_name||currentUser.username;
+  document.getElementById("user-role").textContent=currentUser.role;
+  document.getElementById("user-role").style.color=color;
+  await loadAll();
+  render();
+  const today=new Date().toISOString().slice(0,10);
+  const due=state.tasks.filter(tk=>!tk.done&&tk.dueDate===today);
+  if(due.length) setTimeout(()=>toast(`⏰ ${t.reminderToday} ${due.length} ${t.reminderTasks}`,"warn"),1000);
+}
+
+// ── SUPABASE DATA
+async function dbGet(table){
+  try{const r=await fetch(`${SUPA_URL}/rest/v1/${table}?select=*`,{headers:H});if(!r.ok)return null;return await r.json();}catch{return null;}
+}
+async function dbSet(table,data){
+  try{await fetch(`${SUPA_URL}/rest/v1/${table}`,{method:"POST",headers:{...H,"Prefer":"resolution=merge-duplicates,return=minimal"},body:JSON.stringify({id:1,data})});}catch{}
+}
+async function loadAll(){
+  const [c,d,tk,h]=await Promise.all([dbGet("customers"),dbGet("deals"),dbGet("tasks"),dbGet("history")]);
+  state.customers=(c&&c[0])?c[0].data:SEED.customers;
+  state.deals=(d&&d[0])?d[0].data:SEED.deals;
+  state.tasks=(tk&&tk[0])?tk[0].data:SEED.tasks;
+  state.history=(h&&h[0])?h[0].data:SEED.history;
+  if(!c||!c[0])dbSet("customers",SEED.customers);
+  if(!d||!d[0])dbSet("deals",SEED.deals);
+  if(!tk||!tk[0])dbSet("tasks",SEED.tasks);
+  if(!h||!h[0])dbSet("history",SEED.history);
+}
+async function persist(table){
+  document.getElementById("syncing-label").style.display="inline";
+  await dbSet(table,state[table]);
+  document.getElementById("syncing-label").style.display="none";
+  updateFooter();
+}
+setInterval(async()=>{
+  if(!currentUser)return;
+  const [c,d,tk,h]=await Promise.all([dbGet("customers"),dbGet("deals"),dbGet("tasks"),dbGet("history")]);
+  if(c&&c[0])state.customers=c[0].data;
+  if(d&&d[0])state.deals=d[0].data;
+  if(tk&&tk[0])state.tasks=tk[0].data;
+  if(h&&h[0])state.history=h[0].data;
+  render();
+},10000);
+
+// ── HELPERS
+function getC(id){return state.customers.find(c=>c.id==id);}
+function canEdit(){return currentUser&&currentUser.role!=="okuyucu";}
+function stageLabel(s){return{gorusme:t.stageGorusme,teklif:t.stageTeklif,muzakere:t.stageMuzakere,kazanildi:t.stageKazanildi,kaybedildi:t.stageKaybedildi}[s]||s;}
+function statusLabel(s){return{aktif:t.statusActive,potansiyel:t.statusPotential,pasif:t.statusPassive}[s]||s;}
+function prioLabel(p){return{yuksek:t.pHigh,orta:t.pMedium,dusuk:t.pLow}[p]||p;}
+function months(){return lang==="tr"?MONTHS_TR:MONTHS_EN;}
+function toast(msg,type="ok"){const el=document.createElement("div");el.className=`toast ${type}`;el.textContent=msg;document.getElementById("toast-container").appendChild(el);setTimeout(()=>el.remove(),3000);}
+function exportCSV(data,fn){const keys=Object.keys(data[0]);const rows=[keys.join(","),...data.map(r=>keys.map(k=>`"${String(r[k]||"")}"`).join(","))];const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([rows.join("\n")],{type:"text/csv"}));a.download=fn;a.click();}
+function updateFooter(){if(!currentUser)return;document.getElementById("sidebar-footer").textContent=`${state.customers.length} ${t.footerCustomers} · ${state.deals.filter(d=>d.stage==="kazanildi").length} ${t.footerWon}`;}
+function setTab(tab){currentTab=tab;document.getElementById("page-title").textContent=t[tab];document.querySelectorAll("nav button").forEach((b,i)=>{b.className=["dashboard","customers","pipeline","tasks","history","reports"][i]===tab?"active":""});render();}
+function onSearch(v){searchQuery=v;document.getElementById("search-clear").style.display=v?"block":"none";render();}
+function clearSearch(){searchQuery="";document.getElementById("search-input").value="";document.getElementById("search-clear").style.display="none";render();}
+function matches(fields){if(!searchQuery)return true;return fields.some(f=>f&&String(f).toLowerCase().includes(searchQuery.toLowerCase()));}
+
+// ── RENDER
+function render(){
+  updateFooter();renderTopbarActions();
+  const c=document.getElementById("content");
+  if(currentTab==="dashboard")c.innerHTML=renderDashboard();
+  else if(currentTab==="customers")c.innerHTML=renderCustomers();
+  else if(currentTab==="pipeline")c.innerHTML=renderPipeline();
+  else if(currentTab==="tasks")c.innerHTML=renderTasks();
+  else if(currentTab==="history")c.innerHTML=renderHistory();
+  else if(currentTab==="reports"){c.innerHTML=renderReports();renderCharts();}
+}
+function renderTopbarActions(){
+  const el=document.getElementById("topbar-actions");let html="";
+  if(canEdit()&&currentTab==="customers")html=`<button class="btn" onclick="openModal('customer')">${t.addCustomer}</button> <button class="btn sec" onclick="exportCSV(state.customers,'customers.csv')">${t.csvCustomers}</button>`;
+  else if(canEdit()&&currentTab==="pipeline")html=`<button class="btn" onclick="openModal('deal')">${t.addDeal}</button>`;
+  else if(canEdit()&&currentTab==="tasks")html=`<button class="btn" onclick="openModal('task')">${t.addTask}</button>`;
+  else if(canEdit()&&currentTab==="history")html=`<button class="btn" onclick="openModal('history')">${t.addRecord}</button>`;
+  else if(currentTab==="reports")html=`<button class="btn sec" onclick="exportCSV(state.deals,'deals.csv')">${t.csvDeals}</button>`;
+  el.innerHTML=html;
+}
+function renderDashboard(){
+  const totalRev=state.deals.filter(d=>d.stage==="kazanildi").reduce((s,d)=>s+d.value,0);
+  const pipeline=state.deals.filter(d=>!["kazanildi","kaybedildi"].includes(d.stage)).reduce((s,d)=>s+d.value*d.probability/100,0);
+  const openT=state.tasks.filter(tk=>!tk.done).length;
+  const conv=state.deals.length?Math.round(state.deals.filter(d=>d.stage==="kazanildi").length/state.deals.length*100):0;
+  const kpis=[{label:t.totalCustomers,value:state.customers.length,color:"#60a5fa",sub:`${state.customers.filter(c=>c.status==="aktif").length} ${t.active}`,icon:"👥"},{label:t.revenue,value:`₺${totalRev.toLocaleString()}`,color:"#34d399",sub:`${state.deals.filter(d=>d.stage==="kazanildi").length} ${t.deals}`,icon:"💰"},{label:t.pipeline_val,value:`₺${Math.round(pipeline).toLocaleString()}`,color:"#f59e0b",sub:t.weighted,icon:"◈"},{label:t.openTasks,value:openT,color:"#a78bfa",sub:`%${conv} ${t.convRate}`,icon:"✓"}];
+  const openTasks=state.tasks.filter(tk=>!tk.done).slice(0,4);
+  return `<div style="display:flex;flex-direction:column;gap:18px">
+    <div class="grid4">${kpis.map(k=>`<div class="card" style="position:relative;overflow:hidden"><div style="position:absolute;right:12px;top:12px;font-size:22px;opacity:.12">${k.icon}</div><div class="kpi-val" style="color:${k.color}">${k.value}</div><div class="kpi-lbl">${k.label}</div><div class="kpi-sub">${k.sub}</div></div>`).join("")}</div>
+    <div class="grid2">
+      <div class="card"><div class="section-title">${t.monthlyRevenue}</div><canvas id="monthChart" height="130"></canvas></div>
+      <div class="card"><div class="section-title">${t.upcomingTasks}</div>
+        ${openTasks.length?openTasks.map(tk=>`<div style="display:flex;gap:10px;padding:6px 0;border-bottom:1px solid #1a2236;align-items:flex-start"><input type="checkbox" ${tk.done?"checked":""} onchange="toggleTask(${tk.id})" style="accent-color:#6ee7b7;margin-top:3px"/><div style="flex:1"><div style="font-size:12px;font-weight:600">${tk.title}</div><div style="font-size:11px;color:#3d5270">${tk.dueDate||""}</div></div><div style="width:6px;height:6px;border-radius:50%;background:${PRIO_COLORS[tk.priority]};margin-top:5px;flex-shrink:0"></div></div>`).join(""):`<div style="color:#3d5270;font-size:12px;text-align:center;padding-top:16px">${t.noTasks}</div>`}
+      </div>
+    </div>
+  </div>`;
+}
+function renderCustomers(){
+  const filtered=state.customers.filter(c=>matches([c.name,c.email,c.company,c.phone]));
+  if(!filtered.length)return`<div class="empty">${t.noCustomer}</div>`;
+  return`<div class="grid3">${filtered.map(c=>{const dC=state.deals.filter(d=>d.customerId==c.id).length;const hC=state.history.filter(h=>h.customerId==c.id).length;return`<div class="card"><div style="display:flex;justify-content:space-between;margin-bottom:10px"><div style="width:40px;height:40px;border-radius:50%;background:#131b2a;display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:800;color:#6ee7b7;border:2px solid #1a2236">${c.name[0]}</div><span class="badge" style="background:${STATUS_COLORS[c.status]}22;color:${STATUS_COLORS[c.status]}">${statusLabel(c.status)}</span></div><div style="font-weight:700;font-size:14px;margin-bottom:2px">${c.name}</div><div style="font-size:12px;color:#4a607d">${c.company||""}</div><div style="font-size:12px;color:#4a607d">${c.email||""}</div><div style="font-size:12px;color:#4a607d;margin-bottom:10px">${c.phone||""}</div><div style="display:flex;justify-content:space-between;align-items:center;padding-top:10px;border-top:1px solid #1a2236"><span style="font-weight:800;color:#34d399;font-size:13px">₺${(c.value||0).toLocaleString()}</span><div style="display:flex;gap:5px"><button class="sm-btn" onclick="openEmailModal(${c.id})">✉</button>${canEdit()?`<button class="sm-btn" onclick="openEditModal('customer',${c.id})">✎</button><button class="sm-btn danger" onclick="deleteItem('customers',${c.id})">✕</button>`:""}</div></div><div style="margin-top:7px;font-size:11px;color:#3d5270">${dC} ${t.deals_count} · ${hC} ${t.contacts_count}</div></div>`;}).join("")}</div>`;
+}
+function renderPipeline(){
+  return`<div style="display:flex;gap:12px;overflow-x:auto;padding-bottom:8px;align-items:flex-start">${STAGE_KEYS.map(stage=>{const sd=state.deals.filter(d=>d.stage===stage&&matches([d.title,getC(d.customerId)?.name]));const total=sd.reduce((s,d)=>s+d.value,0);return`<div class="pipeline-col"><div class="pipeline-header" style="background:${STAGE_COLORS[stage]}18;border:1px solid ${STAGE_COLORS[stage]}33"><span style="font-size:12px;font-weight:700;color:${STAGE_COLORS[stage]}">${stageLabel(stage)}</span><div style="text-align:right"><div style="font-size:11px;color:${STAGE_COLORS[stage]};font-weight:700">₺${total.toLocaleString()}</div><div style="font-size:10px;color:#3d5270">${sd.length} ${t.deals_count}</div></div></div>${sd.map(d=>`<div class="deal-card" style="border-top:3px solid ${STAGE_COLORS[d.stage]}"><div style="font-weight:600;font-size:13px;margin-bottom:3px">${d.title}</div><div style="font-size:11px;color:#4a607d;margin-bottom:6px">${getC(d.customerId)?.name||""}</div><div style="font-weight:800;color:${STAGE_COLORS[d.stage]};font-size:13px;margin-bottom:7px">₺${d.value.toLocaleString()}</div><div class="progress-bar"><div class="progress-fill" style="width:${d.probability}%;background:${STAGE_COLORS[d.stage]}"></div></div><div style="display:flex;justify-content:space-between;align-items:center"><span style="font-size:10px;color:#3d5270">%${d.probability} · ${d.dueDate||""}</span>${canEdit()?`<div style="display:flex;gap:4px"><button class="sm-btn" onclick="openEditModal('deal',${d.id})">✎</button><button class="sm-btn danger" onclick="deleteItem('deals',${d.id})">✕</button></div>`:""}</div></div>`).join("")}</div>`;}).join("")}</div>`;
+}
+function renderTasks(){
+  let html="";
+  ["yuksek","orta","dusuk"].forEach(pri=>{
+    const pt=state.tasks.filter(tk=>tk.priority===pri&&matches([tk.title,tk.note,getC(tk.customerId)?.name]));
+    if(!pt.length)return;
+    html+=`<div style="margin-bottom:22px"><div style="display:flex;align-items:center;gap:8px;margin-bottom:9px"><div style="width:7px;height:7px;border-radius:50%;background:${PRIO_COLORS[pri]}"></div><span style="font-size:11px;font-weight:700;color:${PRIO_COLORS[pri]};text-transform:uppercase;letter-spacing:1px">${prioLabel(pri)} ${t.priority}</span><span style="font-size:11px;color:#3d5270">(${pt.filter(tk=>!tk.done).length} ${t.open})</span></div>${[...pt].sort((a,b)=>a.done-b.done).map(tk=>`<div style="background:#0d1320;border:1px solid #1a2236;border-radius:10px;padding:13px;display:flex;gap:11px;margin-bottom:7px;opacity:${tk.done?.4:1}"><input type="checkbox" ${tk.done?"checked":""} onchange="toggleTask(${tk.id})" style="margin-top:3px;accent-color:#6ee7b7;width:14px;height:14px;flex-shrink:0"/><div style="flex:1"><div style="font-size:13px;font-weight:600;text-decoration:${tk.done?"line-through":"none"};color:${tk.done?"#3d5270":"#dde4ef"}">${tk.title}</div><div style="font-size:11px;color:#3d5270;margin-top:2px">${getC(tk.customerId)?.name?getC(tk.customerId).name+" · ":""}${tk.dueDate?tk.dueDate:""}</div>${tk.note?`<div style="font-size:12px;color:#4a607d;margin-top:3px">${tk.note}</div>`:""}</div>${canEdit()?`<button class="sm-btn danger" onclick="deleteItem('tasks',${tk.id})">✕</button>`:""}</div>`).join("")}</div>`;
+  });
+  return html||`<div class="empty">${t.noTask}</div>`;
+}
+function renderHistory(){
+  const items=state.history.filter(h=>matches([getC(h.customerId)?.name,h.note])).sort((a,b)=>b.date.localeCompare(a.date));
+  if(!items.length)return`<div class="empty">${t.noRecord}</div>`;
+  return`<div style="max-width:740px">${items.map((h,i)=>`<div class="timeline-item"><div style="display:flex;flex-direction:column;align-items:center"><div class="timeline-dot">${TYPE_ICONS[h.type]||"📝"}</div>${i<items.length-1?`<div class="timeline-line"></div>`:""}</div><div style="flex:1;padding:3px 0 18px"><div style="display:flex;align-items:center;gap:8px;margin-bottom:4px"><span style="font-weight:700;font-size:13px">${getC(h.customerId)?.name||"—"}</span><span style="font-size:11px;background:#131b2a;border:1px solid #1a2236;color:#4a607d;padding:1px 7px;border-radius:20px">${h.date}</span></div><div style="font-size:13px;color:#94a3b8;background:#0d1320;border:1px solid #1a2236;border-radius:8px;padding:7px 11px">${h.note}</div></div></div>`).join("")}</div>`;
+}
+function renderReports(){
+  const conv=state.deals.length?Math.round(state.deals.filter(d=>d.stage==="kazanildi").length/state.deals.length*100):0;
+  const top=[...state.customers].sort((a,b)=>b.value-a.value).slice(0,6);
+  return`<div style="display:flex;flex-direction:column;gap:18px"><div class="grid2"><div class="card"><div class="section-title">${t.revenueChart}</div><canvas id="revenueChart" height="180"></canvas></div><div class="card"><div class="section-title">${t.stageChart}</div><canvas id="stageChart" height="180"></canvas></div></div><div class="grid2"><div class="card"><div class="section-title">${t.statusChart}</div><canvas id="statusChart" height="160"></canvas></div><div class="card"><div class="section-title">${t.summary}</div>${[[t.totalDealVal,`₺${state.deals.reduce((s,d)=>s+d.value,0).toLocaleString()}`],[t.avgDeal,`₺${state.deals.length?Math.round(state.deals.reduce((s,d)=>s+d.value,0)/state.deals.length).toLocaleString():0}`],[t.convRate,`%${conv}`],[t.completedTasks,`${state.tasks.filter(tk=>tk.done).length} / ${state.tasks.length}`],[t.contactRecords,state.history.length]].map(([l,v])=>`<div class="stat-row"><span>${l}</span><span>${v}</span></div>`).join("")}</div></div><div class="card"><div class="section-title">${t.topCustomers}</div><div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:12px">${top.map((c,i)=>`<div style="background:#131b2a;border-radius:10px;padding:13px;border:1px solid #1a2236"><div style="display:flex;align-items:center;gap:9px;margin-bottom:7px"><div style="width:26px;height:26px;border-radius:50%;background:#1a2236;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;color:#6ee7b7">${i+1}</div><span style="font-size:13px;font-weight:700">${c.name}</span></div><div style="font-size:12px;color:#4a607d">${c.company||""}</div><div style="font-size:15px;font-weight:800;color:#34d399;margin-top:6px">₺${(c.value||0).toLocaleString()}</div></div>`).join("")}</div></div></div>`;
+}
+function renderCharts(){
+  const map={};state.deals.filter(d=>d.stage==="kazanildi"&&d.dueDate).forEach(d=>{const m=new Date(d.dueDate).getMonth();map[m]=(map[m]||0)+d.value;});
+  const monthly=months().map((name,i)=>({name,v:map[i]||0}));
+  ["revenueChart"].forEach(id=>{const el=document.getElementById(id);if(!el)return;if(charts[id])charts[id].destroy();charts[id]=new Chart(el,{type:"bar",data:{labels:monthly.map(m=>m.name),datasets:[{data:monthly.map(m=>m.v),backgroundColor:"#6ee7b7",borderRadius:4}]},options:{plugins:{legend:{display:false},tooltip:{callbacks:{label:v=>`₺${v.raw.toLocaleString()}`}}},scales:{x:{grid:{display:false},ticks:{color:"#3d5270"}},y:{grid:{color:"#1a2236"},ticks:{color:"#3d5270",callback:v=>v>=1000?`${v/1000}K`:v}}},responsive:true,maintainAspectRatio:false}});});
+  const stageEl=document.getElementById("stageChart");if(stageEl){if(charts.stageChart)charts.stageChart.destroy();const sd=STAGE_KEYS.map(s=>({label:stageLabel(s),value:state.deals.filter(d=>d.stage===s).length,color:STAGE_COLORS[s]})).filter(d=>d.value>0);charts.stageChart=new Chart(stageEl,{type:"doughnut",data:{labels:sd.map(d=>d.label),datasets:[{data:sd.map(d=>d.value),backgroundColor:sd.map(d=>d.color),borderWidth:0}]},options:{plugins:{legend:{labels:{color:"#94a3b8",font:{size:12}}}},responsive:true,maintainAspectRatio:false}});}
+  const statusEl=document.getElementById("statusChart");if(statusEl){if(charts.statusChart)charts.statusChart.destroy();const sp=[{label:t.statusActive,value:state.customers.filter(c=>c.status==="aktif").length,color:"#34d399"},{label:t.statusPotential,value:state.customers.filter(c=>c.status==="potansiyel").length,color:"#60a5fa"},{label:t.statusPassive,value:state.customers.filter(c=>c.status==="pasif").length,color:"#94a3b8"}].filter(d=>d.value>0);charts.statusChart=new Chart(statusEl,{type:"pie",data:{labels:sp.map(d=>d.label),datasets:[{data:sp.map(d=>d.value),backgroundColor:sp.map(d=>d.color),borderWidth:0}]},options:{plugins:{legend:{labels:{color:"#94a3b8",font:{size:12}}}},responsive:true,maintainAspectRatio:false}});}
+}
+
+// ── ACTIONS
+async function toggleTask(id){state.tasks=state.tasks.map(tk=>tk.id==id?{...tk,done:!tk.done}:tk);await persist("tasks");render();}
+async function deleteItem(table,id){if(!canEdit())return;state[table]=state[table].filter(x=>x.id!=id);await persist(table);toast(t.toastDeleted,"warn");render();}
+
+// ── MODALS
+function closeModal(){const m=document.getElementById("modal-overlay");if(m)m.remove();}
+function openModal(type,data={}){
+  const custOpts=state.customers.map(c=>`<option value="${c.id}" ${data.customerId==c.id?"selected":""}>${c.name}</option>`).join("");
+  const stageOpts=STAGE_KEYS.map(s=>`<option value="${s}" ${data.stage==s?"selected":""}>${stageLabel(s)}</option>`).join("");
+  let body="",title="",onSave="",saveLabel=t.save;
+  if(type==="customer"){
+    title=data.id?t.editCustomer:t.newCustomer;onSave=`saveCustomer(${data.id||0})`;
+    body=`<div class="field"><label>${t.fname}</label><input id="f-name" value="${data.name||""}" placeholder="${t.nameHolder}"/></div><div class="field"><label>${t.femail}</label><input id="f-email" value="${data.email||""}" placeholder="${t.emailHolder}"/></div><div class="field"><label>${t.fphone}</label><input id="f-phone" value="${data.phone||""}" placeholder="${t.phoneHolder}"/></div><div class="field"><label>${t.fcompany}</label><input id="f-company" value="${data.company||""}" placeholder="${t.companyHolder}"/></div><div class="field"><label>${t.fstatus}</label><select id="f-status"><option value="potansiyel" ${data.status==="potansiyel"?"selected":""}>${t.statusPotential}</option><option value="aktif" ${data.status==="aktif"?"selected":""}>${t.statusActive}</option><option value="pasif" ${data.status==="pasif"?"selected":""}>${t.statusPassive}</option></select></div><div class="field"><label>${t.fvalue}</label><input id="f-value" type="number" value="${data.value||""}" placeholder="0"/></div>`;
+  } else if(type==="deal"){
+    title=data.id?t.editDeal:t.newDeal;onSave=`saveDeal(${data.id||0})`;
+    body=`<div class="field"><label>${t.ftitle}</label><input id="f-title" value="${data.title||""}" placeholder="${t.dealHolder}"/></div><div class="field"><label>${t.fcustomer}</label><select id="f-customerId"><option value="">${t.selectOpt}</option>${custOpts}</select></div><div class="field"><label>${t.fstage}</label><select id="f-stage">${stageOpts}</select></div><div class="field"><label>${t.fvalue}</label><input id="f-value" type="number" value="${data.value||""}" placeholder="0"/></div><div class="field"><label>${t.fdueDate}</label><input id="f-dueDate" type="date" value="${data.dueDate||""}"/></div><div class="field"><label id="prob-label">${t.fprobability}: %${data.probability||50}</label><input id="f-probability" type="range" min="0" max="100" value="${data.probability||50}" oninput="document.getElementById('prob-label').textContent='${t.fprobability}: %'+this.value" style="accent-color:#6ee7b7;width:100%"/></div>`;
+  } else if(type==="task"){
+    title=t.newTask;onSave=`saveTask()`;
+    body=`<div class="field"><label>${t.ftask}</label><input id="f-title" placeholder="${t.taskHolder}"/></div><div class="field"><label>${t.fcustomerOpt}</label><select id="f-customerId"><option value="">${t.selectOptOpt}</option>${custOpts}</select></div><div class="field"><label>${t.fdate}</label><input id="f-dueDate" type="date"/></div><div class="field"><label>${t.fpriority}</label><select id="f-priority"><option value="yuksek">${t.pHigh}</option><option value="orta" selected>${t.pMedium}</option><option value="dusuk">${t.pLow}</option></select></div><div class="field"><label>${t.fnote}</label><textarea id="f-note" rows="2" placeholder="${t.extraHolder}"></textarea></div>`;
+  } else if(type==="history"){
+    title=t.contactRecord;onSave=`saveHistory()`;
+    body=`<div class="field"><label>${t.fcustomer}</label><select id="f-customerId"><option value="">${t.selectOpt}</option>${custOpts}</select></div><div class="field"><label>${t.ftype}</label><select id="f-type"><option value="arama">${t.typeCall}</option><option value="email">${t.typeEmail}</option><option value="toplanti">${t.typeMeeting}</option><option value="not">${t.typeNote}</option></select></div><div class="field"><label>${t.fdate}</label><input id="f-date" type="date" value="${new Date().toISOString().slice(0,10)}"/></div><div class="field"><label>${t.frecord}</label><textarea id="f-note" rows="3" placeholder="${t.notesHolder}"></textarea></div>`;
+  } else if(type==="email"){
+    title=t.sendEmail;onSave=`sendEmail(${data.id})`;saveLabel=t.send;
+    body=`<div class="field"><label>${t.fto}</label><input id="f-to" value="${data.email||""}"/></div><div class="field"><label>${t.fsubject}</label><input id="f-subject" placeholder="${t.subjectHolder}"/></div><div class="field"><label>${t.fbody}</label><textarea id="f-body" rows="5">${lang==="tr"?"Sayın":"Dear"} ${data.name||""},\n\n</textarea></div><div style="font-size:11px;color:#3d5270;margin-top:4px">${t.simNote}</div>`;
+  }
+  const overlay=document.createElement("div");
+  overlay.id="modal-overlay";overlay.className="modal-overlay";
+  overlay.onclick=e=>{if(e.target===overlay)closeModal();};
+  overlay.innerHTML=`<div class="modal"><div class="modal-title"><span>${title}</span><button onclick="closeModal()">✕</button></div>${body}<div class="modal-actions"><button class="cancel" onclick="closeModal()">${t.cancel}</button><button class="save" onclick="${onSave}">${saveLabel}</button></div></div>`;
+  document.body.appendChild(overlay);
+}
+function openEditModal(type,id){const item=state[type==="customer"?"customers":"deals"].find(x=>x.id==id);if(item)openModal(type,item);}
+function openEmailModal(cid){const c=getC(cid);if(c)openModal("email",c);}
+
+async function saveCustomer(editId){
+  const name=document.getElementById("f-name")?.value?.trim();if(!name)return;
+  const item={name,email:document.getElementById("f-email").value,phone:document.getElementById("f-phone").value,company:document.getElementById("f-company").value,status:document.getElementById("f-status").value,value:+document.getElementById("f-value").value||0,assignee:currentUser.username};
+  if(editId){state.customers=state.customers.map(c=>c.id==editId?{...c,...item}:c);toast(`${t.customers} ${t.toastUpdated}`);}
+  else{state.customers.push({...item,id:Date.now(),createdAt:new Date().toISOString().slice(0,10)});toast(`${t.customers} ${t.toastAdded}`);}
+  await persist("customers");closeModal();render();
+}
+async function saveDeal(editId){
+  const title2=document.getElementById("f-title")?.value?.trim();const customerId=document.getElementById("f-customerId")?.value;if(!title2||!customerId)return;
+  const item={title:title2,customerId:+customerId,stage:document.getElementById("f-stage").value,value:+document.getElementById("f-value").value||0,dueDate:document.getElementById("f-dueDate").value,probability:+document.getElementById("f-probability").value};
+  if(editId){state.deals=state.deals.map(d=>d.id==editId?{...d,...item}:d);toast(`${t.pipeline} ${t.toastUpdated}`);}
+  else{state.deals.push({...item,id:Date.now()});toast(`${t.pipeline} ${t.toastAdded}`);}
+  await persist("deals");closeModal();render();
+}
+async function saveTask(){
+  const title2=document.getElementById("f-title")?.value?.trim();if(!title2)return;
+  state.tasks.push({id:Date.now(),title:title2,done:false,customerId:+document.getElementById("f-customerId").value||0,dueDate:document.getElementById("f-dueDate").value,priority:document.getElementById("f-priority").value,assignee:currentUser.username,note:document.getElementById("f-note").value});
+  await persist("tasks");toast(`${t.tasks} ${t.toastAdded}`);closeModal();render();
+}
+async function saveHistory(){
+  const note=document.getElementById("f-note")?.value?.trim();const customerId=document.getElementById("f-customerId")?.value;if(!note||!customerId)return;
+  state.history.push({id:Date.now(),customerId:+customerId,type:document.getElementById("f-type").value,date:document.getElementById("f-date").value,note,by:currentUser.username});
+  await persist("history");toast(t.toastRecordAdded);closeModal();render();
+}
+async function sendEmail(customerId){
+  const subject=document.getElementById("f-subject")?.value;
+  state.history.push({id:Date.now(),customerId:+customerId,type:"email",date:new Date().toISOString().slice(0,10),note:`${lang==="tr"?"Konu":"Subject"}: ${subject}`,by:currentUser.username});
+  await persist("history");toast(t.toastEmailSent);closeModal();render();
+}
+
+// ── INIT
+(async()=>{
+  // Check session
+  const saved=sessionStorage.getItem("crm_user");
+  if(saved){
+    try{currentUser=JSON.parse(saved);await showApp();}catch{sessionStorage.removeItem("crm_user");}
+  }
+})();
+</script>
+</body>
+</html>
