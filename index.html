@@ -5,6 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <title>CRM Pro</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800;900&display=swap');
   *{box-sizing:border-box;margin:0;padding:0}
@@ -498,7 +500,7 @@ function renderDashboard(){
 function renderCustomers(){
   const filtered=state.customers.filter(c=>matches([c.name,c.email,c.company,c.phone]));
   if(!filtered.length)return`<div class="empty">${t.noCustomer}</div>`;
-  return`<div class="grid3">${filtered.map(c=>{const dC=state.deals.filter(d=>d.customerId==c.id).length;const hC=state.history.filter(h=>h.customerId==c.id).length;return`<div class="card"><div style="display:flex;justify-content:space-between;margin-bottom:10px"><div style="width:40px;height:40px;border-radius:50%;background:#131b2a;display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:800;color:#6ee7b7;border:2px solid #1a2236">${c.name[0]}</div><span class="badge" style="background:${STATUS_COLORS[c.status]}22;color:${STATUS_COLORS[c.status]}">${statusLabel(c.status)}</span></div><div style="font-weight:700;font-size:14px;margin-bottom:2px">${c.name}</div><div style="font-size:12px;color:#4a607d">${c.company||""}</div><div style="font-size:12px;color:#4a607d">${c.email||""}</div><div style="font-size:12px;color:#4a607d;margin-bottom:10px">${c.phone||""}</div><div style="display:flex;justify-content:space-between;align-items:center;padding-top:10px;border-top:1px solid #1a2236"><span style="font-weight:800;color:#34d399;font-size:13px">₺${(c.value||0).toLocaleString()}</span><div style="display:flex;gap:5px"><button class="sm-btn" onclick="openEmailModal(${c.id})">✉</button>${canEdit()?`<button class="sm-btn" onclick="openEditModal('customer',${c.id})">✎</button><button class="sm-btn danger" onclick="deleteItem('customers',${c.id})">✕</button>`:""}</div></div><div style="margin-top:7px;font-size:11px;color:#3d5270">${dC} ${t.deals_count} · ${hC} ${t.contacts_count}</div></div>`;}).join("")}</div>`;
+  return`<div class="grid3">${filtered.map(c=>{const dC=state.deals.filter(d=>d.customerId==c.id).length;const hC=state.history.filter(h=>h.customerId==c.id).length;return`<div class="card"><div style="display:flex;justify-content:space-between;margin-bottom:10px"><div style="width:40px;height:40px;border-radius:50%;background:#131b2a;display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:800;color:#6ee7b7;border:2px solid #1a2236">${c.name[0]}</div><span class="badge" style="background:${STATUS_COLORS[c.status]}22;color:${STATUS_COLORS[c.status]}">${statusLabel(c.status)}</span></div><div style="font-weight:700;font-size:14px;margin-bottom:2px">${c.name}</div><div style="font-size:12px;color:#4a607d">${c.company||""}</div><div style="font-size:12px;color:#4a607d">${c.email||""}</div><div style="font-size:12px;color:#4a607d;margin-bottom:10px">${c.phone||""}</div><div style="display:flex;justify-content:space-between;align-items:center;padding-top:10px;border-top:1px solid #1a2236"><span style="font-weight:800;color:#34d399;font-size:13px">₺${(c.value||0).toLocaleString()}</span><div style="display:flex;gap:5px"><button class="sm-btn" onclick="openTeklifModal(${c.id})" title="${lang==='tr'?'Teklif Oluştur':'Create Quote'}">📄</button>${canEdit()?`<button class="sm-btn" onclick="openEditModal('customer',${c.id})">✎</button><button class="sm-btn danger" onclick="deleteItem('customers',${c.id})">✕</button>`:""}</div></div><div style="margin-top:7px;font-size:11px;color:#3d5270">${dC} ${t.deals_count} · ${hC} ${t.contacts_count}</div></div>`;}).join("")}</div>`;
 }
 function renderPipeline(){
   return`<div style="display:flex;gap:12px;overflow-x:auto;padding-bottom:8px;align-items:flex-start">${STAGE_KEYS.map(stage=>{const sd=state.deals.filter(d=>d.stage===stage&&matches([d.title,getC(d.customerId)?.name]));const total=sd.reduce((s,d)=>s+d.value,0);return`<div class="pipeline-col"><div class="pipeline-header" style="background:${STAGE_COLORS[stage]}18;border:1px solid ${STAGE_COLORS[stage]}33"><span style="font-size:12px;font-weight:700;color:${STAGE_COLORS[stage]}">${stageLabel(stage)}</span><div style="text-align:right"><div style="font-size:11px;color:${STAGE_COLORS[stage]};font-weight:700">₺${total.toLocaleString()}</div><div style="font-size:10px;color:#3d5270">${sd.length} ${t.deals_count}</div></div></div>${sd.map(d=>`<div class="deal-card" style="border-top:3px solid ${STAGE_COLORS[d.stage]}"><div style="font-weight:600;font-size:13px;margin-bottom:3px">${d.title}</div><div style="font-size:11px;color:#4a607d;margin-bottom:6px">${getC(d.customerId)?.name||""}</div><div style="font-weight:800;color:${STAGE_COLORS[d.stage]};font-size:13px;margin-bottom:7px">₺${d.value.toLocaleString()}</div><div class="progress-bar"><div class="progress-fill" style="width:${d.probability}%;background:${STAGE_COLORS[d.stage]}"></div></div><div style="display:flex;justify-content:space-between;align-items:center"><span style="font-size:10px;color:#3d5270">%${d.probability} · ${d.dueDate||""}</span>${canEdit()?`<div style="display:flex;gap:4px"><button class="sm-btn" onclick="openEditModal('deal',${d.id})">✎</button><button class="sm-btn danger" onclick="deleteItem('deals',${d.id})">✕</button></div>`:""}</div></div>`).join("")}</div>`;}).join("")}</div>`;
@@ -593,6 +595,235 @@ async function sendEmail(customerId){
   const subject=document.getElementById("f-subject")?.value;
   state.history.push({id:Date.now(),customerId:+customerId,type:"email",date:new Date().toISOString().slice(0,10),note:`${lang==="tr"?"Konu":"Subject"}: ${subject}`,by:currentUser.username});
   await persist("history");toast(t.toastEmailSent);closeModal();render();
+}
+
+// ── TEKLIF (QUOTE / PROPOSAL)
+let teklifItems=[{desc:"",qty:1,price:0}];
+
+function openTeklifModal(cid){
+  const c=getC(cid);if(!c)return;
+  teklifItems=[{desc:"",qty:1,price:0}];
+  const overlay=document.createElement("div");
+  overlay.id="modal-overlay";overlay.className="modal-overlay";
+  overlay.onclick=e=>{if(e.target===overlay)closeModal();};
+  overlay.innerHTML=`<div class="modal" style="width:560px;max-width:95vw">
+    <div class="modal-title">
+      <span>📄 ${lang==="tr"?"Teklif Oluştur":"Create Quote"} — ${c.name}</span>
+      <button onclick="closeModal()">✕</button>
+    </div>
+    <div class="field"><label>${lang==="tr"?"Teklif Başlığı / Konu":"Quote Title / Subject"}</label>
+      <input id="tf-title" value="${c.company?c.company+" - Teklif":"Teklif"}"/>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+      <div class="field"><label>${lang==="tr"?"Geçerlilik (gün)":"Validity (days)"}</label>
+        <input id="tf-validity" type="number" value="30" min="1"/>
+      </div>
+      <div class="field"><label>${lang==="tr"?"KDV Oranı":"VAT Rate"}</label>
+        <select id="tf-kdv" onchange="updateTeklifTotals()">
+          <option value="0">${lang==="tr"?"KDV Yok":"No VAT"}</option>
+          <option value="10">%10</option>
+          <option value="20" selected>%20</option>
+        </select>
+      </div>
+    </div>
+    <div style="margin-bottom:10px">
+      <div style="font-size:11px;color:#3d5270;font-weight:600;text-transform:uppercase;letter-spacing:.5px;margin-bottom:7px">${lang==="tr"?"Kalemler":"Items"}</div>
+      <div style="background:#131b2a;border:1px solid #1a2236;border-radius:8px;overflow:hidden">
+        <div style="display:grid;grid-template-columns:1fr 60px 100px 28px;gap:0;padding:7px 10px;border-bottom:1px solid #1a2236">
+          <span style="font-size:10px;color:#3d5270;font-weight:700">${lang==="tr"?"HİZMET / ÜRÜN":"SERVICE / PRODUCT"}</span>
+          <span style="font-size:10px;color:#3d5270;font-weight:700;text-align:center">${lang==="tr"?"ADET":"QTY"}</span>
+          <span style="font-size:10px;color:#3d5270;font-weight:700;text-align:right">${lang==="tr"?"BİRİM (₺)":"UNIT (₺)"}</span>
+          <span></span>
+        </div>
+        <div id="tf-items-body"></div>
+      </div>
+      <button class="sm-btn" style="margin-top:8px;width:100%;padding:7px;font-size:12px" onclick="addTeklifRow()">+ ${lang==="tr"?"Kalem Ekle":"Add Item"}</button>
+    </div>
+    <div class="field"><label>${lang==="tr"?"Notlar / Ödeme Koşulları":"Notes / Payment Terms"}</label>
+      <textarea id="tf-notes" rows="2" placeholder="${lang==="tr"?"Ödeme koşulları, garantiler, özel notlar...":"Payment terms, warranties, special notes..."}"></textarea>
+    </div>
+    <div id="tf-totals" style="text-align:right;margin-bottom:14px"></div>
+    <div style="display:flex;gap:9px">
+      <button class="btn sec" style="flex:1" onclick="closeModal()">${t.cancel}</button>
+      <button class="btn sec" style="flex:2" id="tf-dl-btn" onclick="downloadTeklif(${cid})">⬇ ${lang==="tr"?"PDF İndir":"Download PDF"}</button>
+      <button class="btn" style="flex:2" id="tf-sh-btn" onclick="shareTeklif(${cid})">↗ ${lang==="tr"?"Paylaş":"Share"}</button>
+    </div>
+  </div>`;
+  document.body.appendChild(overlay);
+  renderTeklifRows();
+}
+
+function renderTeklifRows(){
+  const body=document.getElementById("tf-items-body");if(!body)return;
+  body.innerHTML=teklifItems.map((item,i)=>`
+    <div style="display:grid;grid-template-columns:1fr 60px 100px 28px;align-items:center;padding:5px 10px;border-bottom:1px solid #1a2236">
+      <input style="background:transparent;border:none;outline:none;color:#dde4ef;font-size:12px;font-family:'DM Sans',sans-serif;width:100%;padding:3px 4px"
+        placeholder="${lang==="tr"?"Hizmet/Ürün adı":"Service/Product name"}" value="${item.desc}"
+        oninput="teklifItems[${i}].desc=this.value"/>
+      <input type="number" min="1" style="background:transparent;border:none;outline:none;color:#dde4ef;font-size:12px;font-family:'DM Sans',sans-serif;width:100%;text-align:center;padding:3px 4px"
+        value="${item.qty}" oninput="teklifItems[${i}].qty=+this.value||1;updateTeklifTotals()"/>
+      <input type="number" min="0" step="0.01" style="background:transparent;border:none;outline:none;color:#dde4ef;font-size:12px;font-family:'DM Sans',sans-serif;width:100%;text-align:right;padding:3px 4px"
+        placeholder="0" value="${item.price||""}" oninput="teklifItems[${i}].price=+this.value||0;updateTeklifTotals()"/>
+      <button onclick="removeTeklifRow(${i})" style="background:none;border:none;color:${teklifItems.length>1?"#f87171":"#1a2236"};cursor:pointer;font-size:14px;padding:0 4px;line-height:1">${teklifItems.length>1?"✕":"·"}</button>
+    </div>`).join("");
+  updateTeklifTotals();
+}
+
+function addTeklifRow(){teklifItems.push({desc:"",qty:1,price:0});renderTeklifRows();}
+function removeTeklifRow(i){if(teklifItems.length<=1)return;teklifItems.splice(i,1);renderTeklifRows();}
+
+function updateTeklifTotals(){
+  const el=document.getElementById("tf-totals");if(!el)return;
+  const kdvRate=parseInt(document.getElementById("tf-kdv")?.value||"0");
+  const sub=teklifItems.reduce((s,x)=>s+(x.qty||0)*(x.price||0),0);
+  const kdv=sub*kdvRate/100;
+  const grand=sub+kdv;
+  el.innerHTML=`<div style="display:inline-block;min-width:210px;background:#131b2a;border:1px solid #1a2236;border-radius:8px;overflow:hidden">
+    <div style="display:flex;justify-content:space-between;padding:6px 12px;border-bottom:1px solid #1a2236">
+      <span style="font-size:11px;color:#4a607d">${lang==="tr"?"Ara Toplam":"Subtotal"}</span>
+      <span style="font-size:12px;font-weight:600">₺${sub.toLocaleString("tr-TR")}</span>
+    </div>
+    ${kdvRate>0?`<div style="display:flex;justify-content:space-between;padding:6px 12px;border-bottom:1px solid #1a2236">
+      <span style="font-size:11px;color:#4a607d">KDV %${kdvRate}</span>
+      <span style="font-size:12px;font-weight:600">₺${kdv.toLocaleString("tr-TR")}</span>
+    </div>`:""}
+    <div style="display:flex;justify-content:space-between;padding:8px 12px;background:#6ee7b722">
+      <span style="font-size:12px;font-weight:700;color:#6ee7b7">${lang==="tr"?"GENEL TOPLAM":"GRAND TOTAL"}</span>
+      <span style="font-size:15px;font-weight:900;color:#6ee7b7">₺${grand.toLocaleString("tr-TR")}</span>
+    </div>
+  </div>`;
+}
+
+function buildTeklifHTML(cid){
+  const c=getC(cid);if(!c)return null;
+  const titleVal=document.getElementById("tf-title")?.value||"Teklif";
+  const validityVal=document.getElementById("tf-validity")?.value||"30";
+  const notesVal=document.getElementById("tf-notes")?.value||"";
+  const kdvRate=parseInt(document.getElementById("tf-kdv")?.value||"0");
+  const today=new Date();
+  const dateStr=today.toLocaleDateString("tr-TR");
+  const rnd=String(Math.floor(Math.random()*900)+100);
+  const teklifNo=`TKL-${today.getFullYear()}${String(today.getMonth()+1).padStart(2,"0")}${String(today.getDate()).padStart(2,"0")}-${rnd}`;
+  const validTo=new Date(today.getTime()+parseInt(validityVal)*864e5).toLocaleDateString("tr-TR");
+  const sub=teklifItems.reduce((s,x)=>s+(x.qty||0)*(x.price||0),0);
+  const kdv=sub*kdvRate/100;
+  const grand=sub+kdv;
+  const el=document.createElement("div");
+  el.style.cssText="position:fixed;left:-9999px;top:0;width:794px;background:#fff;font-family:Arial,Helvetica,sans-serif;padding:48px;color:#1a1a2e;box-sizing:border-box";
+  el.innerHTML=`
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:28px;padding-bottom:20px;border-bottom:3px solid #5dd4a3">
+      <div>
+        <div style="font-size:26px;font-weight:900;color:#5dd4a3;letter-spacing:-1px">CRM Pro</div>
+        <div style="font-size:11px;color:#888;margin-top:3px">${lang==="tr"?"Profesyonel Hizmetler":"Professional Services"}</div>
+      </div>
+      <div style="text-align:right">
+        <div style="font-size:22px;font-weight:900;color:#1a1a2e;letter-spacing:3px">${lang==="tr"?"TEKLİF":"QUOTE"}</div>
+        <div style="font-size:10px;color:#777;margin-top:8px">No: ${teklifNo}</div>
+        <div style="font-size:10px;color:#777">${lang==="tr"?"Tarih":"Date"}: ${dateStr}</div>
+        <div style="font-size:10px;color:#777">${lang==="tr"?"Geçerlilik":"Valid until"}: ${validTo}</div>
+      </div>
+    </div>
+    <div style="margin-bottom:22px;padding:14px 16px;background:#f8f9fa;border-radius:6px;border-left:3px solid #5dd4a3">
+      <div style="font-size:9px;font-weight:700;color:#5dd4a3;letter-spacing:1px;margin-bottom:6px">${lang==="tr"?"ALICI":"BILL TO"}</div>
+      <div style="font-size:15px;font-weight:700;color:#1a1a2e">${c.name}</div>
+      ${c.company?`<div style="font-size:12px;color:#555;margin-top:2px">${c.company}</div>`:""}
+      ${c.email?`<div style="font-size:11px;color:#777;margin-top:2px">${c.email}</div>`:""}
+      ${c.phone?`<div style="font-size:11px;color:#777">${c.phone}</div>`:""}
+    </div>
+    ${titleVal?`<div style="font-size:14px;font-weight:700;color:#1a1a2e;margin-bottom:14px">${titleVal}</div>`:""}
+    <table style="width:100%;border-collapse:collapse;margin-bottom:18px">
+      <thead>
+        <tr style="background:#5dd4a3">
+          <th style="padding:9px 12px;text-align:left;font-size:10px;font-weight:700;color:#0d1320">${lang==="tr"?"HİZMET / ÜRÜN":"SERVICE / PRODUCT"}</th>
+          <th style="padding:9px 12px;text-align:center;font-size:10px;font-weight:700;color:#0d1320;width:60px">${lang==="tr"?"ADET":"QTY"}</th>
+          <th style="padding:9px 12px;text-align:right;font-size:10px;font-weight:700;color:#0d1320;width:130px">${lang==="tr"?"BİRİM FİYAT":"UNIT PRICE"}</th>
+          <th style="padding:9px 12px;text-align:right;font-size:10px;font-weight:700;color:#0d1320;width:130px">${lang==="tr"?"TOPLAM":"TOTAL"}</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${teklifItems.map((item,i)=>`<tr style="background:${i%2===0?"#fff":"#f8f9fa"};border-bottom:1px solid #e9ecef">
+          <td style="padding:9px 12px;font-size:12px;color:#1a1a2e">${item.desc||"-"}</td>
+          <td style="padding:9px 12px;text-align:center;font-size:12px;color:#555">${item.qty}</td>
+          <td style="padding:9px 12px;text-align:right;font-size:12px;color:#555">₺${(item.price||0).toLocaleString("tr-TR")}</td>
+          <td style="padding:9px 12px;text-align:right;font-size:12px;font-weight:600;color:#1a1a2e">₺${((item.qty||0)*(item.price||0)).toLocaleString("tr-TR")}</td>
+        </tr>`).join("")}
+      </tbody>
+    </table>
+    <div style="display:flex;justify-content:flex-end;margin-bottom:22px">
+      <div style="min-width:220px">
+        <div style="display:flex;justify-content:space-between;padding:7px 12px;background:#f8f9fa;border:1px solid #e9ecef;border-bottom:none;border-radius:4px 4px 0 0">
+          <span style="font-size:11px;color:#777">${lang==="tr"?"Ara Toplam":"Subtotal"}</span>
+          <span style="font-size:12px;font-weight:600;color:#1a1a2e">₺${sub.toLocaleString("tr-TR")}</span>
+        </div>
+        ${kdvRate>0?`<div style="display:flex;justify-content:space-between;padding:7px 12px;background:#f8f9fa;border:1px solid #e9ecef;border-bottom:none">
+          <span style="font-size:11px;color:#777">KDV %${kdvRate}</span>
+          <span style="font-size:12px;font-weight:600;color:#1a1a2e">₺${kdv.toLocaleString("tr-TR")}</span>
+        </div>`:""}
+        <div style="display:flex;justify-content:space-between;padding:9px 12px;background:#5dd4a3;border-radius:0 0 4px 4px">
+          <span style="font-size:12px;font-weight:700;color:#0d1320">${lang==="tr"?"GENEL TOPLAM":"GRAND TOTAL"}</span>
+          <span style="font-size:15px;font-weight:900;color:#0d1320">₺${grand.toLocaleString("tr-TR")}</span>
+        </div>
+      </div>
+    </div>
+    ${notesVal?`<div style="background:#f8f9fa;border-left:3px solid #5dd4a3;padding:12px 16px;border-radius:0 6px 6px 0;margin-bottom:20px">
+      <div style="font-size:9px;font-weight:700;color:#5dd4a3;letter-spacing:1px;margin-bottom:5px">${lang==="tr"?"NOTLAR / KOŞULLAR":"NOTES / TERMS"}</div>
+      <div style="font-size:11px;color:#555;line-height:1.7;white-space:pre-line">${notesVal}</div>
+    </div>`:""}
+    <div style="margin-top:30px;padding-top:12px;border-top:1px solid #e9ecef;text-align:center;font-size:9px;color:#aaa">
+      ${lang==="tr"?`Bu teklif ${dateStr} tarihinde hazırlanmış olup ${validityVal} gün geçerlidir. Hazırlayan: ${currentUser.display_name||currentUser.username}`:`This quote was generated on ${dateStr} and is valid for ${validityVal} days. Prepared by: ${currentUser.display_name||currentUser.username}`}
+    </div>`;
+  return el;
+}
+
+async function renderTeklifPDFDoc(cid){
+  const el=buildTeklifHTML(cid);if(!el)return null;
+  document.body.appendChild(el);
+  try{
+    const canvas=await html2canvas(el,{scale:2,backgroundColor:"#ffffff",logging:false,useCORS:true});
+    const {jsPDF}=window.jspdf;
+    const pdf=new jsPDF({unit:"px",format:"a4",orientation:"portrait"});
+    const pW=pdf.internal.pageSize.getWidth(),pH=pdf.internal.pageSize.getHeight();
+    const ratio=pW/canvas.width;
+    const scaledH=canvas.height*ratio;
+    const img=canvas.toDataURL("image/jpeg",0.95);
+    let y=0;
+    while(y<scaledH){if(y>0)pdf.addPage();pdf.addImage(img,"JPEG",0,-y,pW,scaledH);y+=pH;}
+    return pdf;
+  }finally{document.body.removeChild(el);}
+}
+
+async function downloadTeklif(cid){
+  const btn=document.getElementById("tf-dl-btn");
+  if(btn){btn.disabled=true;btn.textContent=lang==="tr"?"Oluşturuluyor...":"Generating...";}
+  try{
+    const pdf=await renderTeklifPDFDoc(cid);
+    if(!pdf)return;
+    const c=getC(cid);
+    pdf.save(`teklif-${(c?.name||"belge").replace(/\s+/g,"-")}.pdf`);
+    toast(lang==="tr"?"PDF indirildi ✓":"PDF downloaded ✓");
+  }catch{toast(lang==="tr"?"PDF oluşturulamadı":"PDF generation failed","err");}
+  if(btn){btn.disabled=false;btn.textContent=`⬇ ${lang==="tr"?"PDF İndir":"Download PDF"}`;}
+}
+
+async function shareTeklif(cid){
+  if(!navigator.share){toast(lang==="tr"?"Bu tarayıcı paylaşımı desteklemiyor":"Sharing not supported","warn");return;}
+  const btn=document.getElementById("tf-sh-btn");
+  if(btn){btn.disabled=true;btn.textContent=lang==="tr"?"Hazırlanıyor...":"Preparing...";}
+  try{
+    const pdf=await renderTeklifPDFDoc(cid);if(!pdf)return;
+    const c=getC(cid);
+    const fileName=`teklif-${(c?.name||"belge").replace(/\s+/g,"-")}.pdf`;
+    const blob=pdf.output("blob");
+    const file=new File([blob],fileName,{type:"application/pdf"});
+    if(navigator.canShare&&navigator.canShare({files:[file]})){
+      await navigator.share({files:[file],title:lang==="tr"?"Teklif":"Quote"});
+    } else {
+      const url=URL.createObjectURL(blob);
+      await navigator.share({title:fileName,url});
+      setTimeout(()=>URL.revokeObjectURL(url),60000);
+    }
+  }catch(e){if(e?.name!=="AbortError")toast(lang==="tr"?"Paylaşım başarısız":"Share failed","err");}
+  if(btn){btn.disabled=false;btn.textContent=`↗ ${lang==="tr"?"Paylaş":"Share"}`;}
 }
 
 // ── USER MANAGEMENT
