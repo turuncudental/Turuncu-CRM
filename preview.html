@@ -1,0 +1,1208 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>Turuncu Dental CRM</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800;900&display=swap');
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'DM Sans',sans-serif;background:#090d14;color:#dde4ef;height:100vh;display:flex;overflow:hidden}
+::-webkit-scrollbar{width:4px;height:4px}
+::-webkit-scrollbar-track{background:#090d14}
+::-webkit-scrollbar-thumb{background:#1a2236;border-radius:4px}
+input,select,textarea{font-family:'DM Sans',sans-serif}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+@keyframes fadeIn{from{opacity:0;transform:translateY(-8px)}to{opacity:1;transform:translateY(0)}}
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes shake{0%,100%{transform:translateX(0)}20%,60%{transform:translateX(-8px)}40%,80%{transform:translateX(8px)}}
+#login-screen{position:fixed;inset:0;background:#090d14;display:flex;align-items:center;justify-content:center;z-index:200;flex-direction:column}
+.login-box{background:#0d1320;border:1px solid #1a2236;border-radius:16px;padding:36px;width:360px;animation:fadeIn .3s ease}
+.login-logo{font-size:26px;font-weight:900;background:linear-gradient(135deg,#f97316,#fbbf24);-webkit-background-clip:text;-webkit-text-fill-color:transparent;letter-spacing:-1px;margin-bottom:4px}
+.login-sub{font-size:12px;color:#3d5270;margin-bottom:28px}
+.login-field{margin-bottom:14px}
+.login-field label{display:block;font-size:11px;color:#3d5270;margin-bottom:5px;font-weight:600;text-transform:uppercase;letter-spacing:.5px}
+.login-field input{width:100%;background:#131b2a;border:1px solid #1a2236;border-radius:9px;padding:10px 13px;color:#dde4ef;font-size:14px;outline:none;transition:border-color .15s}
+.login-field input:focus{border-color:#f9731644}
+.login-btn{width:100%;background:linear-gradient(135deg,#f97316,#fbbf24);color:#090d14;border:none;border-radius:9px;padding:11px;font-weight:800;font-size:14px;cursor:pointer;margin-top:4px;font-family:'DM Sans',sans-serif}
+.login-err{color:#f87171;font-size:12px;margin-top:10px;text-align:center;min-height:16px}
+.login-lang{display:flex;gap:8px;margin-bottom:20px}
+.login-lang button{flex:1;padding:6px;border-radius:7px;border:1px solid #1a2236;background:#131b2a;color:#4a607d;font-size:12px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif}
+.login-lang button.active{background:#1e2d40;color:#f97316;border-color:#f9731644}
+.shake{animation:shake .3s ease}
+#app{display:none;width:100%;height:100%}
+#sidebar{width:210px;background:#0d1320;border-right:1px solid #1a2236;display:flex;flex-direction:column;flex-shrink:0}
+#main{flex:1;display:flex;flex-direction:column;overflow:hidden}
+#topbar{background:#0d1320;border-bottom:1px solid #1a2236;padding:11px 20px;display:flex;align-items:center;gap:10px;flex-shrink:0}
+#content{flex:1;overflow-y:auto;padding:20px}
+.logo{padding:16px 16px 10px;border-bottom:1px solid #1a2236}
+.logo h1{font-size:17px;font-weight:900;background:linear-gradient(135deg,#f97316,#fbbf24);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.logo-sub{font-size:10px;color:#3d5270;margin-top:1px}
+.sync-dot{width:6px;height:6px;border-radius:50%;background:#34d399;animation:pulse 2s infinite;display:inline-block;margin-right:5px}
+.sync-label{font-size:11px;color:#34d399;font-weight:600}
+.user-box{padding:10px 12px;border-bottom:1px solid #1a2236;display:flex;align-items:center;gap:8px}
+.user-avatar{width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:800;flex-shrink:0}
+.user-info{flex:1;min-width:0}
+.user-name{font-size:12px;font-weight:700;color:#dde4ef;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.user-role{font-size:10px;color:#3d5270}
+.logout-btn{background:none;border:none;color:#3d5270;cursor:pointer;font-size:14px;padding:2px;flex-shrink:0}
+.logout-btn:hover{color:#f87171}
+.lang-box{padding:8px 12px;border-bottom:1px solid #1a2236;display:flex;gap:6px}
+.lang-btn{flex:1;padding:5px;border-radius:7px;border:1px solid #1a2236;background:#131b2a;color:#4a607d;font-size:12px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif}
+.lang-btn.active{background:#1e2d40;color:#f97316;border-color:#f9731644}
+nav{padding:8px 0;flex:1;overflow-y:auto}
+nav button{width:100%;display:flex;align-items:center;gap:10px;padding:9px 16px;background:transparent;color:#4a607d;border:none;cursor:pointer;font-size:13px;font-weight:500;border-left:2px solid transparent;transition:all .12s;text-align:left;font-family:'DM Sans',sans-serif}
+nav button.active{background:#1a1208;color:#f97316;font-weight:700;border-left-color:#f97316}
+nav button:hover:not(.active){color:#94a3b8}
+.sidebar-footer{padding:10px 14px;border-top:1px solid #1a2236;font-size:11px;color:#3d5270;margin-top:auto}
+.search-wrap{position:relative;max-width:300px;flex:1}
+.search-wrap input{width:100%;background:#131b2a;border:1px solid #1a2236;border-radius:8px;padding:7px 28px 7px 28px;color:#dde4ef;font-size:13px;outline:none}
+.search-icon{position:absolute;left:9px;top:50%;transform:translateY(-50%);color:#3d5270;font-size:13px;pointer-events:none}
+.search-clear{position:absolute;right:8px;top:50%;transform:translateY(-50%);background:none;border:none;color:#4a607d;cursor:pointer;font-size:13px}
+.btn{background:#f97316;color:#fff;border:none;border-radius:8px;padding:6px 13px;font-weight:700;font-size:12px;cursor:pointer;white-space:nowrap;font-family:'DM Sans',sans-serif;transition:opacity .15s}
+.btn.sec{background:#131b2a;color:#4a607d;border:1px solid #1a2236}
+.btn.green{background:#34d399;color:#0d1320}
+.btn:hover{opacity:.9}
+.sm-btn{background:#131b2a;color:#4a607d;border:1px solid #1a2236;border-radius:6px;padding:3px 7px;font-size:12px;cursor:pointer;font-family:'DM Sans',sans-serif}
+.sm-btn.danger{background:#f8717118;color:#f87171;border-color:#f8717133}
+.sm-btn.success{background:#34d39918;color:#34d399;border-color:#34d39933}
+.sm-btn.warn{background:#f59e0b18;color:#f59e0b;border-color:#f59e0b33}
+.sm-btn.orange{background:#f9731618;color:#f97316;border-color:#f9731633}
+.card{background:#0d1320;border:1px solid #1a2236;border-radius:12px;padding:16px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.grid3{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:13px}
+.grid4{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+.grid7{display:grid;grid-template-columns:repeat(7,1fr);gap:10px}
+.kpi-val{font-size:22px;font-weight:900;letter-spacing:-1px}
+.kpi-lbl{font-size:11px;color:#dde4ef;margin-top:3px;font-weight:600}
+.kpi-sub{font-size:10px;color:#3d5270;margin-top:1px}
+.badge{font-size:11px;padding:2px 9px;border-radius:20px;display:inline-block;white-space:nowrap}
+.section-title{font-weight:700;margin-bottom:12px;font-size:13px;color:#f97316}
+.modal-overlay{position:fixed;inset:0;background:#00000099;display:flex;align-items:center;justify-content:center;z-index:100}
+.modal{background:#0d1320;border:1px solid #1a2236;border-radius:14px;padding:24px;width:440px;max-height:90vh;overflow-y:auto;max-width:95vw}
+.modal-title{display:flex;justify-content:space-between;align-items:center;margin-bottom:18px}
+.modal-title span{font-weight:800;font-size:15px}
+.modal-title button{background:none;border:none;color:#3d5270;font-size:17px;cursor:pointer}
+.field{margin-bottom:12px}
+.field label{display:block;font-size:11px;color:#3d5270;margin-bottom:4px;font-weight:600;text-transform:uppercase;letter-spacing:.5px}
+.field input,.field select,.field textarea{width:100%;background:#131b2a;border:1px solid #1a2236;border-radius:8px;padding:7px 10px;color:#dde4ef;font-size:13px;outline:none;font-family:'DM Sans',sans-serif}
+.field select option{background:#131b2a}
+.field textarea{resize:vertical}
+.field-row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.modal-actions{display:flex;gap:9px;margin-top:16px}
+.modal-actions button{flex:1;padding:8px;border-radius:8px;cursor:pointer;font-weight:700;font-size:13px;border:none;font-family:'DM Sans',sans-serif}
+.modal-actions .cancel{background:#131b2a;color:#4a607d;border:1px solid #1a2236}
+.modal-actions .save{background:#f97316;color:#fff;flex:2}
+.toast-wrap{position:fixed;top:16px;right:16px;z-index:999;display:flex;flex-direction:column;gap:8px}
+.toast{padding:9px 14px;border-radius:10px;font-size:13px;font-weight:600;animation:fadeIn .2s ease}
+.toast.ok{background:#34d39918;border:1px solid #34d39944;color:#34d399}
+.toast.warn{background:#f59e0b18;border:1px solid #f59e0b44;color:#f59e0b}
+.toast.err{background:#f8717118;border:1px solid #f8717144;color:#f87171}
+#patient-overlay{position:fixed;inset:0;background:#090d14;z-index:50;display:none;flex-direction:column;overflow:hidden}
+.pt-header{background:#0d1320;border-bottom:1px solid #1a2236;padding:12px 20px;display:flex;align-items:center;gap:12px;flex-shrink:0}
+.pt-tabs{display:flex;gap:0;border-bottom:1px solid #1a2236;background:#0d1320;padding:0 20px;flex-shrink:0;overflow-x:auto}
+.pt-tab{padding:10px 18px;font-size:13px;font-weight:600;color:#4a607d;border:none;background:transparent;cursor:pointer;border-bottom:2px solid transparent;font-family:'DM Sans',sans-serif;transition:all .15s;white-space:nowrap}
+.pt-tab.active{color:#f97316;border-bottom-color:#f97316}
+.pt-body{flex:1;overflow-y:auto;padding:20px}
+.tooth-chart-wrap{overflow-x:auto;padding:10px 0}
+.tooth-row{display:flex;align-items:flex-end;gap:2px;justify-content:center;margin-bottom:3px}
+.tooth{width:34px;min-height:42px;border:2px solid #1a2236;border-radius:5px;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;cursor:pointer;font-size:9px;font-weight:700;color:#3d5270;transition:all .12s;position:relative;background:#131b2a;padding-bottom:3px;gap:2px}
+.tooth:hover{border-color:#f97316;color:#dde4ef}
+.tooth-num{font-size:8px;font-weight:800;line-height:1}
+.tooth-icon{font-size:12px;line-height:1}
+.tooth-sep{width:14px;flex-shrink:0;display:flex;align-items:center;justify-content:center;color:#1a2236;font-size:16px}
+.tooth-popup{position:fixed;background:#0d1320;border:1px solid #1a2236;border-radius:10px;padding:14px;z-index:300;min-width:220px;box-shadow:0 8px 32px #00000099;animation:fadeIn .15s ease}
+.status-tabs{display:flex;gap:6px;margin-bottom:16px;flex-wrap:wrap}
+.status-tab{padding:5px 12px;border-radius:20px;border:1px solid #1a2236;background:#131b2a;color:#4a607d;font-size:12px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif}
+.status-tab.active{border-color:#f9731644;background:#f9731618;color:#f97316}
+.data-table{width:100%;border-collapse:collapse}
+.data-table th{font-size:10px;font-weight:700;color:#3d5270;text-transform:uppercase;letter-spacing:.5px;padding:8px 12px;text-align:left;border-bottom:1px solid #1a2236;white-space:nowrap}
+.data-table td{padding:9px 12px;font-size:13px;border-bottom:1px solid #0f1825}
+.data-table tr:last-child td{border-bottom:none}
+.data-table tr:hover td{background:#0f1825}
+.empty{text-align:center;color:#3d5270;padding:36px 0;font-size:13px}
+.loading{display:flex;align-items:center;justify-content:center;height:80%;flex-direction:column;gap:16px}
+.spinner{font-size:32px;animation:spin 1s linear infinite;color:#f97316}
+.stat-row{display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid #1a2236}
+.stat-row span:first-child{font-size:12px;color:#4a607d}
+.stat-row span:last-child{font-size:13px;font-weight:700}
+.toggle-group{display:flex;border:1px solid #1a2236;border-radius:8px;overflow:hidden;width:fit-content}
+.toggle-btn{padding:6px 14px;font-size:12px;font-weight:600;cursor:pointer;border:none;background:#131b2a;color:#4a607d;font-family:'DM Sans',sans-serif}
+.toggle-btn.active{background:#f9731622;color:#f97316}
+.apt-slot{display:flex;align-items:center;gap:12px;padding:10px 14px;background:#0d1320;border:1px solid #1a2236;border-radius:10px;margin-bottom:7px}
+.time-badge{background:#131b2a;border:1px solid #1a2236;border-radius:6px;padding:4px 10px;font-size:13px;font-weight:800;color:#dde4ef;min-width:56px;text-align:center;flex-shrink:0}
+.legend-item{display:flex;align-items:center;gap:5px;font-size:11px;color:#4a607d}
+.legend-dot{width:12px;height:12px;border-radius:3px;flex-shrink:0}
+</style>
+</head>
+<body>
+<div id="toast-container" class="toast-wrap"></div>
+<div id="login-screen">
+  <div class="login-box">
+    <div class="login-logo">🦷 Turuncu Dental</div>
+    <div class="login-sub" id="login-sub">Diş Turizmi Yönetim Sistemi</div>
+    <div class="login-lang">
+      <button class="active" id="ll-tr" onclick="setLang('tr');setLoginLang('tr')">🇹🇷 Türkçe</button>
+      <button id="ll-en" onclick="setLang('en');setLoginLang('en')">🇬🇧 English</button>
+    </div>
+    <div class="login-field">
+      <label id="lbl-username">Kullanıcı Adı</label>
+      <input type="text" id="login-username" placeholder="admin" onkeydown="if(event.key==='Enter')doLogin()"/>
+    </div>
+    <div class="login-field">
+      <label id="lbl-password">Şifre</label>
+      <input type="password" id="login-password" placeholder="••••••••" onkeydown="if(event.key==='Enter')doLogin()"/>
+    </div>
+    <button class="login-btn" id="login-btn" onclick="doLogin()">Giriş Yap</button>
+    <div class="login-err" id="login-err"></div>
+  </div>
+</div>
+<div id="app">
+  <div id="sidebar">
+    <div class="logo">
+      <h1>🦷 Turuncu Dental</h1>
+      <div class="logo-sub">Diş Turizmi CRM</div>
+      <div style="margin-top:6px"><span class="sync-dot"></span><span class="sync-label" id="sync-label">Canlı</span><span id="syncing-label" style="font-size:10px;color:#3d5270;margin-left:6px;display:none">kaydediliyor...</span></div>
+    </div>
+    <div class="lang-box">
+      <button class="lang-btn active" id="lang-tr" onclick="setLang('tr')">🇹🇷 TR</button>
+      <button class="lang-btn" id="lang-en" onclick="setLang('en')">🇬🇧 EN</button>
+    </div>
+    <div class="user-box">
+      <div class="user-avatar" id="user-avatar" style="background:#f9731622;color:#f97316">A</div>
+      <div class="user-info">
+        <div class="user-name" id="user-name">Admin</div>
+        <div class="user-role" id="user-role">admin</div>
+      </div>
+      <button class="logout-btn" onclick="doLogout()" title="Çıkış">⏻</button>
+    </div>
+    <nav id="nav">
+      <button data-tab="dashboard" class="active" onclick="setTab('dashboard')">▦ &nbsp;<span class="nav-lbl" data-key="navDashboard">Panel</span></button>
+      <button data-tab="patients" onclick="setTab('patients')">👥 &nbsp;<span class="nav-lbl" data-key="navPatients">Hastalar</span></button>
+      <button data-tab="events" onclick="setTab('events')">📅 &nbsp;<span class="nav-lbl" data-key="navEvents">Etkinlikler</span></button>
+      <button data-tab="appointments" onclick="setTab('appointments')">🕐 &nbsp;<span class="nav-lbl" data-key="navAppointments">Randevular</span></button>
+      <button data-tab="treatments" onclick="setTab('treatments')">🦷 &nbsp;<span class="nav-lbl" data-key="navTreatments">Tedaviler</span></button>
+      <button data-tab="reports" onclick="setTab('reports')">↗ &nbsp;<span class="nav-lbl" data-key="navReports">Raporlar</span></button>
+      <button data-tab="users" id="nav-users" style="display:none" onclick="setTab('users')">👤 &nbsp;<span class="nav-lbl" data-key="navUsers">Kullanıcılar</span></button>
+    </nav>
+    <div class="sidebar-footer" id="sidebar-footer">...</div>
+  </div>
+  <div id="main">
+    <div id="topbar">
+      <div id="page-title" style="font-size:15px;font-weight:700;min-width:110px">Panel</div>
+      <div class="search-wrap">
+        <span class="search-icon">🔍</span>
+        <input type="text" id="search-input" placeholder="Ara..." oninput="onSearch(this.value)"/>
+        <button class="search-clear" id="search-clear" style="display:none" onclick="clearSearch()">✕</button>
+      </div>
+      <div style="flex:1"></div>
+      <div id="topbar-actions"></div>
+    </div>
+    <div id="content"><div class="loading"><div class="spinner">🦷</div></div></div>
+  </div>
+</div>
+<div id="patient-overlay">
+  <div class="pt-header">
+    <button class="sm-btn" onclick="closePatient()" style="padding:5px 10px;font-size:12px">← Geri</button>
+    <div style="flex:1;min-width:0">
+      <div id="pt-name" style="font-size:15px;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis"></div>
+      <div id="pt-meta" style="font-size:11px;color:#4a607d;margin-top:1px"></div>
+    </div>
+    <div id="pt-status-badge"></div>
+    <button class="btn" style="font-size:12px" onclick="saveCurrentPatient()">💾 Kaydet</button>
+  </div>
+  <div class="pt-tabs" id="pt-tabs"></div>
+  <div class="pt-body" id="pt-body"></div>
+</div>
+<script>
+// ==CONFIG==
+const SUPA_URL="https://abtmfoetnhswccliuawn.supabase.co";
+const SUPA_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFidG1mb2V0bmhzd2NjbGl1YXduIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk0NTMwMzIsImV4cCI6MjA5NTAyOTAzMn0.G_gyNgy1HZmaGSRvZ9aLDO-XneqU_K036APAEArhFMU";
+const H={"Content-Type":"application/json","apikey":SUPA_KEY,"Authorization":"Bearer "+SUPA_KEY};
+
+const STATUS_COLORS={walkin:"#94a3b8",consultation:"#60a5fa",assessed:"#a78bfa",pricing:"#f59e0b",booked:"#34d399",cancelled:"#f87171"};
+const ROLE_COLORS={admin:"#f97316",satis:"#60a5fa",okuyucu:"#f59e0b"};
+const TOOTH_COLORS={healthy:"transparent",cavity:"#f87171",crown:"#60a5fa",missing:"#374151",implant:"#f97316",root_canal:"#a78bfa",veneer:"#f472b6",filling:"#fbbf24",bridge:"#22d3ee",extraction:"#ef4444"};
+const TOOTH_ICONS={healthy:"",cavity:"🔴",crown:"👑",missing:"✕",implant:"🔩",root_canal:"⚡",veneer:"✨",filling:"⬛",bridge:"🔗",extraction:"⚠️"};
+
+const UPPER_R=[18,17,16,15,14,13,12,11];
+const UPPER_L=[21,22,23,24,25,26,27,28];
+const LOWER_R=[48,47,46,45,44,43,42,41];
+const LOWER_L=[31,32,33,34,35,36,37,38];
+
+const T={
+tr:{
+  navDashboard:"Panel",navPatients:"Hastalar",navEvents:"Etkinlikler",navAppointments:"Randevular",
+  navTreatments:"Tedaviler",navReports:"Raporlar",navUsers:"Kullanıcılar",
+  live:"Canlı",search:"Ara...",
+  totalPatients:"Toplam Hasta",upcomingEvents:"Yaklaşan Etkinlik",convRate:"Dönüşüm Oranı",totalRevenue:"Toplam Gelir",
+  registered:"Kayıtlı",walkins:"Walk-in",consultations:"Konsültasyon",waitingDentist:"Diş Hekimi Bekliyor",
+  pricingPending:"Fiyat Bekliyor",bookedToday:"Rezerve",revenueToday:"Bugünkü Gelir",
+  recentPatients:"Son Hastalar",noPatients:"Hasta bulunamadı",
+  addPatient:"+ Hasta Ekle",newPatient:"Yeni Hasta",editPatient:"Hasta Düzenle",
+  statusAll:"Tümü",statusWalkin:"Walk-in",statusConsultation:"Konsültasyon",statusAssessed:"Değerlendirildi",statusPricing:"Fiyat Verildi",statusBooked:"Rezerve",statusCancelled:"İptal",
+  tabConsultation:"Konsültasyon",tabAssessment:"Değerlendirme",tabBooking:"Rezervasyon",tabNotes:"Notlar",
+  fname:"Ad Soyad *",femail:"E-posta",fphone:"Telefon",fdob:"Doğum Tarihi",fcountry:"Ülke",fnationality:"Uyruk",fstatus:"Durum",fevent:"Etkinlik",fassignee:"Sorumlu",
+  dentalConcerns:"Diş Şikayetleri",medicalHistory:"Tıbbi Geçmiş",allergies:"Alerjiler",medications:"İlaçlar",smoking:"Sigara Kullanıyor",pregnant:"Hamile",consultNotes:"Notlar",
+  currentCondition:"Mevcut Durum",treatmentPlan:"Tedavi Planı",dentistNotes:"Diş Hekimi Notları",
+  selectTreatments:"Tedavi Seç",bookingTreatments:"Seçilen Tedaviler",travelType:"Ulaşım",accommodation:"Konaklama",discount:"İndirim (£)",deposit:"Ön Ödeme (£)",bookingNotes:"Notlar",
+  subtotal:"Ara Toplam",totalCost:"Toplam",balanceDue:"Kalan Ödeme",
+  addNote:"Not Ekle",noNotes:"Henüz not eklenmedi",
+  events:"Etkinlikler",addEvent:"+ Etkinlik",newEvent:"Yeni Etkinlik",editEvent:"Etkinlik Düzenle",
+  ename:"Etkinlik Adı",ecity:"Şehir",evenue:"Mekan",edate:"Tarih",eactive:"Aktif",
+  appointments:"Randevular",addAppointment:"+ Randevu",newAppointment:"Yeni Randevu",selectEvent:"Etkinlik Seçin",
+  aptTime:"Saat",aptPatient:"Hasta",aptStatus:"Durum",
+  statusTurnedUp:"Geldi",statusDidNotCome:"Gelmedi",statusScheduled:"Planlandı",statusCancelled:"İptal",
+  treatments:"Tedaviler",addTreatment:"+ Tedavi",newTreatment:"Yeni Tedavi",editTreatment:"Tedavi Düzenle",
+  tname:"Tedavi Adı",tdesc:"Açıklama",tcategory:"Kategori",tclinicCost:"Klinik Maliyeti (£)",tsalePrice:"Satış Fiyatı (£)",tactive:"Aktif",tmargin:"Kar Marjı",
+  reports:"Raporlar",
+  users:"Kullanıcılar",addUser:"+ Kullanıcı",newUser:"Yeni Kullanıcı",editUser:"Kullanıcı Düzenle",
+  roleAdmin:"Yönetici",roleSales:"Satış Temsilcisi",roleReader:"Okuyucu",
+  fdisplayName:"Ad Soyad",fpassword:"Şifre",fnewPass:"Yeni Şifre",fRole:"Yetki",fnewPassHint:"(boş bırakırsanız değişmez)",
+  noUsers:"Kullanıcı bulunamadı",userAdded:"Kullanıcı eklendi",userUpdated:"Kullanıcı güncellendi",userDeleted:"Kullanıcı silindi",
+  cantDeleteSelf:"Kendi hesabınızı silemezsiniz",usernameExists:"Bu kullanıcı adı kullanımda",passRequired:"Şifre zorunludur",usernameRequired:"Kullanıcı adı zorunludur",
+  cancel:"İptal",save:"Kaydet",saved:"Kaydedildi",deleted:"Silindi",added:"Eklendi",updated:"Güncellendi",
+  loginSub:"Diş Turizmi Yönetim Sistemi",loginUser:"Kullanıcı Adı",loginPass:"Şifre",loginBtn:"Giriş Yap",loginErr:"Hatalı kullanıcı adı veya şifre",loginLoading:"Giriş yapılıyor...",
+  downloadPDF:"PDF İndir",sharePDF:"Paylaş",quote:"Teklif",quotePDF:"📄 Teklif PDF",
+  patientsByStatus:"Durum Dağılımı",patientsByCountry:"Ülkeye Göre",revenueByCategory:"Kategoriye Göre Gelir",summaryStats:"Özet İstatistikler",
+  totalBooked:"Toplam Rezerve",avgBooking:"Ortalama Rezervasyon",
+  condHealthy:"Sağlıklı",condCavity:"Çürük",condCrown:"Kron",condMissing:"Eksik",condImplant:"İmplant",condRootCanal:"Kanal",condVeneer:"Kaplama",condFilling:"Dolgu",condBridge:"Köprü",condExtraction:"Çekim",
+  footerPatients:"hasta",footerBooked:"rezerve",
+  noTreatmentSelected:"Tedavi seçilmedi",
+},
+en:{
+  navDashboard:"Dashboard",navPatients:"Patients",navEvents:"Events",navAppointments:"Appointments",
+  navTreatments:"Treatments",navReports:"Reports",navUsers:"Users",
+  live:"Live",search:"Search...",
+  totalPatients:"Total Patients",upcomingEvents:"Upcoming Events",convRate:"Conversion Rate",totalRevenue:"Total Revenue",
+  registered:"Registered",walkins:"Walk-ins",consultations:"Consultations",waitingDentist:"Waiting for Dentist",
+  pricingPending:"Pricing Pending",bookedToday:"Booked",revenueToday:"Revenue Today",
+  recentPatients:"Recent Patients",noPatients:"No patients found",
+  addPatient:"+ Add Patient",newPatient:"New Patient",editPatient:"Edit Patient",
+  statusAll:"All",statusWalkin:"Walk-in",statusConsultation:"Consultation",statusAssessed:"Assessed",statusPricing:"Pricing Given",statusBooked:"Booked",statusCancelled:"Cancelled",
+  tabConsultation:"Consultation",tabAssessment:"Assessment",tabBooking:"Booking",tabNotes:"Notes",
+  fname:"Full Name *",femail:"Email",fphone:"Phone",fdob:"Date of Birth",fcountry:"Country",fnationality:"Nationality",fstatus:"Status",fevent:"Event",fassignee:"Assigned To",
+  dentalConcerns:"Dental Concerns",medicalHistory:"Medical History",allergies:"Allergies",medications:"Medications",smoking:"Smoker",pregnant:"Pregnant",consultNotes:"Notes",
+  currentCondition:"Current Condition",treatmentPlan:"Treatment Plan",dentistNotes:"Dentist Notes",
+  selectTreatments:"Select Treatments",bookingTreatments:"Selected Treatments",travelType:"Travel",accommodation:"Accommodation",discount:"Discount (£)",deposit:"Deposit (£)",bookingNotes:"Notes",
+  subtotal:"Subtotal",totalCost:"Total",balanceDue:"Balance Due",
+  addNote:"Add Note",noNotes:"No notes yet",
+  events:"Events",addEvent:"+ Event",newEvent:"New Event",editEvent:"Edit Event",
+  ename:"Event Name",ecity:"City",evenue:"Venue",edate:"Date",eactive:"Active",
+  appointments:"Appointments",addAppointment:"+ Appointment",newAppointment:"New Appointment",selectEvent:"Select Event",
+  aptTime:"Time",aptPatient:"Patient",aptStatus:"Status",
+  statusTurnedUp:"Turned Up",statusDidNotCome:"Did Not Turn Up",statusScheduled:"Scheduled",statusCancelled:"Cancelled",
+  treatments:"Treatments",addTreatment:"+ Treatment",newTreatment:"New Treatment",editTreatment:"Edit Treatment",
+  tname:"Treatment Name",tdesc:"Description",tcategory:"Category",tclinicCost:"Clinic Cost (£)",tsalePrice:"Sale Price (£)",tactive:"Active",tmargin:"Margin",
+  reports:"Reports",
+  users:"Users",addUser:"+ Add User",newUser:"New User",editUser:"Edit User",
+  roleAdmin:"Admin",roleSales:"Sales Rep",roleReader:"Reader",
+  fdisplayName:"Full Name",fpassword:"Password",fnewPass:"New Password",fRole:"Role",fnewPassHint:"(leave blank to keep)",
+  noUsers:"No users found",userAdded:"User added",userUpdated:"User updated",userDeleted:"User deleted",
+  cantDeleteSelf:"Cannot delete your own account",usernameExists:"Username already taken",passRequired:"Password required",usernameRequired:"Username required",
+  cancel:"Cancel",save:"Save",saved:"Saved",deleted:"Deleted",added:"Added",updated:"Updated",
+  loginSub:"Dental Tourism Management System",loginUser:"Username",loginPass:"Password",loginBtn:"Login",loginErr:"Invalid username or password",loginLoading:"Logging in...",
+  downloadPDF:"Download PDF",sharePDF:"Share",quote:"Quote",quotePDF:"📄 Quote PDF",
+  patientsByStatus:"By Status",patientsByCountry:"By Country",revenueByCategory:"Revenue by Category",summaryStats:"Summary",
+  totalBooked:"Total Booked",avgBooking:"Avg Booking Value",
+  condHealthy:"Healthy",condCavity:"Cavity",condCrown:"Crown",condMissing:"Missing",condImplant:"Implant",condRootCanal:"Root Canal",condVeneer:"Veneer",condFilling:"Filling",condBridge:"Bridge",condExtraction:"Extraction",
+  footerPatients:"patients",footerBooked:"booked",
+  noTreatmentSelected:"No treatment selected",
+}};
+
+let lang="tr",t=T.tr;
+let currentUser=null;
+let currentTab="dashboard",searchQuery="",charts={};
+let currentPatientId=null,currentPtTab="consultation";
+let selectedEventId=null;
+let chartMode="currentCondition";
+let state={patients:[],events:[],appointments:[],treatments:[],users:[]};
+// ==SEED==
+const SEED_PATIENTS=[
+  {id:1,name:"Sarah Johnson",email:"sarah.j@gmail.com",phone:"+44 7911 123456",dob:"1985-03-15",country:"United Kingdom",nationality:"British",status:"booked",eventId:1,assignee:"admin",createdAt:"2026-05-20",
+   consultation:{dentalConcerns:"Missing upper front teeth, wants implants and veneers",medicalHistory:"Type 2 Diabetes (controlled)",allergies:"Penicillin",medications:"Metformin 500mg",smoking:false,pregnant:false,notes:"Very motivated patient"},
+   assessment:{currentCondition:{11:"missing",21:"missing",12:"cavity",22:"cavity"},treatmentPlan:{11:"implant",21:"implant",12:"crown",22:"crown"},dentistNotes:"Good bone density. 2 implants + 4 crowns recommended."},
+   booking:{treatments:[{treatmentId:3,name:"Zirkonyum Kron",qty:4,price:520},{treatmentId:8,name:"Dental İmplant",qty:2,price:950}],travelType:"Flight from London",accommodation:"Hilton Istanbul 3 nights",discount:200,deposit:500,notes:"Prefers morning appointments"},
+   notes:[{id:1,date:"2026-05-20",text:"Initial inquiry via website",by:"admin"},{id:2,date:"2026-05-22",text:"Video consultation completed. Very positive.",by:"admin"}]},
+  {id:2,name:"Mohammed Al-Rashid",email:"m.rashid@outlook.com",phone:"+971 50 234 5678",dob:"1978-07-22",country:"UAE",nationality:"Emirati",status:"pricing",eventId:1,assignee:"admin",createdAt:"2026-05-25",
+   consultation:{dentalConcerns:"Full mouth restoration, old crowns need replacing",medicalHistory:"Hypertension",allergies:"None",medications:"Amlodipine",smoking:false,pregnant:false,notes:"High budget, wants best quality"},
+   assessment:{currentCondition:{16:"crown",17:"crown",26:"crown",27:"crown",36:"crown",46:"crown"},treatmentPlan:{16:"crown",17:"crown",26:"crown",27:"crown",36:"crown",46:"crown"},dentistNotes:"Replace all 6 crowns with full zirconia."},
+   booking:{treatments:[{treatmentId:3,name:"Zirkonyum Kron",qty:6,price:520}],travelType:"Private flight",accommodation:"Four Seasons 5 nights",discount:0,deposit:1000,notes:""},
+   notes:[{id:1,date:"2026-05-25",text:"Referred by existing patient",by:"admin"}]},
+  {id:3,name:"Elena Petrov",email:"elena.p@mail.ru",phone:"+7 916 345 6789",dob:"1992-11-08",country:"Russia",nationality:"Russian",status:"assessed",eventId:1,assignee:"admin",createdAt:"2026-05-28",
+   consultation:{dentalConcerns:"Teeth whitening and 6 upper veneers",medicalHistory:"None",allergies:"None",medications:"None",smoking:false,pregnant:false,notes:""},
+   assessment:{currentCondition:{13:"filling",12:"filling",11:"filling",21:"filling",22:"filling",23:"filling"},treatmentPlan:{13:"veneer",12:"veneer",11:"veneer",21:"veneer",22:"veneer",23:"veneer"},dentistNotes:"Good candidate for veneers. Whitening recommended first."},
+   booking:{treatments:[{treatmentId:2,name:"Porselen Kaplama",qty:6,price:400}],travelType:"Flight from Moscow",accommodation:"",discount:100,deposit:0,notes:""},
+   notes:[]},
+  {id:4,name:"James O'Brien",email:"james.ob@icloud.com",phone:"+353 87 456 7890",dob:"1969-04-30",country:"Ireland",nationality:"Irish",status:"consultation",eventId:2,assignee:"admin",createdAt:"2026-06-01",
+   consultation:{dentalConcerns:"2 missing teeth lower jaw, considering implants",medicalHistory:"None",allergies:"Latex",medications:"None",smoking:true,pregnant:false,notes:"Smoker — discussed healing risks"},
+   assessment:{currentCondition:{46:"missing",47:"missing"},treatmentPlan:{46:"implant",47:"implant"},dentistNotes:""},
+   booking:{treatments:[],travelType:"",accommodation:"",discount:0,deposit:0,notes:""},
+   notes:[]},
+  {id:5,name:"Ana Martinez",email:"ana.m@gmail.com",phone:"+34 612 567 890",dob:"1995-09-14",country:"Spain",nationality:"Spanish",status:"walkin",eventId:2,assignee:"admin",createdAt:"2026-06-03",
+   consultation:{dentalConcerns:"",medicalHistory:"",allergies:"",medications:"",smoking:false,pregnant:false,notes:""},
+   assessment:{currentCondition:{},treatmentPlan:{},dentistNotes:""},
+   booking:{treatments:[],travelType:"",accommodation:"",discount:0,deposit:0,notes:""},
+   notes:[]}
+];
+const SEED_EVENTS=[
+  {id:1,name:"İstanbul Dental Tourism Event",city:"İstanbul",venue:"Hilton Bosphorus",date:"2026-07-15",active:true},
+  {id:2,name:"Antalya Dental Week",city:"Antalya",venue:"Rixos Premium Hotel",date:"2026-08-20",active:true}
+];
+const SEED_APPOINTMENTS=[
+  {id:1,eventId:1,patientId:1,patientName:"Sarah Johnson",time:"09:00",status:"turned_up"},
+  {id:2,eventId:1,patientId:2,patientName:"Mohammed Al-Rashid",time:"09:30",status:"turned_up"},
+  {id:3,eventId:1,patientId:3,patientName:"Elena Petrov",time:"10:00",status:"turned_up"},
+  {id:4,eventId:1,patientId:4,patientName:"James O'Brien",time:"10:30",status:"scheduled"},
+  {id:5,eventId:2,patientId:4,patientName:"James O'Brien",time:"09:00",status:"scheduled"},
+  {id:6,eventId:2,patientId:5,patientName:"Ana Martinez",time:"09:30",status:"scheduled"}
+];
+const SEED_TREATMENTS=[
+  {id:1,name:"Diş Beyazlatma",description:"Profesyonel ofis tipi beyazlatma",category:"Estetik",clinicCost:80,salePrice:250,active:true},
+  {id:2,name:"Porselen Kaplama",description:"Laminate veneer",category:"Estetik",clinicCost:150,salePrice:400,active:true},
+  {id:3,name:"Zirkonyum Kron",description:"Tam zirkonyum kron",category:"Restorasyon",clinicCost:200,salePrice:520,active:true},
+  {id:4,name:"Porselen Kron",description:"Metal destekli porselen kron",category:"Restorasyon",clinicCost:120,salePrice:320,active:true},
+  {id:5,name:"Kompozit Dolgu",description:"Estetik kompozit dolgu",category:"Restorasyon",clinicCost:40,salePrice:120,active:true},
+  {id:6,name:"Kanal Tedavisi",description:"Kök kanal tedavisi",category:"Endodonti",clinicCost:100,salePrice:280,active:true},
+  {id:7,name:"Diş Çekimi",description:"Basit diş çekimi",category:"Cerrahi",clinicCost:30,salePrice:100,active:true},
+  {id:8,name:"Dental İmplant",description:"Titan implant (Straumann/Nobel)",category:"İmplant",clinicCost:450,salePrice:950,active:true},
+  {id:9,name:"İmplant Üstü Kron",description:"İmplant üzerine zirkonyum kron",category:"İmplant",clinicCost:180,salePrice:420,active:true},
+  {id:10,name:"Sabit Köprü (3 Üye)",description:"3 üyeli sabit porselen köprü",category:"Restorasyon",clinicCost:300,salePrice:750,active:true},
+  {id:11,name:"Hareketli Protez",description:"Tam ya da bölümlü protez",category:"Protez",clinicCost:200,salePrice:500,active:true},
+  {id:12,name:"Diş Eti Tedavisi",description:"Periodontal tedavi ve küretaj",category:"Periodontoloji",clinicCost:80,salePrice:220,active:true}
+];
+// ==CORE==
+// ── HELPERS
+function flag(c){const m={"United Kingdom":"🇬🇧","UK":"🇬🇧","UAE":"🇦🇪","United Arab Emirates":"🇦🇪","Russia":"🇷🇺","Ireland":"🇮🇪","Spain":"🇪🇸","Germany":"🇩🇪","France":"🇫🇷","USA":"🇺🇸","United States":"🇺🇸","Australia":"🇦🇺","Turkey":"🇹🇷","Türkiye":"🇹🇷","Netherlands":"🇳🇱","Belgium":"🇧🇪","Sweden":"🇸🇪","Norway":"🇳🇴","Denmark":"🇩🇰","Italy":"🇮🇹","Poland":"🇵🇱","Canada":"🇨🇦","Kuwait":"🇰🇼","Saudi Arabia":"🇸🇦","Qatar":"🇶🇦","Bahrain":"🇧🇭","Jordan":"🇯🇴","Romania":"🇷🇴","Bulgaria":"🇧🇬","Ukraine":"🇺🇦","Israel":"🇮🇱"};return m[c]||"🌍";}
+function statusLabel(s){return{walkin:t.statusWalkin,consultation:t.statusConsultation,assessed:t.statusAssessed,pricing:t.statusPricing,booked:t.statusBooked,cancelled:t.statusCancelled}[s]||s;}
+function statusBadge(s){const c=STATUS_COLORS[s]||"#4a607d";return`<span class="badge" style="background:${c}22;color:${c}">${statusLabel(s)}</span>`;}
+function toast(msg,type="ok"){const el=document.createElement("div");el.className=`toast ${type}`;el.textContent=msg;document.getElementById("toast-container").appendChild(el);setTimeout(()=>el.remove(),3200);}
+function matches(fields){if(!searchQuery)return true;return fields.some(f=>f&&String(f).toLowerCase().includes(searchQuery.toLowerCase()));}
+function getPatient(id){return state.patients.find(p=>p.id==id);}
+function getEvent(id){return state.events.find(e=>e.id==id);}
+function getTreatment(id){return state.treatments.find(tr=>tr.id==id);}
+function canEdit(){return currentUser&&currentUser.role!=="okuyucu";}
+function canManageUsers(){return currentUser&&currentUser.role==="admin";}
+function bookingTotal(p){
+  const sub=(p.booking?.treatments||[]).reduce((s,tr)=>s+(tr.qty||1)*(tr.price||0),0);
+  return sub-(p.booking?.discount||0);
+}
+function condLabel(k){return{healthy:t.condHealthy,cavity:t.condCavity,crown:t.condCrown,missing:t.condMissing,implant:t.condImplant,root_canal:t.condRootCanal,veneer:t.condVeneer,filling:t.condFilling,bridge:t.condBridge,extraction:t.condExtraction}[k]||k;}
+function updateFooter(){if(!currentUser)return;document.getElementById("sidebar-footer").textContent=`${state.patients.length} ${t.footerPatients} · ${state.patients.filter(p=>p.status==="booked").length} ${t.footerBooked}`;}
+
+// ── SUPABASE CRUD
+async function dbGet(table){try{const r=await fetch(`${SUPA_URL}/rest/v1/${table}?select=*`,{headers:H});if(!r.ok)return null;return await r.json();}catch{return null;}}
+async function dbSet(table,data){try{await fetch(`${SUPA_URL}/rest/v1/${table}`,{method:"POST",headers:{...H,"Prefer":"resolution=merge-duplicates,return=minimal"},body:JSON.stringify({id:1,data})});}catch{}}
+async function persist(table){document.getElementById("syncing-label").style.display="inline";await dbSet(table,state[table]);document.getElementById("syncing-label").style.display="none";updateFooter();}
+async function loadAll(){
+  const [p,e,a,tr]=await Promise.all([dbGet("customers"),dbGet("deals"),dbGet("tasks"),dbGet("history")]);
+  state.patients=(p&&p[0])?p[0].data:SEED_PATIENTS;
+  state.events=(e&&e[0])?e[0].data:SEED_EVENTS;
+  state.appointments=(a&&a[0])?a[0].data:SEED_APPOINTMENTS;
+  state.treatments=(tr&&tr[0])?tr[0].data:SEED_TREATMENTS;
+  if(!p||!p[0])dbSet("customers",SEED_PATIENTS);
+  if(!e||!e[0])dbSet("deals",SEED_EVENTS);
+  if(!a||!a[0])dbSet("tasks",SEED_APPOINTMENTS);
+  if(!tr||!tr[0])dbSet("history",SEED_TREATMENTS);
+}
+async function loadUsers(){try{const r=await fetch(`${SUPA_URL}/rest/v1/crm_users?select=id,username,role,display_name&order=id`,{headers:H});if(r.ok)state.users=await r.json();}catch{}}
+
+// ── AUTH
+function shake(){const b=document.querySelector(".login-box");b.classList.remove("shake");setTimeout(()=>b.classList.add("shake"),10);}
+async function doLogin(){
+  const username=document.getElementById("login-username").value.trim();
+  const password=document.getElementById("login-password").value;
+  if(!username||!password){document.getElementById("login-err").textContent=t.loginErr;shake();return;}
+  const btn=document.getElementById("login-btn");btn.textContent=t.loginLoading;btn.disabled=true;
+  try{
+    const r=await fetch(`${SUPA_URL}/rest/v1/crm_users?username=eq.${encodeURIComponent(username)}&password=eq.${encodeURIComponent(password)}&select=*`,{headers:{...H,"Prefer":"return=representation"}});
+    const data=await r.json();
+    if(data&&data.length>0){currentUser=data[0];sessionStorage.setItem("crm_user",JSON.stringify(currentUser));await showApp();}
+    else{document.getElementById("login-err").textContent=t.loginErr;shake();}
+  }catch{document.getElementById("login-err").textContent=t.loginErr;shake();}
+  btn.textContent=t.loginBtn;btn.disabled=false;
+}
+function doLogout(){currentUser=null;sessionStorage.removeItem("crm_user");document.getElementById("app").style.display="none";document.getElementById("login-screen").style.display="flex";document.getElementById("login-password").value="";}
+async function showApp(){
+  document.getElementById("login-screen").style.display="none";document.getElementById("app").style.display="flex";
+  const color=ROLE_COLORS[currentUser.role]||"#f97316";
+  document.getElementById("user-avatar").textContent=(currentUser.display_name||currentUser.username)[0].toUpperCase();
+  document.getElementById("user-avatar").style.color=color;
+  document.getElementById("user-name").textContent=currentUser.display_name||currentUser.username;
+  document.getElementById("user-role").textContent=currentUser.role;
+  document.getElementById("user-role").style.color=color;
+  await loadAll();
+  if(canManageUsers()){document.getElementById("nav-users").style.display="";await loadUsers();}
+  render();
+}
+
+// ── LANG
+function setLang(l){
+  lang=l;t=T[l];
+  document.getElementById("lang-tr").className="lang-btn"+(l==="tr"?" active":"");
+  document.getElementById("lang-en").className="lang-btn"+(l==="en"?" active":"");
+  document.querySelectorAll(".nav-lbl").forEach(el=>el.textContent=t[el.dataset.key]||el.dataset.key);
+  document.getElementById("sync-label").textContent=t.live;
+  document.getElementById("search-input").placeholder=t.search;
+  if(currentUser){document.getElementById("page-title").textContent=t[currentTab]||currentTab;updateFooter();render();}
+}
+function setLoginLang(l){
+  document.getElementById("ll-tr").className=l==="tr"?"active":"";
+  document.getElementById("ll-en").className=l==="en"?"active":"";
+  document.getElementById("login-sub").textContent=T[l].loginSub;
+  document.getElementById("lbl-username").textContent=T[l].loginUser;
+  document.getElementById("lbl-password").textContent=T[l].loginPass;
+  document.getElementById("login-btn").textContent=T[l].loginBtn;
+  document.getElementById("login-err").textContent="";
+}
+
+// ── NAV & RENDER ORCHESTRATION
+function setTab(tab){
+  currentTab=tab;
+  document.getElementById("page-title").textContent=t["nav"+tab.charAt(0).toUpperCase()+tab.slice(1)]||tab;
+  document.querySelectorAll("nav button[data-tab]").forEach(b=>b.className=b.dataset.tab===tab?"active":"");
+  render();
+}
+function onSearch(v){searchQuery=v;document.getElementById("search-clear").style.display=v?"block":"none";render();}
+function clearSearch(){searchQuery="";document.getElementById("search-input").value="";document.getElementById("search-clear").style.display="none";render();}
+function render(){
+  updateFooter();renderTopbarActions();
+  const c=document.getElementById("content");
+  if(currentTab==="dashboard")c.innerHTML=renderDashboard();
+  else if(currentTab==="patients")c.innerHTML=renderPatients();
+  else if(currentTab==="events")c.innerHTML=renderEvents();
+  else if(currentTab==="appointments")c.innerHTML=renderAppointments();
+  else if(currentTab==="treatments")c.innerHTML=renderTreatments();
+  else if(currentTab==="reports"){c.innerHTML=renderReports();renderReportCharts();}
+  else if(currentTab==="users")c.innerHTML=renderUsers();
+  if(currentTab==="appointments")setupAptEventSelector();
+}
+function renderTopbarActions(){
+  const el=document.getElementById("topbar-actions");let html="";
+  if(canEdit()&&currentTab==="patients")html=`<button class="btn" onclick="openPatientModal(0)">${t.addPatient}</button>`;
+  else if(canEdit()&&currentTab==="events")html=`<button class="btn" onclick="openEventModal(0)">${t.addEvent}</button>`;
+  else if(canEdit()&&currentTab==="appointments")html=`<button class="btn" onclick="openAppointmentModal()">${t.addAppointment}</button>`;
+  else if(canEdit()&&currentTab==="treatments")html=`<button class="btn" onclick="openTreatmentModal(0)">${t.addTreatment}</button>`;
+  else if(canManageUsers()&&currentTab==="users")html=`<button class="btn" onclick="openUserModal(0)">${t.addUser}</button>`;
+  el.innerHTML=html;
+}
+setInterval(async()=>{if(!currentUser)return;await loadAll();if(!document.getElementById("patient-overlay").style.display||document.getElementById("patient-overlay").style.display==="none")render();},15000);
+// ==RENDER_DASH==
+function renderDashboard(){
+  const total=state.patients.length;
+  const booked=state.patients.filter(p=>p.status==="booked").length;
+  const conv=total?Math.round(booked/total*100):0;
+  const today=new Date().toISOString().slice(0,10);
+  const upcomingEvts=state.events.filter(e=>e.active&&e.date>=today).length;
+  const totalRev=state.patients.filter(p=>p.status==="booked").reduce((s,p)=>s+bookingTotal(p),0);
+
+  // find next upcoming event for live stats
+  const nextEvt=state.events.filter(e=>e.active&&e.date>=today).sort((a,b)=>a.date.localeCompare(b.date))[0]||state.events[0];
+  const evtPats=nextEvt?state.patients.filter(p=>p.eventId==nextEvt.id):[];
+  const liveStats=nextEvt?[
+    {label:t.registered,val:evtPats.length,color:"#60a5fa"},
+    {label:t.walkins,val:evtPats.filter(p=>p.status==="walkin").length,color:"#94a3b8"},
+    {label:t.consultations,val:evtPats.filter(p=>p.status==="consultation").length,color:"#60a5fa"},
+    {label:t.waitingDentist,val:evtPats.filter(p=>p.status==="assessed").length,color:"#a78bfa"},
+    {label:t.pricingPending,val:evtPats.filter(p=>p.status==="pricing").length,color:"#f59e0b"},
+    {label:t.bookedToday,val:evtPats.filter(p=>p.status==="booked").length,color:"#34d399"},
+    {label:t.revenueToday,val:`£${evtPats.filter(p=>p.status==="booked").reduce((s,p)=>s+bookingTotal(p),0).toLocaleString()}`,color:"#f97316"}
+  ]:[];
+
+  const recent=[...state.patients].sort((a,b)=>(b.createdAt||"").localeCompare(a.createdAt||"")).slice(0,8);
+
+  return`<div style="display:flex;flex-direction:column;gap:18px">
+    <div class="grid4">
+      <div class="card"><div class="kpi-val" style="color:#60a5fa">${total}</div><div class="kpi-lbl">${t.totalPatients}</div><div class="kpi-sub">${state.patients.filter(p=>p.status==="consultation").length} konsültasyon</div></div>
+      <div class="card"><div class="kpi-val" style="color:#a78bfa">${upcomingEvts}</div><div class="kpi-lbl">${t.upcomingEvents}</div><div class="kpi-sub">${state.events.length} toplam etkinlik</div></div>
+      <div class="card"><div class="kpi-val" style="color:#f59e0b">%${conv}</div><div class="kpi-lbl">${t.convRate}</div><div class="kpi-sub">${booked} / ${total} hasta</div></div>
+      <div class="card"><div class="kpi-val" style="color:#34d399">£${totalRev.toLocaleString()}</div><div class="kpi-lbl">${t.totalRevenue}</div><div class="kpi-sub">${booked} rezervasyon</div></div>
+    </div>
+    ${nextEvt?`<div class="card">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px">
+        <div style="font-size:13px;font-weight:800;color:#dde4ef">📅 ${nextEvt.name}</div>
+        <span style="font-size:11px;color:#3d5270">${nextEvt.city} · ${nextEvt.venue} · ${nextEvt.date}</span>
+      </div>
+      <div class="grid7">${liveStats.map(s=>`<div style="background:#131b2a;border:1px solid #1a2236;border-radius:10px;padding:12px 8px;text-align:center"><div class="kpi-val" style="color:${s.color};font-size:18px">${s.val}</div><div style="font-size:10px;color:#4a607d;margin-top:3px;font-weight:600;line-height:1.3">${s.label}</div></div>`).join("")}</div>
+    </div>`:""}
+    <div class="card">
+      <div class="section-title">${t.recentPatients}</div>
+      <table class="data-table" style="width:100%">
+        <thead><tr><th>${t.fname}</th><th>Ülke</th><th>Durum</th><th>Etkinlik</th><th>Tarih</th><th></th></tr></thead>
+        <tbody>${recent.map(p=>`<tr>
+          <td style="font-weight:600">${p.name}</td>
+          <td>${flag(p.country)} ${p.country||""}</td>
+          <td>${statusBadge(p.status)}</td>
+          <td style="font-size:12px;color:#4a607d">${getEvent(p.eventId)?.name||"—"}</td>
+          <td style="font-size:11px;color:#3d5270">${p.createdAt||""}</td>
+          <td><button class="sm-btn" onclick="openPatient(${p.id})">→</button></td>
+        </tr>`).join("")}</tbody>
+      </table>
+    </div>
+  </div>`;
+}
+// ==RENDER_PATIENTS==
+let filterStatus="all";
+function renderPatients(){
+  const statuses=["all","walkin","consultation","assessed","pricing","booked","cancelled"];
+  const filtered=state.patients.filter(p=>{
+    const matchStatus=filterStatus==="all"||p.status===filterStatus;
+    const matchSearch=matches([p.name,p.email,p.phone,p.country,p.nationality]);
+    return matchStatus&&matchSearch;
+  });
+  const counts={all:state.patients.length};
+  ["walkin","consultation","assessed","pricing","booked","cancelled"].forEach(s=>counts[s]=state.patients.filter(p=>p.status===s).length);
+
+  if(!filtered.length)return`<div>
+    <div class="status-tabs">${statuses.map(s=>`<button class="status-tab${filterStatus===s?" active":""}" onclick="setFilterStatus('${s}')">${s==="all"?"Tümü":statusLabel(s)} <span style="font-size:10px;opacity:.7">${counts[s]}</span></button>`).join("")}</div>
+    <div class="empty">${t.noPatients}</div></div>`;
+
+  return`<div>
+    <div class="status-tabs">${statuses.map(s=>`<button class="status-tab${filterStatus===s?" active":""}" onclick="setFilterStatus('${s}')">${s==="all"?"Tümü":statusLabel(s)} <span style="font-size:10px;opacity:.7">${counts[s]}</span></button>`).join("")}</div>
+    <div class="grid3">${filtered.map(p=>{
+      const sc=STATUS_COLORS[p.status]||"#4a607d";
+      const evt=getEvent(p.eventId);
+      return`<div class="card" style="cursor:pointer;transition:border-color .15s;border-color:#1a2236" onclick="openPatient(${p.id})" onmouseover="this.style.borderColor='#f97316'" onmouseout="this.style.borderColor='#1a2236'">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px">
+          <div style="width:42px;height:42px;border-radius:50%;background:${sc}22;display:flex;align-items:center;justify-content:center;font-size:17px;font-weight:800;color:${sc};border:2px solid ${sc}44;flex-shrink:0">${p.name[0]}</div>
+          ${statusBadge(p.status)}
+        </div>
+        <div style="font-weight:700;font-size:14px;margin-bottom:2px">${p.name}</div>
+        <div style="font-size:13px;color:#4a607d;margin-bottom:6px">${flag(p.country)} ${p.country||""}</div>
+        ${evt?`<div style="font-size:11px;color:#3d5270;margin-bottom:4px">📅 ${evt.name}</div>`:""}
+        <div style="font-size:12px;color:#3d5270">${p.phone||""}</div>
+        ${p.consultation?.dentalConcerns?`<div style="font-size:11px;color:#4a607d;margin-top:7px;border-top:1px solid #1a2236;padding-top:7px;line-height:1.4;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical">${p.consultation.dentalConcerns}</div>`:""}
+      </div>`;
+    }).join("")}</div>
+  </div>`;
+}
+function setFilterStatus(s){filterStatus=s;render();}
+
+// ── PATIENT DETAIL OVERLAY
+function openPatient(id){
+  currentPatientId=id;currentPtTab="consultation";
+  const overlay=document.getElementById("patient-overlay");
+  overlay.style.display="flex";
+  renderPatientOverlay();
+}
+function closePatient(){
+  document.getElementById("patient-overlay").style.display="none";
+  currentPatientId=null;
+}
+function renderPatientOverlay(){
+  const p=getPatient(currentPatientId);if(!p)return;
+  document.getElementById("pt-name").textContent=p.name;
+  document.getElementById("pt-meta").textContent=`${flag(p.country)} ${p.country||""} · ${getEvent(p.eventId)?.name||"—"} · ${p.phone||""}`;
+  document.getElementById("pt-status-badge").innerHTML=statusBadge(p.status);
+  const tabs=["consultation","assessment","booking","notes"];
+  document.getElementById("pt-tabs").innerHTML=tabs.map(tab=>`<button class="pt-tab${currentPtTab===tab?" active":""}" onclick="setPtTab('${tab}')">${t["tab"+tab.charAt(0).toUpperCase()+tab.slice(1)]}</button>`).join("");
+  renderPtBody();
+}
+function setPtTab(tab){currentPtTab=tab;renderPatientOverlay();}
+function renderPtBody(){
+  const p=getPatient(currentPatientId);if(!p)return;
+  const body=document.getElementById("pt-body");
+  if(currentPtTab==="consultation")body.innerHTML=renderPtConsultation(p);
+  else if(currentPtTab==="assessment")body.innerHTML=renderPtAssessment(p);
+  else if(currentPtTab==="booking")body.innerHTML=renderPtBooking(p);
+  else if(currentPtTab==="notes")body.innerHTML=renderPtNotes(p);
+}
+function renderPtConsultation(p){
+  const c=p.consultation||{};
+  const evtOpts=state.events.map(e=>`<option value="${e.id}"${p.eventId==e.id?" selected":""}>${e.name}</option>`).join("");
+  const statusOpts=["walkin","consultation","assessed","pricing","booked","cancelled"].map(s=>`<option value="${s}"${p.status===s?" selected":""}>${statusLabel(s)}</option>`).join("");
+  return`<div style="max-width:700px;display:flex;flex-direction:column;gap:14px">
+    <div class="card">
+      <div class="section-title">Hasta Bilgileri</div>
+      <div class="field-row">
+        <div class="field"><label>${t.fname}</label><input id="pc-name" value="${p.name||""}"/></div>
+        <div class="field"><label>${t.femail}</label><input id="pc-email" value="${p.email||""}"/></div>
+      </div>
+      <div class="field-row">
+        <div class="field"><label>${t.fphone}</label><input id="pc-phone" value="${p.phone||""}"/></div>
+        <div class="field"><label>${t.fdob}</label><input type="date" id="pc-dob" value="${p.dob||""}"/></div>
+      </div>
+      <div class="field-row">
+        <div class="field"><label>${t.fcountry}</label><input id="pc-country" value="${p.country||""}"/></div>
+        <div class="field"><label>${t.fnationality}</label><input id="pc-nationality" value="${p.nationality||""}"/></div>
+      </div>
+      <div class="field-row">
+        <div class="field"><label>${t.fstatus}</label><select id="pc-status">${statusOpts}</select></div>
+        <div class="field"><label>${t.fevent}</label><select id="pc-eventId"><option value="">—</option>${evtOpts}</select></div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="section-title">Diş Anamnezi</div>
+      <div class="field"><label>${t.dentalConcerns}</label><textarea id="pc-dentalConcerns" rows="3">${c.dentalConcerns||""}</textarea></div>
+      <div class="field"><label>${t.medicalHistory}</label><textarea id="pc-medicalHistory" rows="2">${c.medicalHistory||""}</textarea></div>
+      <div class="field-row">
+        <div class="field"><label>${t.allergies}</label><input id="pc-allergies" value="${c.allergies||""}"/></div>
+        <div class="field"><label>${t.medications}</label><input id="pc-medications" value="${c.medications||""}"/></div>
+      </div>
+      <div style="display:flex;gap:20px;margin-bottom:12px">
+        <label style="display:flex;align-items:center;gap:7px;cursor:pointer;font-size:13px"><input type="checkbox" id="pc-smoking" ${c.smoking?"checked":""} style="accent-color:#f97316;width:15px;height:15px"/> ${t.smoking}</label>
+        <label style="display:flex;align-items:center;gap:7px;cursor:pointer;font-size:13px"><input type="checkbox" id="pc-pregnant" ${c.pregnant?"checked":""} style="accent-color:#f97316;width:15px;height:15px"/> ${t.pregnant}</label>
+      </div>
+      <div class="field"><label>${t.consultNotes}</label><textarea id="pc-notes" rows="2">${c.notes||""}</textarea></div>
+    </div>
+  </div>`;
+}
+// ==RENDER_DETAIL==
+function renderPtAssessment(p){
+  const a=p.assessment||{currentCondition:{},treatmentPlan:{},dentistNotes:""};
+  const chart=a[chartMode]||{};
+  function toothHTML(num){
+    const cond=chart[num]||"healthy";
+    const bg=TOOTH_COLORS[cond]||"transparent";
+    const ico=TOOTH_ICONS[cond]||"";
+    return`<div class="tooth" id="tooth-${num}" onclick="toothClick(event,${num})"
+      style="background:${bg!=="transparent"?bg+"33":"#131b2a"};border-color:${bg!=="transparent"?bg:"#1a2236"}">
+      <span class="tooth-icon">${ico}</span>
+      <span class="tooth-num">${num}</span>
+    </div>`;
+  }
+  const upperRow=`<div class="tooth-row">
+    ${UPPER_R.map(toothHTML).join("")}
+    <div class="tooth-sep">|</div>
+    ${UPPER_L.map(toothHTML).join("")}
+  </div>`;
+  const lowerRow=`<div class="tooth-row">
+    ${LOWER_R.map(toothHTML).join("")}
+    <div class="tooth-sep">|</div>
+    ${LOWER_L.map(toothHTML).join("")}
+  </div>`;
+  const condKeys=["healthy","cavity","crown","missing","implant","root_canal","veneer","filling","bridge","extraction"];
+  const legend=condKeys.map(k=>`<div class="legend-item"><div class="legend-dot" style="background:${TOOTH_COLORS[k]||"#131b2a"};border:1px solid ${TOOTH_COLORS[k]!=="transparent"?TOOTH_COLORS[k]:"#1a2236"}"></div>${condLabel(k)}</div>`).join("");
+  return`<div style="max-width:800px;display:flex;flex-direction:column;gap:14px">
+    <div class="card">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+        <div class="section-title" style="margin-bottom:0">${chartMode==="currentCondition"?t.currentCondition:t.treatmentPlan}</div>
+        <div class="toggle-group">
+          <button class="toggle-btn${chartMode==="currentCondition"?" active":""}" onclick="chartMode='currentCondition';renderPtBody()">${t.currentCondition}</button>
+          <button class="toggle-btn${chartMode==="treatmentPlan"?" active":""}" onclick="chartMode='treatmentPlan';renderPtBody()">${t.treatmentPlan}</button>
+        </div>
+      </div>
+      <div style="background:#131b2a;border:1px solid #1a2236;border-radius:10px;padding:16px;margin-bottom:12px">
+        <div style="font-size:10px;font-weight:700;color:#3d5270;text-align:center;margin-bottom:8px;letter-spacing:1px">ÜÇÜNCÜ MOLAR → ORTA / UPPER JAW</div>
+        <div class="tooth-chart-wrap">${upperRow}</div>
+        <div style="border-top:1px dashed #1a2236;margin:10px 0"></div>
+        <div class="tooth-chart-wrap">${lowerRow}</div>
+        <div style="font-size:10px;font-weight:700;color:#3d5270;text-align:center;margin-top:8px;letter-spacing:1px">LOWER JAW / ALT ÇENE</div>
+      </div>
+      <div style="display:flex;flex-wrap:wrap;gap:8px">${legend}</div>
+    </div>
+    <div class="card">
+      <div class="section-title">${t.dentistNotes}</div>
+      <div class="field"><textarea id="pa-dentistNotes" rows="4">${a.dentistNotes||""}</textarea></div>
+    </div>
+  </div>`;
+}
+
+function toothClick(e,num){
+  e.stopPropagation();
+  document.querySelectorAll(".tooth-popup").forEach(p=>p.remove());
+  const p=getPatient(currentPatientId);if(!p)return;
+  const a=p.assessment||{currentCondition:{},treatmentPlan:{}};
+  const chart=a[chartMode]||{};
+  const condKeys=["healthy","cavity","crown","missing","implant","root_canal","veneer","filling","bridge","extraction"];
+  const popup=document.createElement("div");
+  popup.className="tooth-popup";
+  const rect=e.currentTarget.getBoundingClientRect();
+  let left=rect.left+rect.width/2-110,top=rect.bottom+8;
+  if(left<8)left=8;
+  if(left+220>window.innerWidth)left=window.innerWidth-228;
+  if(top+200>window.innerHeight)top=rect.top-208;
+  popup.style.left=left+"px";popup.style.top=top+"px";
+  popup.innerHTML=`<div style="font-size:11px;font-weight:800;color:#f97316;margin-bottom:8px">Diş ${num} — ${chartMode==="currentCondition"?t.currentCondition:t.treatmentPlan}</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:5px">
+    ${condKeys.map(k=>{const cur=chart[num]===k||(!chart[num]&&k==="healthy");return`<button onclick="setToothCond(${num},'${k}')" style="padding:5px 8px;border-radius:6px;border:1px solid ${cur?"#f97316":"#1a2236"};background:${cur?"#f9731622":"#131b2a"};color:${cur?"#f97316":"#4a607d"};font-size:11px;font-weight:600;cursor:pointer;text-align:left;font-family:'DM Sans',sans-serif;display:flex;align-items:center;gap:4px"><span>${TOOTH_ICONS[k]||"○"}</span><span>${condLabel(k)}</span></button>`}).join("")}
+    </div>`;
+  document.body.appendChild(popup);
+  setTimeout(()=>document.addEventListener("click",()=>popup.remove(),{once:true}),10);
+}
+
+function setToothCond(num,cond){
+  document.querySelectorAll(".tooth-popup").forEach(p=>p.remove());
+  const p=getPatient(currentPatientId);if(!p)return;
+  if(!p.assessment)p.assessment={currentCondition:{},treatmentPlan:{},dentistNotes:""};
+  if(!p.assessment[chartMode])p.assessment[chartMode]={};
+  if(cond==="healthy")delete p.assessment[chartMode][num];
+  else p.assessment[chartMode][num]=cond;
+  renderPtBody();
+}
+
+function renderPtBooking(p){
+  const b=p.booking||{treatments:[],discount:0,deposit:0,travelType:"",accommodation:"",notes:""};
+  const sub=(b.treatments||[]).reduce((s,tr)=>s+(tr.qty||1)*(tr.price||0),0);
+  const total=sub-(b.discount||0);
+  const balance=total-(b.deposit||0);
+  const activeTx=state.treatments.filter(tr=>tr.active);
+  return`<div style="max-width:700px;display:flex;flex-direction:column;gap:14px">
+    <div class="card">
+      <div class="section-title">${t.selectTreatments}</div>
+      <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px">
+        ${activeTx.map(tr=>`<button class="sm-btn" onclick="addBookingTreatment(${tr.id})" style="font-size:11px">+ ${tr.name} (£${tr.salePrice})</button>`).join("")}
+      </div>
+      <div class="section-title">${t.bookingTreatments}</div>
+      ${(b.treatments||[]).length===0?`<div style="font-size:12px;color:#3d5270;padding:10px 0">${t.noTreatmentSelected}</div>`:`
+      <table class="data-table" style="width:100%">
+        <thead><tr><th>Tedavi</th><th>Adet</th><th>Fiyat (£)</th><th>Toplam</th><th></th></tr></thead>
+        <tbody>${(b.treatments||[]).map((tr,i)=>`<tr>
+          <td style="font-weight:600">${tr.name}</td>
+          <td><input type="number" min="1" value="${tr.qty||1}" onchange="updateBookingQty(${i},+this.value)" style="width:50px;background:#131b2a;border:1px solid #1a2236;border-radius:6px;padding:3px 6px;color:#dde4ef;font-size:12px;text-align:center"/></td>
+          <td>£${(tr.price||0).toLocaleString()}</td>
+          <td style="font-weight:700;color:#34d399">£${((tr.qty||1)*(tr.price||0)).toLocaleString()}</td>
+          <td><button class="sm-btn danger" onclick="removeBookingTreatment(${i})">✕</button></td>
+        </tr>`).join("")}</tbody>
+      </table>`}
+    </div>
+    <div class="card">
+      <div class="section-title">Seyahat & Konaklama</div>
+      <div class="field-row">
+        <div class="field"><label>${t.travelType}</label><input id="pb-travel" value="${b.travelType||""}"/></div>
+        <div class="field"><label>${t.accommodation}</label><input id="pb-accommodation" value="${b.accommodation||""}"/></div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="section-title">Finansal Özet</div>
+      <div style="max-width:320px">
+        <div class="stat-row"><span>${t.subtotal}</span><span>£${sub.toLocaleString()}</span></div>
+        <div class="stat-row"><span>${t.discount}</span><span><input type="number" min="0" value="${b.discount||0}" onchange="updateBookingDiscount(+this.value)" style="width:80px;background:#131b2a;border:1px solid #1a2236;border-radius:6px;padding:3px 6px;color:#dde4ef;font-size:12px;text-align:right"/></span></div>
+        <div class="stat-row"><span style="font-weight:700;color:#dde4ef">${t.totalCost}</span><span style="font-weight:800;color:#34d399;font-size:15px">£${total.toLocaleString()}</span></div>
+        <div class="stat-row"><span>${t.deposit}</span><span><input type="number" min="0" value="${b.deposit||0}" onchange="updateBookingDeposit(+this.value)" style="width:80px;background:#131b2a;border:1px solid #1a2236;border-radius:6px;padding:3px 6px;color:#dde4ef;font-size:12px;text-align:right"/></span></div>
+        <div class="stat-row"><span style="font-weight:700;color:#dde4ef">${t.balanceDue}</span><span style="font-weight:800;color:#f97316;font-size:15px">£${balance.toLocaleString()}</span></div>
+      </div>
+      <div class="field" style="margin-top:12px"><label>${t.bookingNotes}</label><textarea id="pb-notes" rows="2">${b.notes||""}</textarea></div>
+    </div>
+    <div style="display:flex;gap:10px">
+      <button class="btn sec" onclick="downloadQuotePDF(${p.id})">📄 ${t.downloadPDF}</button>
+    </div>
+  </div>`;
+}
+
+function renderPtNotes(p){
+  const notes=[...(p.notes||[])].sort((a,b)=>(b.date||"").localeCompare(a.date||""));
+  return`<div style="max-width:640px">
+    <div class="card" style="margin-bottom:14px">
+      <div style="display:flex;gap:9px">
+        <input id="new-note-text" placeholder="${t.addNote}..." style="flex:1;background:#131b2a;border:1px solid #1a2236;border-radius:8px;padding:8px 11px;color:#dde4ef;font-size:13px;outline:none"/>
+        <button class="btn" onclick="addPatientNote()">+ Not</button>
+      </div>
+    </div>
+    ${notes.length===0?`<div class="empty">${t.noNotes}</div>`:notes.map(n=>`
+    <div style="display:flex;gap:12px;margin-bottom:4px">
+      <div style="display:flex;flex-direction:column;align-items:center">
+        <div style="width:32px;height:32px;border-radius:50%;background:#f9731622;border:1px solid #f9731633;display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0">📝</div>
+        <div style="width:1px;flex:1;background:#1a2236;margin:3px 0"></div>
+      </div>
+      <div style="flex:1;padding:3px 0 18px">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:5px">
+          <span style="font-size:11px;background:#131b2a;border:1px solid #1a2236;color:#4a607d;padding:1px 7px;border-radius:20px">${n.date}</span>
+          <span style="font-size:11px;color:#3d5270">@${n.by||"admin"}</span>
+        </div>
+        <div style="background:#0d1320;border:1px solid #1a2236;border-radius:8px;padding:9px 12px;font-size:13px;color:#94a3b8;display:flex;justify-content:space-between;gap:10px">
+          <span>${n.text}</span>
+          ${canEdit()?`<button class="sm-btn danger" onclick="deletePatientNote(${n.id})" style="flex-shrink:0">✕</button>`:""}
+        </div>
+      </div>
+    </div>`).join("")}
+  </div>`;
+}
+// ==RENDER_MODULES==
+function renderEvents(){
+  const filtered=state.events.filter(e=>matches([e.name,e.city,e.venue]));
+  if(!filtered.length)return`<div class="empty">Etkinlik bulunamadı</div>`;
+  return`<div class="grid3">${filtered.map(e=>{
+    const pats=state.patients.filter(p=>p.eventId==e.id);
+    const booked=pats.filter(p=>p.status==="booked").length;
+    return`<div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px">
+        <div style="font-size:22px">📅</div>
+        <span class="badge" style="background:${e.active?"#34d39922":"#1a2236"};color:${e.active?"#34d399":"#4a607d"}">${e.active?"Aktif":"Pasif"}</span>
+      </div>
+      <div style="font-weight:800;font-size:14px;margin-bottom:4px">${e.name}</div>
+      <div style="font-size:12px;color:#4a607d;margin-bottom:2px">📍 ${e.city} · ${e.venue}</div>
+      <div style="font-size:12px;color:#4a607d;margin-bottom:10px">📆 ${e.date}</div>
+      <div style="display:flex;gap:10px;padding-top:10px;border-top:1px solid #1a2236;font-size:12px">
+        <span style="color:#60a5fa">${pats.length} hasta</span>
+        <span style="color:#34d399">${booked} rezerve</span>
+      </div>
+      ${canEdit()?`<div style="display:flex;gap:6px;margin-top:9px"><button class="sm-btn" onclick="openEventModal(${e.id})">✎ Düzenle</button><button class="sm-btn danger" onclick="deleteEvent(${e.id})">✕</button></div>`:""}
+    </div>`;
+  }).join("")}</div>`;
+}
+
+function renderAppointments(){
+  const evtOpts=state.events.map(e=>`<option value="${e.id}"${selectedEventId==e.id?" selected":""}>${e.name}</option>`).join("");
+  const apts=selectedEventId?state.appointments.filter(a=>a.eventId==selectedEventId):state.appointments;
+  const sorted=[...apts].sort((a,b)=>(a.time||"").localeCompare(b.time||""));
+  const statusInfo={scheduled:{label:t.statusScheduled,color:"#4a607d"},turned_up:{label:t.statusTurnedUp,color:"#34d399"},did_not_turn_up:{label:t.statusDidNotCome,color:"#f87171"},cancelled:{label:t.statusCancelled,color:"#94a3b8"}};
+  return`<div>
+    <div style="margin-bottom:14px;display:flex;align-items:center;gap:10px">
+      <select id="apt-event-sel" onchange="selectedEventId=+this.value||null;render()" style="background:#131b2a;border:1px solid #1a2236;border-radius:8px;padding:7px 12px;color:#dde4ef;font-size:13px;outline:none;min-width:220px">
+        <option value="">${t.selectEvent}</option>${evtOpts}
+      </select>
+      ${selectedEventId?`<span style="font-size:11px;color:#3d5270">${sorted.length} randevu</span>`:""}
+    </div>
+    ${sorted.length===0?`<div class="empty">Bu etkinlik için randevu bulunamadı</div>`:`
+    <div style="max-width:680px">${sorted.map(a=>{
+      const si=statusInfo[a.status]||statusInfo.scheduled;
+      const pat=getPatient(a.patientId);
+      return`<div class="apt-slot">
+        <div class="time-badge">${a.time}</div>
+        <div style="flex:1;min-width:0">
+          <div style="font-weight:700;font-size:13px">${a.patientName||"—"}</div>
+          <div style="font-size:11px;color:#4a607d">${pat?.phone||""} ${pat?`· ${flag(pat.country||"")}`:""}</div>
+        </div>
+        <span class="badge" style="background:${si.color}22;color:${si.color}">${si.label}</span>
+        ${canEdit()?`<div style="display:flex;gap:5px;flex-shrink:0">
+          ${a.status!=="turned_up"?`<button class="sm-btn success" onclick="setAptStatus(${a.id},'turned_up')" title="${t.statusTurnedUp}">✓</button>`:""}
+          ${a.status!=="did_not_turn_up"?`<button class="sm-btn danger" onclick="setAptStatus(${a.id},'did_not_turn_up')" title="${t.statusDidNotCome}">✗</button>`:""}
+          ${a.status!=="cancelled"?`<button class="sm-btn warn" onclick="setAptStatus(${a.id},'cancelled')" title="${t.statusCancelled}">~</button>`:""}
+          <button class="sm-btn danger" onclick="deleteAppointment(${a.id})">✕</button>
+        </div>`:""}
+      </div>`;
+    }).join("")}</div>`}
+  </div>`;
+}
+function setupAptEventSelector(){const el=document.getElementById("apt-event-sel");if(el&&selectedEventId)el.value=selectedEventId;}
+
+function renderTreatments(){
+  const filtered=state.treatments.filter(tr=>matches([tr.name,tr.description,tr.category]));
+  if(!filtered.length)return`<div class="empty">Tedavi bulunamadı</div>`;
+  return`<div class="card" style="overflow-x:auto">
+    <table class="data-table" style="min-width:700px">
+      <thead><tr><th>${t.tname}</th><th>${t.tdesc}</th><th>${t.tcategory}</th><th>${t.tclinicCost}</th><th>${t.tsalePrice}</th><th>${t.tmargin}</th><th>${t.tactive}</th><th></th></tr></thead>
+      <tbody>${filtered.map(tr=>{
+        const margin=tr.salePrice>0?Math.round((tr.salePrice-tr.clinicCost)/tr.salePrice*100):0;
+        return`<tr>
+          <td style="font-weight:700">${tr.name}</td>
+          <td style="font-size:12px;color:#4a607d">${tr.description||""}</td>
+          <td><span class="badge" style="background:#a78bfa22;color:#a78bfa;font-size:10px">${tr.category}</span></td>
+          <td>£${(tr.clinicCost||0).toLocaleString()}</td>
+          <td style="font-weight:700;color:#34d399">£${(tr.salePrice||0).toLocaleString()}</td>
+          <td><span style="color:${margin>=50?"#34d399":margin>=30?"#f59e0b":"#f87171"};font-weight:700">%${margin}</span></td>
+          <td><span class="badge" style="background:${tr.active?"#34d39922":"#f8717122"};color:${tr.active?"#34d399":"#f87171"}">${tr.active?"Aktif":"Pasif"}</span></td>
+          <td>${canEdit()?`<div style="display:flex;gap:5px"><button class="sm-btn" onclick="openTreatmentModal(${tr.id})">✎</button><button class="sm-btn danger" onclick="deleteTreatment(${tr.id})">✕</button></div>`:""}</td>
+        </tr>`;
+      }).join("")}</tbody>
+    </table>
+  </div>`;
+}
+
+function renderReports(){
+  const total=state.patients.length;
+  const booked=state.patients.filter(p=>p.status==="booked").length;
+  const totalRev=state.patients.filter(p=>p.status==="booked").reduce((s,p)=>s+bookingTotal(p),0);
+  const avg=booked?Math.round(totalRev/booked):0;
+  return`<div style="display:flex;flex-direction:column;gap:18px">
+    <div class="grid2">
+      <div class="card"><div class="section-title">${t.patientsByStatus}</div><canvas id="statusChart" height="200"></canvas></div>
+      <div class="card"><div class="section-title">${t.revenueByCategory}</div><canvas id="catChart" height="200"></canvas></div>
+    </div>
+    <div class="grid2">
+      <div class="card"><div class="section-title">${t.patientsByCountry}</div><canvas id="countryChart" height="200"></canvas></div>
+      <div class="card"><div class="section-title">${t.summaryStats}</div>
+        <div class="stat-row"><span>${t.totalPatients}</span><span>${total}</span></div>
+        <div class="stat-row"><span>${t.totalBooked}</span><span style="color:#34d399;font-weight:700">${booked}</span></div>
+        <div class="stat-row"><span>${t.convRate}</span><span>%${total?Math.round(booked/total*100):0}</span></div>
+        <div class="stat-row"><span>${t.totalRevenue}</span><span style="color:#34d399;font-weight:700">£${totalRev.toLocaleString()}</span></div>
+        <div class="stat-row"><span>${t.avgBooking}</span><span>£${avg.toLocaleString()}</span></div>
+      </div>
+    </div>
+  </div>`;
+}
+function renderReportCharts(){
+  const statusKeys=["walkin","consultation","assessed","pricing","booked","cancelled"];
+  const statusData=statusKeys.map(s=>state.patients.filter(p=>p.status===s).length);
+  const statusColors=statusKeys.map(s=>STATUS_COLORS[s]);
+  const statusEl=document.getElementById("statusChart");
+  if(statusEl){if(charts.status)charts.status.destroy();charts.status=new Chart(statusEl,{type:"bar",data:{labels:statusKeys.map(s=>statusLabel(s)),datasets:[{data:statusData,backgroundColor:statusColors,borderRadius:5}]},options:{plugins:{legend:{display:false}},scales:{x:{grid:{display:false},ticks:{color:"#3d5270",font:{size:10}}},y:{grid:{color:"#1a2236"},ticks:{color:"#3d5270",stepSize:1}}},responsive:true,maintainAspectRatio:false}});}
+  const cats={};state.treatments.forEach(tr=>{const rev=state.patients.filter(p=>p.status==="booked").reduce((s,p)=>{const btr=(p.booking?.treatments||[]).find(bt=>bt.treatmentId===tr.id);return s+(btr?(btr.qty||1)*(btr.price||0):0);},0);if(rev>0)cats[tr.category]=(cats[tr.category]||0)+rev;});
+  const catEl=document.getElementById("catChart");
+  if(catEl){if(charts.cat)charts.cat.destroy();const catColors=["#f97316","#60a5fa","#34d399","#a78bfa","#f59e0b","#f472b6","#22d3ee"];const ckeys=Object.keys(cats);charts.cat=new Chart(catEl,{type:"doughnut",data:{labels:ckeys,datasets:[{data:ckeys.map(k=>cats[k]),backgroundColor:catColors,borderWidth:0}]},options:{plugins:{legend:{labels:{color:"#94a3b8",font:{size:11}}}},responsive:true,maintainAspectRatio:false}});}
+  const countries={};state.patients.forEach(p=>{if(p.country)countries[p.country]=(countries[p.country]||0)+1;});
+  const cEl=document.getElementById("countryChart");
+  if(cEl){if(charts.country)charts.country.destroy();const cks=Object.keys(countries).sort((a,b)=>countries[b]-countries[a]).slice(0,8);charts.country=new Chart(cEl,{type:"bar",data:{labels:cks.map(c=>`${flag(c)} ${c}`),datasets:[{data:cks.map(c=>countries[c]),backgroundColor:"#f97316",borderRadius:5}]},options:{plugins:{legend:{display:false}},indexAxis:"y",scales:{x:{grid:{color:"#1a2236"},ticks:{color:"#3d5270",stepSize:1}},y:{grid:{display:false},ticks:{color:"#94a3b8",font:{size:11}}}},responsive:true,maintainAspectRatio:false}});}
+}
+
+function renderUsers(){
+  if(!canManageUsers())return`<div class="empty">Erişim yetkiniz yok.</div>`;
+  if(!state.users.length)return`<div class="empty">${t.noUsers}</div>`;
+  return`<div style="max-width:700px;display:flex;flex-direction:column;gap:9px">
+    ${state.users.map(u=>{
+      const isMe=u.id===currentUser.id;const color=ROLE_COLORS[u.role]||"#f97316";
+      const rl=u.role==="admin"?t.roleAdmin:u.role==="satis"?t.roleSales:t.roleReader;
+      return`<div class="card" style="display:flex;align-items:center;gap:14px">
+        <div style="width:40px;height:40px;border-radius:50%;background:${color}22;display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:800;color:${color};border:2px solid ${color}44;flex-shrink:0">${(u.display_name||u.username)[0].toUpperCase()}</div>
+        <div style="flex:1;min-width:0">
+          <div style="font-weight:700;font-size:14px">${u.display_name||u.username}${isMe?` <span style="font-size:10px;background:#1a2236;border-radius:10px;padding:1px 7px;color:#4a607d">siz</span>`:""}</div>
+          <div style="font-size:12px;color:#4a607d">@${u.username}</div>
+        </div>
+        <span class="badge" style="background:${color}18;color:${color}">${rl}</span>
+        <div style="display:flex;gap:6px">
+          <button class="sm-btn" onclick="openUserModal(${u.id})">✎ Düzenle</button>
+          ${!isMe?`<button class="sm-btn danger" onclick="deleteUser(${u.id})">✕</button>`:""}
+        </div>
+      </div>`;
+    }).join("")}
+  </div>`;
+}
+// ==ACTIONS==
+// ── MODAL HELPERS
+function closeModal(){const m=document.getElementById("modal-overlay");if(m)m.remove();}
+function makeModal(title,body,onSave,saveLabel){
+  const overlay=document.createElement("div");overlay.id="modal-overlay";overlay.className="modal-overlay";
+  overlay.onclick=e=>{if(e.target===overlay)closeModal();};
+  overlay.innerHTML=`<div class="modal"><div class="modal-title"><span>${title}</span><button onclick="closeModal()">✕</button></div>${body}<div class="modal-actions"><button class="cancel" onclick="closeModal()">${t.cancel}</button><button class="save" onclick="${onSave}">${saveLabel||t.save}</button></div></div>`;
+  document.body.appendChild(overlay);
+}
+
+// ── PATIENT MODAL
+function openPatientModal(editId){
+  const p=editId?getPatient(editId):null;
+  const evtOpts=state.events.map(e=>`<option value="${e.id}"${p?.eventId==e.id?" selected":""}>${e.name}</option>`).join("");
+  const statusOpts=["walkin","consultation","assessed","pricing","booked","cancelled"].map(s=>`<option value="${s}"${(p?.status||"walkin")===s?" selected":""}>${statusLabel(s)}</option>`).join("");
+  const body=`
+    <div class="field-row"><div class="field"><label>${t.fname}</label><input id="pm-name" value="${p?.name||""}"/></div><div class="field"><label>${t.fphone}</label><input id="pm-phone" value="${p?.phone||""}"/></div></div>
+    <div class="field"><label>${t.femail}</label><input id="pm-email" value="${p?.email||""}"/></div>
+    <div class="field-row"><div class="field"><label>${t.fcountry}</label><input id="pm-country" value="${p?.country||""}"/></div><div class="field"><label>${t.fnationality}</label><input id="pm-nationality" value="${p?.nationality||""}"/></div></div>
+    <div class="field-row"><div class="field"><label>${t.fstatus}</label><select id="pm-status">${statusOpts}</select></div><div class="field"><label>${t.fevent}</label><select id="pm-eventId"><option value="">—</option>${evtOpts}</select></div></div>`;
+  makeModal(editId?t.editPatient:t.newPatient,body,`savePatientModal(${editId||0})`);
+}
+async function savePatientModal(editId){
+  const name=document.getElementById("pm-name")?.value?.trim();if(!name)return;
+  const item={name,phone:document.getElementById("pm-phone").value,email:document.getElementById("pm-email").value,country:document.getElementById("pm-country").value,nationality:document.getElementById("pm-nationality").value,status:document.getElementById("pm-status").value,eventId:+document.getElementById("pm-eventId").value||null};
+  if(editId){state.patients=state.patients.map(p=>p.id==editId?{...p,...item}:p);toast(t.updated);}
+  else{state.patients.push({...item,id:Date.now(),assignee:currentUser.username,createdAt:new Date().toISOString().slice(0,10),consultation:{dentalConcerns:"",medicalHistory:"",allergies:"",medications:"",smoking:false,pregnant:false,notes:""},assessment:{currentCondition:{},treatmentPlan:{},dentistNotes:""},booking:{treatments:[],discount:0,deposit:0,travelType:"",accommodation:"",notes:""},notes:[]});toast(t.added);}
+  await persist("customers");closeModal();render();
+}
+
+// ── SAVE CURRENT PATIENT (from overlay)
+async function saveCurrentPatient(){
+  const p=getPatient(currentPatientId);if(!p)return;
+  if(currentPtTab==="consultation"){
+    p.name=document.getElementById("pc-name")?.value||p.name;
+    p.email=document.getElementById("pc-email")?.value||"";
+    p.phone=document.getElementById("pc-phone")?.value||"";
+    p.dob=document.getElementById("pc-dob")?.value||"";
+    p.country=document.getElementById("pc-country")?.value||"";
+    p.nationality=document.getElementById("pc-nationality")?.value||"";
+    p.status=document.getElementById("pc-status")?.value||p.status;
+    p.eventId=+document.getElementById("pc-eventId")?.value||null;
+    if(!p.consultation)p.consultation={};
+    p.consultation.dentalConcerns=document.getElementById("pc-dentalConcerns")?.value||"";
+    p.consultation.medicalHistory=document.getElementById("pc-medicalHistory")?.value||"";
+    p.consultation.allergies=document.getElementById("pc-allergies")?.value||"";
+    p.consultation.medications=document.getElementById("pc-medications")?.value||"";
+    p.consultation.smoking=document.getElementById("pc-smoking")?.checked||false;
+    p.consultation.pregnant=document.getElementById("pc-pregnant")?.checked||false;
+    p.consultation.notes=document.getElementById("pc-notes")?.value||"";
+  } else if(currentPtTab==="assessment"){
+    if(!p.assessment)p.assessment={currentCondition:{},treatmentPlan:{},dentistNotes:""};
+    p.assessment.dentistNotes=document.getElementById("pa-dentistNotes")?.value||"";
+  } else if(currentPtTab==="booking"){
+    if(!p.booking)p.booking={treatments:[],discount:0,deposit:0,travelType:"",accommodation:"",notes:""};
+    p.booking.travelType=document.getElementById("pb-travel")?.value||"";
+    p.booking.accommodation=document.getElementById("pb-accommodation")?.value||"";
+    p.booking.notes=document.getElementById("pb-notes")?.value||"";
+  }
+  await persist("customers");toast(t.saved);
+  renderPatientOverlay();
+}
+
+// ── BOOKING TREATMENT HELPERS
+function addBookingTreatment(treatmentId){
+  const p=getPatient(currentPatientId);if(!p)return;
+  const tr=getTreatment(treatmentId);if(!tr)return;
+  if(!p.booking)p.booking={treatments:[],discount:0,deposit:0,travelType:"",accommodation:"",notes:""};
+  const existing=p.booking.treatments.find(bt=>bt.treatmentId===treatmentId);
+  if(existing)existing.qty=(existing.qty||1)+1;
+  else p.booking.treatments.push({treatmentId:tr.id,name:tr.name,qty:1,price:tr.salePrice});
+  renderPtBody();
+}
+function removeBookingTreatment(idx){const p=getPatient(currentPatientId);if(!p?.booking)return;p.booking.treatments.splice(idx,1);renderPtBody();}
+function updateBookingQty(idx,val){const p=getPatient(currentPatientId);if(!p?.booking?.treatments[idx])return;p.booking.treatments[idx].qty=Math.max(1,val||1);renderPtBody();}
+function updateBookingDiscount(val){const p=getPatient(currentPatientId);if(!p?.booking)return;p.booking.discount=val||0;document.getElementById("pb-notes");renderPtBody();}
+function updateBookingDeposit(val){const p=getPatient(currentPatientId);if(!p?.booking)return;p.booking.deposit=val||0;renderPtBody();}
+
+// ── NOTES
+async function addPatientNote(){
+  const p=getPatient(currentPatientId);if(!p)return;
+  const text=document.getElementById("new-note-text")?.value?.trim();if(!text)return;
+  if(!p.notes)p.notes=[];
+  p.notes.push({id:Date.now(),date:new Date().toISOString().slice(0,10),text,by:currentUser.username});
+  await persist("customers");toast(t.added);renderPtBody();
+}
+async function deletePatientNote(noteId){
+  const p=getPatient(currentPatientId);if(!p)return;
+  p.notes=(p.notes||[]).filter(n=>n.id!==noteId);
+  await persist("customers");toast(t.deleted,"warn");renderPtBody();
+}
+
+// ── EVENTS
+function openEventModal(editId){
+  const e=editId?getEvent(editId):null;
+  const body=`
+    <div class="field"><label>${t.ename}</label><input id="em-name" value="${e?.name||""}"/></div>
+    <div class="field-row"><div class="field"><label>${t.ecity}</label><input id="em-city" value="${e?.city||""}"/></div><div class="field"><label>${t.evenue}</label><input id="em-venue" value="${e?.venue||""}"/></div></div>
+    <div class="field"><label>${t.edate}</label><input type="date" id="em-date" value="${e?.date||""}"/></div>
+    <div style="display:flex;align-items:center;gap:8px"><input type="checkbox" id="em-active" ${e?.active!==false?"checked":""} style="accent-color:#f97316;width:15px;height:15px"/><label style="font-size:13px;cursor:pointer">${t.eactive}</label></div>`;
+  makeModal(editId?t.editEvent:t.newEvent,body,`saveEvent(${editId||0})`);
+}
+async function saveEvent(editId){
+  const name=document.getElementById("em-name")?.value?.trim();if(!name)return;
+  const item={name,city:document.getElementById("em-city").value,venue:document.getElementById("em-venue").value,date:document.getElementById("em-date").value,active:document.getElementById("em-active").checked};
+  if(editId){state.events=state.events.map(e=>e.id==editId?{...e,...item}:e);}
+  else{state.events.push({...item,id:Date.now()});}
+  await persist("deals");toast(t.saved);closeModal();render();
+}
+async function deleteEvent(id){if(!canEdit())return;state.events=state.events.filter(e=>e.id!==id);await persist("deals");toast(t.deleted,"warn");render();}
+
+// ── APPOINTMENTS
+function openAppointmentModal(){
+  const patOpts=state.patients.map(p=>`<option value="${p.id}">${p.name}</option>`).join("");
+  const evtOpts=state.events.map(e=>`<option value="${e.id}"${selectedEventId==e.id?" selected":""}>${e.name}</option>`).join("");
+  const body=`
+    <div class="field"><label>${t.fevent}</label><select id="am-eventId"><option value="">—</option>${evtOpts}</select></div>
+    <div class="field"><label>${t.aptPatient}</label><select id="am-patientId"><option value="">—</option>${patOpts}</select></div>
+    <div class="field"><label>${t.aptTime}</label><input id="am-time" type="time" value="09:00"/></div>`;
+  makeModal(t.newAppointment,body,"saveAppointment()");
+}
+async function saveAppointment(){
+  const patientId=+document.getElementById("am-patientId")?.value;const eventId=+document.getElementById("am-eventId")?.value;
+  if(!patientId||!eventId)return;
+  const pat=getPatient(patientId);
+  state.appointments.push({id:Date.now(),eventId,patientId,patientName:pat?.name||"",time:document.getElementById("am-time").value,status:"scheduled"});
+  await persist("tasks");toast(t.added);closeModal();render();
+}
+async function setAptStatus(id,status){
+  state.appointments=state.appointments.map(a=>a.id==id?{...a,status}:a);
+  await persist("tasks");toast(t.saved);render();
+}
+async function deleteAppointment(id){state.appointments=state.appointments.filter(a=>a.id!==id);await persist("tasks");toast(t.deleted,"warn");render();}
+
+// ── TREATMENTS
+function openTreatmentModal(editId){
+  const tr=editId?getTreatment(editId):null;
+  const body=`
+    <div class="field"><label>${t.tname}</label><input id="trm-name" value="${tr?.name||""}"/></div>
+    <div class="field"><label>${t.tdesc}</label><input id="trm-desc" value="${tr?.description||""}"/></div>
+    <div class="field"><label>${t.tcategory}</label><input id="trm-cat" value="${tr?.category||""}"/></div>
+    <div class="field-row"><div class="field"><label>${t.tclinicCost}</label><input type="number" id="trm-clinicCost" value="${tr?.clinicCost||0}"/></div><div class="field"><label>${t.tsalePrice}</label><input type="number" id="trm-salePrice" value="${tr?.salePrice||0}"/></div></div>
+    <div style="display:flex;align-items:center;gap:8px"><input type="checkbox" id="trm-active" ${tr?.active!==false?"checked":""} style="accent-color:#f97316;width:15px;height:15px"/><label style="font-size:13px;cursor:pointer">Aktif</label></div>`;
+  makeModal(editId?t.editTreatment:t.newTreatment,body,`saveTreatment(${editId||0})`);
+}
+async function saveTreatment(editId){
+  const name=document.getElementById("trm-name")?.value?.trim();if(!name)return;
+  const item={name,description:document.getElementById("trm-desc").value,category:document.getElementById("trm-cat").value,clinicCost:+document.getElementById("trm-clinicCost").value||0,salePrice:+document.getElementById("trm-salePrice").value||0,active:document.getElementById("trm-active").checked};
+  if(editId){state.treatments=state.treatments.map(tr=>tr.id==editId?{...tr,...item}:tr);}
+  else{state.treatments.push({...item,id:Date.now()});}
+  await persist("history");toast(t.saved);closeModal();render();
+}
+async function deleteTreatment(id){if(!canEdit())return;state.treatments=state.treatments.filter(tr=>tr.id!==id);await persist("history");toast(t.deleted,"warn");render();}
+
+// ── USERS
+function openUserModal(editId){
+  const u=editId?state.users.find(u=>u.id===editId):null;
+  const roleOpts=[["admin",t.roleAdmin],["satis",t.roleSales],["okuyucu",t.roleReader]].map(([v,l])=>`<option value="${v}"${u?.role===v?" selected":""}>${l}</option>`).join("");
+  const body=`
+    <div class="field"><label>${t.fdisplayName}</label><input id="u-displayName" value="${u?.display_name||""}"/></div>
+    <div class="field"><label>${t.loginUser}</label><input id="u-username" value="${u?.username||""}" ${editId?"readonly style='opacity:.5;cursor:not-allowed'":""}/></div>
+    <div class="field"><label>${editId?t.fnewPass:t.fpassword}</label><input id="u-password" type="password" placeholder="${editId?t.fnewPassHint:"••••••••"}"/>${editId?`<div style="font-size:10px;color:#3d5270;margin-top:3px">${t.fnewPassHint}</div>`:""}</div>
+    <div class="field"><label>${t.fRole}</label><select id="u-role">${roleOpts}</select></div>`;
+  makeModal(editId?t.editUser:t.newUser,body,`saveUser(${editId||0})`);
+}
+async function saveUser(editId){
+  const username=document.getElementById("u-username")?.value?.trim();const displayName=document.getElementById("u-displayName")?.value?.trim();const password=document.getElementById("u-password")?.value;const role=document.getElementById("u-role")?.value;
+  if(!username){toast(t.usernameRequired,"err");return;}
+  if(!editId&&!password){toast(t.passRequired,"err");return;}
+  if(editId){
+    const upd={display_name:displayName,role};if(password)upd.password=password;
+    try{const r=await fetch(`${SUPA_URL}/rest/v1/crm_users?id=eq.${editId}`,{method:"PATCH",headers:{...H,"Prefer":"return=minimal"},body:JSON.stringify(upd)});if(!r.ok){toast("Güncelleme başarısız","err");return;}
+    state.users=state.users.map(u=>u.id===editId?{...u,...upd}:u);
+    if(editId===currentUser.id){currentUser={...currentUser,display_name:displayName,role};sessionStorage.setItem("crm_user",JSON.stringify(currentUser));const color=ROLE_COLORS[role]||"#f97316";document.getElementById("user-name").textContent=displayName||username;document.getElementById("user-avatar").textContent=(displayName||username)[0].toUpperCase();document.getElementById("user-role").textContent=role;document.getElementById("user-role").style.color=color;}
+    toast(t.userUpdated);}catch{toast("Hata","err");return;}
+  } else {
+    if(state.users.some(u=>u.username===username)){toast(t.usernameExists,"err");return;}
+    try{const r=await fetch(`${SUPA_URL}/rest/v1/crm_users`,{method:"POST",headers:{...H,"Prefer":"return=representation"},body:JSON.stringify({username,password,role,display_name:displayName})});if(!r.ok){toast("Eklenemedi","err");return;}const added=(await r.json());state.users.push({id:(Array.isArray(added)?added[0]:added).id,username,role,display_name:displayName});toast(t.userAdded);}catch{toast("Hata","err");return;}
+  }
+  closeModal();render();
+}
+async function deleteUser(id){
+  if(!canManageUsers())return;if(id===currentUser.id){toast(t.cantDeleteSelf,"err");return;}
+  try{const r=await fetch(`${SUPA_URL}/rest/v1/crm_users?id=eq.${id}`,{method:"DELETE",headers:H});if(!r.ok){toast("Silinemedi","err");return;}state.users=state.users.filter(u=>u.id!==id);toast(t.userDeleted,"warn");render();}catch{toast("Hata","err");}
+}
+
+// ── PDF QUOTE
+async function downloadQuotePDF(patientId){
+  const p=getPatient(patientId);if(!p)return;
+  const b=p.booking||{};const treatments=b.treatments||[];
+  const sub=treatments.reduce((s,tr)=>s+(tr.qty||1)*(tr.price||0),0);
+  const total=sub-(b.discount||0);const balance=total-(b.deposit||0);
+  const dateStr=new Date().toLocaleDateString("tr-TR");
+  const el=document.createElement("div");
+  el.style.cssText="position:fixed;left:-9999px;top:0;width:794px;background:#fff;font-family:Arial,Helvetica,sans-serif;padding:48px;color:#1a1a2e;box-sizing:border-box";
+  el.innerHTML=`
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:28px;padding-bottom:18px;border-bottom:3px solid #f97316">
+      <div><div style="font-size:24px;font-weight:900;color:#f97316">🦷 Turuncu Dental</div><div style="font-size:11px;color:#888;margin-top:3px">Diş Turizmi Hizmetleri</div></div>
+      <div style="text-align:right"><div style="font-size:20px;font-weight:900;color:#1a1a2e;letter-spacing:3px">TEKLİF</div><div style="font-size:10px;color:#777;margin-top:8px">Tarih: ${dateStr}</div></div>
+    </div>
+    <div style="margin-bottom:20px;padding:14px 16px;background:#fff8f0;border-radius:6px;border-left:3px solid #f97316">
+      <div style="font-size:9px;font-weight:700;color:#f97316;letter-spacing:1px;margin-bottom:6px">HASTA BİLGİLERİ</div>
+      <div style="font-size:15px;font-weight:700">${p.name}</div>
+      ${p.country?`<div style="font-size:12px;color:#555;margin-top:2px">${p.country}</div>`:""}
+      ${p.email?`<div style="font-size:11px;color:#777;margin-top:2px">${p.email}</div>`:""}
+      ${p.phone?`<div style="font-size:11px;color:#777">${p.phone}</div>`:""}
+    </div>
+    <table style="width:100%;border-collapse:collapse;margin-bottom:18px">
+      <thead><tr style="background:#f97316">
+        <th style="padding:9px 12px;text-align:left;font-size:10px;font-weight:700;color:#fff">TEDAVİ</th>
+        <th style="padding:9px 12px;text-align:center;font-size:10px;font-weight:700;color:#fff;width:60px">ADET</th>
+        <th style="padding:9px 12px;text-align:right;font-size:10px;font-weight:700;color:#fff;width:120px">BİRİM FİYAT</th>
+        <th style="padding:9px 12px;text-align:right;font-size:10px;font-weight:700;color:#fff;width:120px">TOPLAM</th>
+      </tr></thead>
+      <tbody>${treatments.length?treatments.map((tr,i)=>`<tr style="background:${i%2?"#fff8f0":"#fff"}">
+        <td style="padding:9px 12px;font-size:12px">${tr.name}</td>
+        <td style="padding:9px 12px;text-align:center;font-size:12px;color:#555">${tr.qty||1}</td>
+        <td style="padding:9px 12px;text-align:right;font-size:12px;color:#555">£${(tr.price||0).toLocaleString()}</td>
+        <td style="padding:9px 12px;text-align:right;font-size:12px;font-weight:700">£${((tr.qty||1)*(tr.price||0)).toLocaleString()}</td>
+      </tr>`).join(""):`<tr><td colspan="4" style="padding:16px;text-align:center;color:#888;font-size:12px">Tedavi seçilmemiş</td></tr>`}</tbody>
+    </table>
+    <div style="display:flex;justify-content:flex-end;margin-bottom:20px">
+      <div style="min-width:220px">
+        <div style="display:flex;justify-content:space-between;padding:7px 12px;background:#f8f9fa;border:1px solid #e9ecef;border-bottom:none;border-radius:4px 4px 0 0"><span style="font-size:11px;color:#777">Ara Toplam</span><span style="font-size:12px;font-weight:600">£${sub.toLocaleString()}</span></div>
+        ${b.discount?`<div style="display:flex;justify-content:space-between;padding:7px 12px;background:#f8f9fa;border:1px solid #e9ecef;border-bottom:none"><span style="font-size:11px;color:#777">İndirim</span><span style="font-size:12px;font-weight:600;color:#e55">-£${(b.discount).toLocaleString()}</span></div>`:""}
+        <div style="display:flex;justify-content:space-between;padding:8px 12px;background:#f97316;border-radius:0 0 4px 4px"><span style="font-size:12px;font-weight:700;color:#fff">TOPLAM</span><span style="font-size:14px;font-weight:900;color:#fff">£${total.toLocaleString()}</span></div>
+        ${b.deposit?`<div style="display:flex;justify-content:space-between;padding:7px 12px;background:#f0fff4;border:1px solid #c6f6d5;border-top:none;border-radius:0 0 4px 4px"><span style="font-size:11px;color:#777">Alınan Ön Ödeme</span><span style="font-size:12px;font-weight:600;color:#22863a">£${(b.deposit).toLocaleString()}</span></div>
+        <div style="display:flex;justify-content:space-between;padding:7px 12px;background:#fff8f0;border:1px solid #fed7aa;border-top:none;border-radius:0 0 4px 4px"><span style="font-size:11px;color:#777">Kalan Ödeme</span><span style="font-size:12px;font-weight:600;color:#c2410c">£${balance.toLocaleString()}</span></div>`:""}
+      </div>
+    </div>
+    ${b.travelType||b.accommodation?`<div style="background:#f8f9fa;border-left:3px solid #f97316;padding:12px 16px;border-radius:0 6px 6px 0;margin-bottom:16px"><div style="font-size:9px;font-weight:700;color:#f97316;letter-spacing:1px;margin-bottom:6px">SEYAHAT & KONAKLAMA</div>${b.travelType?`<div style="font-size:12px;color:#555">✈ ${b.travelType}</div>`:""}${b.accommodation?`<div style="font-size:12px;color:#555;margin-top:3px">🏨 ${b.accommodation}</div>`:""}</div>`:""}
+    <div style="margin-top:24px;padding-top:12px;border-top:1px solid #e9ecef;text-align:center;font-size:9px;color:#aaa">
+      Hazırlayan: ${currentUser.display_name||currentUser.username} · Tarih: ${dateStr} · Turuncu Dental CRM
+    </div>`;
+  document.body.appendChild(el);
+  try{
+    const canvas=await html2canvas(el,{scale:2,backgroundColor:"#ffffff",logging:false,useCORS:true});
+    const {jsPDF}=window.jspdf;const pdf=new jsPDF({unit:"px",format:"a4",orientation:"portrait"});
+    const pW=pdf.internal.pageSize.getWidth(),pH=pdf.internal.pageSize.getHeight();
+    const ratio=pW/canvas.width;const scaledH=canvas.height*ratio;
+    const img=canvas.toDataURL("image/jpeg",0.95);
+    let y=0;while(y<scaledH){if(y>0)pdf.addPage();pdf.addImage(img,"JPEG",0,-y,pW,scaledH);y+=pH;}
+    pdf.save(`teklif-${p.name.replace(/\s+/g,"-")}.pdf`);
+    toast("PDF indirildi ✓");
+  }catch{toast("PDF oluşturulamadı","err");}
+  document.body.removeChild(el);
+}
+// ==INIT==
+(async()=>{
+  const saved=sessionStorage.getItem("crm_user");
+  if(saved){try{currentUser=JSON.parse(saved);await showApp();}catch{sessionStorage.removeItem("crm_user");}}
+})();
+</script>
+</body>
+</html>
