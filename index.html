@@ -425,9 +425,19 @@ function getCatalogByType(type){return state.treatments.filter(tr=>(tr.type||"tr
 function condLabel(k){return{healthy:t.condHealthy,cavity:t.condCavity,crown:t.condCrown,missing:t.condMissing,implant:t.condImplant,root_canal:t.condRootCanal,veneer:t.condVeneer,filling:t.condFilling,bridge:t.condBridge,extraction:t.condExtraction}[k]||k;}
 function updateFooter(){if(!currentUser)return;document.getElementById("sidebar-footer").textContent=`${state.patients.length} ${t.footerPatients} · ${state.patients.filter(p=>p.status==="booked").length} ${t.footerBooked}`;}
 
-// ── SUPABASE CRUD
-async function dbGet(table){try{const r=await fetch(`${SUPA_URL}/rest/v1/${table}?select=*`,{headers:H});if(!r.ok)return null;return await r.json();}catch{return null;}}
-async function dbSet(table,data){try{await fetch(`${SUPA_URL}/rest/v1/${table}`,{method:"POST",headers:{...H,"Prefer":"resolution=merge-duplicates,return=minimal"},body:JSON.stringify({id:1,data})});}catch{}}
+// ── SUPABASE CRUD  (localStorage fallback when Supabase unreachable)
+async function dbGet(table){
+  try{
+    const r=await fetch(`${SUPA_URL}/rest/v1/${table}?select=*`,{headers:H});
+    if(r.ok){const rows=await r.json();if(rows&&rows.length>0){localStorage.setItem("crm_"+table,JSON.stringify(rows));return rows;}}
+  }catch{}
+  try{const local=localStorage.getItem("crm_"+table);if(local)return JSON.parse(local);}catch{}
+  return null;
+}
+async function dbSet(table,data){
+  try{localStorage.setItem("crm_"+table,JSON.stringify([{id:1,data}]));}catch{}
+  try{await fetch(`${SUPA_URL}/rest/v1/${table}`,{method:"POST",headers:{...H,"Prefer":"resolution=merge-duplicates,return=minimal"},body:JSON.stringify({id:1,data})});}catch{}
+}
 async function persist(table){document.getElementById("syncing-label").style.display="inline";await dbSet(table,state[table]);document.getElementById("syncing-label").style.display="none";updateFooter();}
 async function loadAll(){
   const [p,e,a,tr]=await Promise.all([dbGet("customers"),dbGet("deals"),dbGet("tasks"),dbGet("history")]);
