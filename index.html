@@ -838,7 +838,7 @@ function renderPtBooking(p){
           <td style="font-weight:700;color:#60a5fa">£${((a.nights||1)*(a.pricePerNight||0)).toLocaleString()}</td>
           <td><button class="sm-btn danger" onclick="removeBookingItem('accommodations',${i})">✕</button></td>
         </tr>`).join("")}</tbody>
-      </table>`:""}`}
+      </table>`:""}
     </div>
 
     <div class="card">
@@ -863,7 +863,7 @@ function renderPtBooking(p){
           <td style="font-weight:700;color:#f97316">£${((tr.persons||1)*(tr.price||0)).toLocaleString()}</td>
           <td><button class="sm-btn danger" onclick="removeBookingItem('travels',${i})">✕</button></td>
         </tr>`).join("")}</tbody>
-      </table>`:""}`}
+      </table>`:""}
     </div>
 
     <div class="card">
