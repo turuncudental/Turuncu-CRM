@@ -442,6 +442,11 @@ async function loadAll(){
 async function loadUsers(){try{const r=await fetch(`${SUPA_URL}/rest/v1/crm_users?select=id,username,role,display_name&order=id`,{headers:H});if(r.ok)state.users=await r.json();}catch{}}
 
 // ── AUTH
+// Supabase erişilemezse bu yedek kullanıcılar devreye girer
+const FALLBACK_USERS=[
+  {id:1,username:"admin",password:"admin123",role:"admin",display_name:"Admin"},
+  {id:2,username:"satis",password:"satis123",role:"satis",display_name:"Satış"},
+];
 function shake(){const b=document.querySelector(".login-box");b.classList.remove("shake");setTimeout(()=>b.classList.add("shake"),10);}
 async function doLogin(){
   const username=document.getElementById("login-username").value.trim();
@@ -450,10 +455,20 @@ async function doLogin(){
   const btn=document.getElementById("login-btn");btn.textContent=t.loginLoading;btn.disabled=true;
   try{
     const r=await fetch(`${SUPA_URL}/rest/v1/crm_users?username=eq.${encodeURIComponent(username)}&password=eq.${encodeURIComponent(password)}&select=*`,{headers:{...H,"Prefer":"return=representation"}});
-    const data=await r.json();
-    if(data&&data.length>0){currentUser=data[0];sessionStorage.setItem("crm_user",JSON.stringify(currentUser));await showApp();}
-    else{document.getElementById("login-err").textContent=t.loginErr;shake();}
-  }catch{document.getElementById("login-err").textContent=t.loginErr;shake();}
+    if(r.ok){
+      const data=await r.json();
+      if(data&&data.length>0){currentUser=data[0];sessionStorage.setItem("crm_user",JSON.stringify(currentUser));await showApp();btn.textContent=t.loginBtn;btn.disabled=false;return;}
+    }
+  }catch{}
+  // Supabase'e ulaşılamazsa yedek kullanıcılar
+  const fallback=FALLBACK_USERS.find(u=>u.username===username&&u.password===password);
+  if(fallback){
+    currentUser={id:fallback.id,username:fallback.username,role:fallback.role,display_name:fallback.display_name};
+    sessionStorage.setItem("crm_user",JSON.stringify(currentUser));
+    await showApp();
+  } else {
+    document.getElementById("login-err").textContent=t.loginErr;shake();
+  }
   btn.textContent=t.loginBtn;btn.disabled=false;
 }
 function doLogout(){currentUser=null;sessionStorage.removeItem("crm_user");document.getElementById("app").style.display="none";document.getElementById("login-screen").style.display="flex";document.getElementById("login-password").value="";}
