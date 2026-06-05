@@ -425,13 +425,15 @@ function getCatalogByType(type){return state.treatments.filter(tr=>(tr.type||"tr
 function condLabel(k){return{healthy:t.condHealthy,cavity:t.condCavity,crown:t.condCrown,missing:t.condMissing,implant:t.condImplant,root_canal:t.condRootCanal,veneer:t.condVeneer,filling:t.condFilling,bridge:t.condBridge,extraction:t.condExtraction}[k]||k;}
 function updateFooter(){if(!currentUser)return;document.getElementById("sidebar-footer").textContent=`${state.patients.length} ${t.footerPatients} · ${state.patients.filter(p=>p.status==="booked").length} ${t.footerBooked}`;}
 
-// ── SUPABASE CRUD  (localStorage fallback when Supabase unreachable)
+// ── SUPABASE CRUD  (localStorage = primary; Supabase = initial seed only)
 async function dbGet(table){
+  // localStorage is always the source of truth once it has data
+  try{const local=localStorage.getItem("crm_"+table);if(local)return JSON.parse(local);}catch{}
+  // First use: pull from Supabase to seed localStorage
   try{
     const r=await fetch(`${SUPA_URL}/rest/v1/${table}?select=*`,{headers:H});
     if(r.ok){const rows=await r.json();if(rows&&rows.length>0){localStorage.setItem("crm_"+table,JSON.stringify(rows));return rows;}}
   }catch{}
-  try{const local=localStorage.getItem("crm_"+table);if(local)return JSON.parse(local);}catch{}
   return null;
 }
 async function dbSet(table,data){
