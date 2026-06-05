@@ -1028,11 +1028,13 @@ function renderTreatments(){
       </tr>`).join("")}</tbody>
     </table>`;
   }
+  const addBtn=canEdit()?`<button class="btn" onclick="openTreatmentModal(0,'${catalogTab}')" style="margin-left:auto;font-size:13px;padding:7px 16px">${catalogTab==="treatment"?t.addTreatment:catalogTab==="accommodation"?t.addAccommodation:t.addTravel}</button>`:"";
   return`<div style="display:flex;flex-direction:column;gap:14px">
-    <div style="display:flex;gap:2px;border-bottom:1px solid #1a2236;padding-bottom:0">
+    <div style="display:flex;align-items:center;gap:2px;border-bottom:1px solid #1a2236;padding-bottom:0;flex-wrap:wrap">
       ${tabs.map(([key,label,icon])=>`<button onclick="catalogTab='${key}';render()" style="padding:9px 18px;font-size:13px;font-weight:600;color:${catalogTab===key?"#f97316":"#4a607d"};border:none;background:transparent;cursor:pointer;border-bottom:2px solid ${catalogTab===key?"#f97316":"transparent"};font-family:'DM Sans',sans-serif;transition:all .15s">${icon} ${label}</button>`).join("")}
+      ${addBtn}
     </div>
-    ${!filtered.length?`<div class="empty">Kayıt bulunamadı</div>`:`<div class="card" style="overflow-x:auto">${tableHTML}</div>`}
+    ${!filtered.length?`<div class="empty" style="display:flex;align-items:center;gap:12px">Kayıt bulunamadı ${canEdit()?`<button class="btn" onclick="openTreatmentModal(0,'${catalogTab}')">${catalogTab==="treatment"?t.addTreatment:catalogTab==="accommodation"?t.addAccommodation:t.addTravel}</button>`:""}</div>`:`<div class="card" style="overflow-x:auto">${tableHTML}</div>`}
   </div>`;
 }
 
