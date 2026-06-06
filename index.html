@@ -281,8 +281,8 @@ function nationalityOpts(sel=""){return`<option value="">— Seçin —</option>
 
 const STATUS_COLORS={walkin:"#94a3b8",consultation:"#60a5fa",assessed:"#a78bfa",pricing:"#f59e0b",booked:"#34d399",cancelled:"#f87171"};
 const ROLE_COLORS={admin:"#f97316",satis:"#60a5fa",okuyucu:"#f59e0b"};
-const TOOTH_COLORS={healthy:"transparent",cavity:"#f87171",crown:"#60a5fa",missing:"#374151",implant:"#f97316",root_canal:"#a78bfa",veneer:"#f472b6",filling:"#fbbf24",bridge:"#22d3ee",extraction:"#ef4444"};
-const TOOTH_ICONS={healthy:"",cavity:"🔴",crown:"👑",missing:"✕",implant:"🔩",root_canal:"⚡",veneer:"✨",filling:"⬛",bridge:"🔗",extraction:"⚠️"};
+const TOOTH_COLORS={healthy:"transparent",cavity:"#92400e",crown:"#e2e8f0",missing:"#374151",implant:"#3b82f6",root_canal:"#fbbf24",veneer:"#f472b6",filling:"#fbbf24",bridge:"#22d3ee",extraction:"#ef4444",root:"#6366f1"};
+const TOOTH_ICONS={healthy:"",cavity:"",crown:"🦷",missing:"",implant:"🔩",root_canal:"⚡",veneer:"✨",filling:"◾",bridge:"🔗",extraction:"⚠️",root:"▼"};
 
 const UPPER_R=[18,17,16,15,14,13,12,11];
 const UPPER_L=[21,22,23,24,25,26,27,28];
@@ -333,7 +333,7 @@ tr:{
   downloadPDF:"PDF İndir",sharePDF:"Paylaş",quote:"Teklif",quotePDF:"📄 Teklif PDF",
   patientsByStatus:"Durum Dağılımı",patientsByCountry:"Ülkeye Göre",revenueByCategory:"Kategoriye Göre Gelir",summaryStats:"Özet İstatistikler",
   totalBooked:"Toplam Rezerve",avgBooking:"Ortalama Rezervasyon",
-  condHealthy:"Sağlıklı",condCavity:"Çürük",condCrown:"Kron",condMissing:"Eksik",condImplant:"İmplant",condRootCanal:"Kanal",condVeneer:"Kaplama",condFilling:"Dolgu",condBridge:"Köprü",condExtraction:"Çekim",
+  condHealthy:"Sağlıklı",condCavity:"Çürük",condCrown:"Kron",condMissing:"Eksik",condImplant:"İmplant",condRootCanal:"Kanal",condVeneer:"Kaplama",condFilling:"Dolgu",condBridge:"Köprü",condExtraction:"Çekim",condRoot:"Kök",
   footerPatients:"hasta",footerBooked:"rezerve",
   noTreatmentSelected:"Tedavi seçilmedi",
 },
@@ -380,7 +380,7 @@ en:{
   downloadPDF:"Download PDF",sharePDF:"Share",quote:"Quote",quotePDF:"📄 Quote PDF",
   patientsByStatus:"By Status",patientsByCountry:"By Country",revenueByCategory:"Revenue by Category",summaryStats:"Summary",
   totalBooked:"Total Booked",avgBooking:"Avg Booking Value",
-  condHealthy:"Healthy",condCavity:"Cavity",condCrown:"Crown",condMissing:"Missing",condImplant:"Implant",condRootCanal:"Root Canal",condVeneer:"Veneer",condFilling:"Filling",condBridge:"Bridge",condExtraction:"Extraction",
+  condHealthy:"Healthy",condCavity:"Cavity",condCrown:"Crown",condMissing:"Missing",condImplant:"Implant",condRootCanal:"Root Canal",condVeneer:"Veneer",condFilling:"Filling",condBridge:"Bridge",condExtraction:"Extraction",condRoot:"Root",
   footerPatients:"patients",footerBooked:"booked",
   noTreatmentSelected:"No treatment selected",
 }};
@@ -479,7 +479,7 @@ function bookingTotal(p){
   return txSub+acSub+trSub-(p.booking?.discount||0);
 }
 function getCatalogByType(type){return state.treatments.filter(tr=>(tr.type||"treatment")===type&&tr.active);}
-function condLabel(k){return{healthy:t.condHealthy,cavity:t.condCavity,crown:t.condCrown,missing:t.condMissing,implant:t.condImplant,root_canal:t.condRootCanal,veneer:t.condVeneer,filling:t.condFilling,bridge:t.condBridge,extraction:t.condExtraction}[k]||k;}
+function condLabel(k){return{healthy:t.condHealthy,cavity:t.condCavity,crown:t.condCrown,missing:t.condMissing,implant:t.condImplant,root_canal:t.condRootCanal,veneer:t.condVeneer,filling:t.condFilling,bridge:t.condBridge,extraction:t.condExtraction,root:t.condRoot}[k]||k;}
 function updateFooter(){if(!currentUser)return;document.getElementById("sidebar-footer").textContent=`${state.patients.length} ${t.footerPatients} · ${state.patients.filter(p=>p.status==="booked").length} ${t.footerBooked}`;}
 
 // ── SUPABASE CRUD  (localStorage = primary; Supabase = initial seed only)
@@ -778,12 +778,17 @@ function renderPtAssessment(p){
   const chart=a[chartMode]||{};
   function toothHTML(num){
     const cond=chart[num]||"healthy";
+    const isMissing=cond==="missing";
     const bg=TOOTH_COLORS[cond]||"transparent";
     const ico=TOOTH_ICONS[cond]||"";
+    const alpha=cond==="crown"?"66":"55";
+    const bgFill=isMissing?"#0d1320":bg!=="transparent"?bg+alpha:"#131b2a";
+    const borderColor=isMissing?"#374151":bg!=="transparent"?bg:"#1a2236";
+    const extraStyle=isMissing?"border-style:dashed;opacity:0.3;":"";
     return`<div class="tooth${paintBrush?" paint-mode":""}" id="tooth-${num}" onclick="toothClick(event,${num})"
-      style="background:${bg!=="transparent"?bg+"33":"#131b2a"};border-color:${bg!=="transparent"?bg:"#1a2236"}">
-      <span class="tooth-icon">${ico}</span>
-      <span class="tooth-num">${num}</span>
+      style="background:${bgFill};border-color:${borderColor};${extraStyle}">
+      <span class="tooth-icon">${isMissing?"":ico}</span>
+      <span class="tooth-num" style="${isMissing?"color:#374151":""}">${num}</span>
     </div>`;
   }
   const upperRow=`<div class="tooth-row">
@@ -796,9 +801,12 @@ function renderPtAssessment(p){
     <div class="tooth-sep">|</div>
     ${LOWER_L.map(toothHTML).join("")}
   </div>`;
-  const condKeys=["healthy","cavity","crown","missing","implant","root_canal","veneer","filling","bridge","extraction"];
+  const condKeys=chartMode==="currentCondition"
+    ?["cavity","crown","missing","root","implant","root_canal","veneer","filling","bridge","extraction"]
+    :["healthy","cavity","crown","missing","implant","root_canal","veneer","filling","bridge","extraction"];
   const legend=condKeys.map(k=>`<div class="legend-item${paintBrush===k?" active":""}" data-cond="${k}" onclick="setPaintBrush('${k}')"><div class="legend-dot" style="background:${TOOTH_COLORS[k]||"#131b2a"};border:1px solid ${TOOTH_COLORS[k]!=="transparent"?TOOTH_COLORS[k]:"#1a2236"}"></div>${condLabel(k)}</div>`).join("");
-  const paintHint=paintBrush?`<div class="paint-hint">${TOOTH_ICONS[paintBrush]||"○"} <strong>${condLabel(paintBrush)}</strong> fırçası aktif — dişlere tıkla, iptal için tekrar tıkla</div>`:"";
+  const clearBtn=chartMode==="currentCondition"?`<div class="legend-item${paintBrush==="healthy"?" active":""}" data-cond="healthy" onclick="setPaintBrush('healthy')" style="margin-left:auto;border-style:dashed"><div class="legend-dot" style="background:#131b2a;border:1px dashed #3d5270"></div>Temizle</div>`:"";
+  const paintHint=paintBrush&&paintBrush!=="healthy"?`<div class="paint-hint">${TOOTH_ICONS[paintBrush]||"○"} <strong>${condLabel(paintBrush)}</strong> fırçası aktif — dişlere tıkla, iptal için tekrar tıkla</div>`:paintBrush==="healthy"?`<div class="paint-hint">✕ <strong>Temizle</strong> fırçası aktif — tıklanan dişi sıfırlar</div>`:"";
   return`<div style="max-width:800px;display:flex;flex-direction:column;gap:14px">
     <div class="card">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
@@ -816,7 +824,7 @@ function renderPtAssessment(p){
         <div class="tooth-chart-wrap">${lowerRow}</div>
         <div style="font-size:10px;font-weight:700;color:#3d5270;text-align:center;margin-top:8px;letter-spacing:1px">LOWER JAW / ALT ÇENE</div>
       </div>
-      <div style="display:flex;flex-wrap:wrap;gap:6px">${legend}</div>
+      <div style="display:flex;flex-wrap:wrap;gap:6px;align-items:center">${legend}${clearBtn}</div>
     </div>
     <div class="card">
       <div class="section-title">${t.dentistNotes}</div>
@@ -832,7 +840,9 @@ function toothClick(e,num){
   const p=getPatient(currentPatientId);if(!p)return;
   const a=p.assessment||{currentCondition:{},treatmentPlan:{}};
   const chart=a[chartMode]||{};
-  const condKeys=["healthy","cavity","crown","missing","implant","root_canal","veneer","filling","bridge","extraction"];
+  const popupKeys=chartMode==="currentCondition"
+    ?["cavity","crown","missing","root","implant","root_canal","veneer","filling","bridge","extraction"]
+    :["healthy","cavity","crown","missing","implant","root_canal","veneer","filling","bridge","extraction"];
   const popup=document.createElement("div");
   popup.className="tooth-popup";
   const rect=e.currentTarget.getBoundingClientRect();
@@ -841,9 +851,12 @@ function toothClick(e,num){
   if(left+220>window.innerWidth)left=window.innerWidth-228;
   if(top+200>window.innerHeight)top=rect.top-208;
   popup.style.left=left+"px";popup.style.top=top+"px";
+  const hasCond=chart[num]&&chart[num]!=="healthy";
+  const clearRow=chartMode==="currentCondition"&&hasCond?`<button onclick="setToothCond(${num},'healthy')" style="grid-column:1/-1;padding:5px 8px;border-radius:6px;border:1px dashed #3d5270;background:#131b2a;color:#3d5270;font-size:11px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif">✕ Temizle</button>`:"";
   popup.innerHTML=`<div style="font-size:11px;font-weight:800;color:#f97316;margin-bottom:8px">Diş ${num} — ${chartMode==="currentCondition"?t.currentCondition:t.treatmentPlan}</div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:5px">
-    ${condKeys.map(k=>{const cur=chart[num]===k||(!chart[num]&&k==="healthy");return`<button onclick="setToothCond(${num},'${k}')" style="padding:5px 8px;border-radius:6px;border:1px solid ${cur?"#f97316":"#1a2236"};background:${cur?"#f9731622":"#131b2a"};color:${cur?"#f97316":"#4a607d"};font-size:11px;font-weight:600;cursor:pointer;text-align:left;font-family:'DM Sans',sans-serif;display:flex;align-items:center;gap:4px"><span>${TOOTH_ICONS[k]||"○"}</span><span>${condLabel(k)}</span></button>`}).join("")}
+    ${popupKeys.map(k=>{const cur=chart[num]===k||(!chart[num]&&k==="healthy");return`<button onclick="setToothCond(${num},'${k}')" style="padding:5px 8px;border-radius:6px;border:1px solid ${cur?"#f97316":"#1a2236"};background:${cur?"#f9731622":"#131b2a"};color:${cur?"#f97316":"#4a607d"};font-size:11px;font-weight:600;cursor:pointer;text-align:left;font-family:'DM Sans',sans-serif;display:flex;align-items:center;gap:4px"><span>${TOOTH_ICONS[k]||"○"}</span><span>${condLabel(k)}</span></button>`}).join("")}
+    ${clearRow}
     </div>`;
   document.body.appendChild(popup);
   setTimeout(()=>document.addEventListener("click",()=>popup.remove(),{once:true}),10);
@@ -854,21 +867,11 @@ function setToothCond(num,cond){
   const p=getPatient(currentPatientId);if(!p)return;
   if(!p.assessment)p.assessment={currentCondition:{},treatmentPlan:{},dentistNotes:""};
   if(!p.assessment[chartMode])p.assessment[chartMode]={};
-  if(cond==="healthy")delete p.assessment[chartMode][num];
+  const existing=p.assessment[chartMode][num];
+  if(cond==="healthy"||existing===cond)delete p.assessment[chartMode][num];
   else p.assessment[chartMode][num]=cond;
-  // In paint mode, update just the tooth element instead of full re-render for speed
-  if(paintBrush!==null){
-    const el=document.getElementById("tooth-"+num);
-    if(el){
-      const bg=TOOTH_COLORS[cond]||"transparent";
-      el.style.background=bg!=="transparent"?bg+"33":"#131b2a";
-      el.style.borderColor=bg!=="transparent"?bg:"#1a2236";
-      el.querySelector(".tooth-icon").textContent=TOOTH_ICONS[cond]||"";
-    }
-    persist("customers");
-  } else {
-    renderPtBody();
-  }
+  persist("customers");
+  renderPtBody();
 }
 function setPaintBrush(k){
   paintBrush=(paintBrush===k)?null:k;
