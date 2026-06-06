@@ -484,13 +484,15 @@ async function dbSet(table,data){
   try{localStorage.setItem("crm_"+table,JSON.stringify([{id:1,data}]));}catch{}
   try{await fetch(`${SUPA_URL}/rest/v1/${table}`,{method:"POST",headers:{...H,"Prefer":"resolution=merge-duplicates,return=minimal"},body:JSON.stringify({id:1,data})});}catch{}
 }
-async function persist(table){document.getElementById("syncing-label").style.display="inline";await dbSet(table,state[table]);document.getElementById("syncing-label").style.display="none";updateFooter();}
+const TABLE_STATE={customers:"patients",deals:"events",tasks:"appointments",history:"treatments"};
+async function persist(table){document.getElementById("syncing-label").style.display="inline";await dbSet(table,state[TABLE_STATE[table]||table]);document.getElementById("syncing-label").style.display="none";updateFooter();}
 async function loadAll(){
   const [p,e,a,tr]=await Promise.all([dbGet("customers"),dbGet("deals"),dbGet("tasks"),dbGet("history")]);
-  state.patients=(p&&p[0])?p[0].data:SEED_PATIENTS;
-  state.events=(e&&e[0])?e[0].data:SEED_EVENTS;
-  state.appointments=(a&&a[0])?a[0].data:SEED_APPOINTMENTS;
-  state.treatments=(tr&&tr[0])?tr[0].data:SEED_TREATMENTS;
+  // Guard: if data is not a valid array, fall back to seed (prevents crash from corrupted localStorage)
+  state.patients=Array.isArray(p?.[0]?.data)?p[0].data:SEED_PATIENTS;
+  state.events=Array.isArray(e?.[0]?.data)?e[0].data:SEED_EVENTS;
+  state.appointments=Array.isArray(a?.[0]?.data)?a[0].data:SEED_APPOINTMENTS;
+  state.treatments=Array.isArray(tr?.[0]?.data)?tr[0].data:SEED_TREATMENTS;
   if(!p||!p[0])dbSet("customers",SEED_PATIENTS);
   if(!e||!e[0])dbSet("deals",SEED_EVENTS);
   if(!a||!a[0])dbSet("tasks",SEED_APPOINTMENTS);
