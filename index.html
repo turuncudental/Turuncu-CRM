@@ -224,6 +224,50 @@ const SUPA_URL="https://abtmfoetnhswccliuawn.supabase.co";
 const SUPA_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFidG1mb2V0bmhzd2NjbGl1YXduIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk0NTMwMzIsImV4cCI6MjA5NTAyOTAzMn0.G_gyNgy1HZmaGSRvZ9aLDO-XneqU_K036APAEArhFMU";
 const H={"Content-Type":"application/json","apikey":SUPA_KEY,"Authorization":"Bearer "+SUPA_KEY};
 
+// ── WORLD COUNTRIES (name, flag emoji, nationality)
+const WORLD_COUNTRIES=[
+  {n:"Türkiye",f:"🇹🇷",nat:"Türk"},{n:"United Kingdom",f:"🇬🇧",nat:"British"},{n:"Germany",f:"🇩🇪",nat:"German"},
+  {n:"France",f:"🇫🇷",nat:"French"},{n:"Netherlands",f:"🇳🇱",nat:"Dutch"},{n:"Belgium",f:"🇧🇪",nat:"Belgian"},
+  {n:"Switzerland",f:"🇨🇭",nat:"Swiss"},{n:"Austria",f:"🇦🇹",nat:"Austrian"},{n:"Italy",f:"🇮🇹",nat:"Italian"},
+  {n:"Spain",f:"🇪🇸",nat:"Spanish"},{n:"Portugal",f:"🇵🇹",nat:"Portuguese"},{n:"Sweden",f:"🇸🇪",nat:"Swedish"},
+  {n:"Norway",f:"🇳🇴",nat:"Norwegian"},{n:"Denmark",f:"🇩🇰",nat:"Danish"},{n:"Finland",f:"🇫🇮",nat:"Finnish"},
+  {n:"Ireland",f:"🇮🇪",nat:"Irish"},{n:"Greece",f:"🇬🇷",nat:"Greek"},{n:"Poland",f:"🇵🇱",nat:"Polish"},
+  {n:"Czech Republic",f:"🇨🇿",nat:"Czech"},{n:"Hungary",f:"🇭🇺",nat:"Hungarian"},{n:"Romania",f:"🇷🇴",nat:"Romanian"},
+  {n:"Bulgaria",f:"🇧🇬",nat:"Bulgarian"},{n:"Croatia",f:"🇭🇷",nat:"Croatian"},{n:"Serbia",f:"🇷🇸",nat:"Serbian"},
+  {n:"Slovakia",f:"🇸🇰",nat:"Slovak"},{n:"Slovenia",f:"🇸🇮",nat:"Slovenian"},{n:"Ukraine",f:"🇺🇦",nat:"Ukrainian"},
+  {n:"Russia",f:"🇷🇺",nat:"Russian"},{n:"Belarus",f:"🇧🇾",nat:"Belarusian"},{n:"Moldova",f:"🇲🇩",nat:"Moldovan"},
+  {n:"Lithuania",f:"🇱🇹",nat:"Lithuanian"},{n:"Latvia",f:"🇱🇻",nat:"Latvian"},{n:"Estonia",f:"🇪🇪",nat:"Estonian"},
+  {n:"Kosovo",f:"🇽🇰",nat:"Kosovar"},{n:"North Macedonia",f:"🇲🇰",nat:"Macedonian"},{n:"Albania",f:"🇦🇱",nat:"Albanian"},
+  {n:"Bosnia",f:"🇧🇦",nat:"Bosnian"},{n:"Montenegro",f:"🇲🇪",nat:"Montenegrin"},{n:"Malta",f:"🇲🇹",nat:"Maltese"},
+  {n:"Cyprus",f:"🇨🇾",nat:"Cypriot"},{n:"Luxembourg",f:"🇱🇺",nat:"Luxembourgish"},{n:"Iceland",f:"🇮🇸",nat:"Icelandic"},
+  {n:"United States",f:"🇺🇸",nat:"American"},{n:"Canada",f:"🇨🇦",nat:"Canadian"},{n:"Australia",f:"🇦🇺",nat:"Australian"},
+  {n:"New Zealand",f:"🇳🇿",nat:"New Zealander"},{n:"South Africa",f:"🇿🇦",nat:"South African"},
+  {n:"Saudi Arabia",f:"🇸🇦",nat:"Saudi"},{n:"UAE",f:"🇦🇪",nat:"Emirati"},{n:"Kuwait",f:"🇰🇼",nat:"Kuwaiti"},
+  {n:"Qatar",f:"🇶🇦",nat:"Qatari"},{n:"Bahrain",f:"🇧🇭",nat:"Bahraini"},{n:"Oman",f:"🇴🇲",nat:"Omani"},
+  {n:"Jordan",f:"🇯🇴",nat:"Jordanian"},{n:"Lebanon",f:"🇱🇧",nat:"Lebanese"},{n:"Israel",f:"🇮🇱",nat:"Israeli"},
+  {n:"Egypt",f:"🇪🇬",nat:"Egyptian"},{n:"Libya",f:"🇱🇾",nat:"Libyan"},{n:"Tunisia",f:"🇹🇳",nat:"Tunisian"},
+  {n:"Algeria",f:"🇩🇿",nat:"Algerian"},{n:"Morocco",f:"🇲🇦",nat:"Moroccan"},{n:"Iraq",f:"🇮🇶",nat:"Iraqi"},
+  {n:"Syria",f:"🇸🇾",nat:"Syrian"},{n:"Iran",f:"🇮🇷",nat:"Iranian"},{n:"Pakistan",f:"🇵🇰",nat:"Pakistani"},
+  {n:"India",f:"🇮🇳",nat:"Indian"},{n:"Bangladesh",f:"🇧🇩",nat:"Bangladeshi"},{n:"Sri Lanka",f:"🇱🇰",nat:"Sri Lankan"},
+  {n:"Nepal",f:"🇳🇵",nat:"Nepali"},{n:"China",f:"🇨🇳",nat:"Chinese"},{n:"Japan",f:"🇯🇵",nat:"Japanese"},
+  {n:"South Korea",f:"🇰🇷",nat:"South Korean"},{n:"Taiwan",f:"🇹🇼",nat:"Taiwanese"},{n:"Hong Kong",f:"🇭🇰",nat:"Hong Konger"},
+  {n:"Singapore",f:"🇸🇬",nat:"Singaporean"},{n:"Malaysia",f:"🇲🇾",nat:"Malaysian"},{n:"Indonesia",f:"🇮🇩",nat:"Indonesian"},
+  {n:"Philippines",f:"🇵🇭",nat:"Filipino"},{n:"Thailand",f:"🇹🇭",nat:"Thai"},{n:"Vietnam",f:"🇻🇳",nat:"Vietnamese"},
+  {n:"Nigeria",f:"🇳🇬",nat:"Nigerian"},{n:"Ghana",f:"🇬🇭",nat:"Ghanaian"},{n:"Kenya",f:"🇰🇪",nat:"Kenyan"},
+  {n:"Ethiopia",f:"🇪🇹",nat:"Ethiopian"},{n:"Tanzania",f:"🇹🇿",nat:"Tanzanian"},{n:"Uganda",f:"🇺🇬",nat:"Ugandan"},
+  {n:"Senegal",f:"🇸🇳",nat:"Senegalese"},{n:"Zimbabwe",f:"🇿🇼",nat:"Zimbabwean"},{n:"Zambia",f:"🇿🇲",nat:"Zambian"},
+  {n:"Brazil",f:"🇧🇷",nat:"Brazilian"},{n:"Argentina",f:"🇦🇷",nat:"Argentinian"},{n:"Mexico",f:"🇲🇽",nat:"Mexican"},
+  {n:"Colombia",f:"🇨🇴",nat:"Colombian"},{n:"Chile",f:"🇨🇱",nat:"Chilean"},{n:"Peru",f:"🇵🇪",nat:"Peruvian"},
+  {n:"Venezuela",f:"🇻🇪",nat:"Venezuelan"},{n:"Ecuador",f:"🇪🇨",nat:"Ecuadorian"},{n:"Bolivia",f:"🇧🇴",nat:"Bolivian"},
+  {n:"Paraguay",f:"🇵🇾",nat:"Paraguayan"},{n:"Uruguay",f:"🇺🇾",nat:"Uruguayan"},{n:"Cuba",f:"🇨🇺",nat:"Cuban"},
+  {n:"Azerbaijan",f:"🇦🇿",nat:"Azerbaijani"},{n:"Georgia",f:"🇬🇪",nat:"Georgian"},{n:"Armenia",f:"🇦🇲",nat:"Armenian"},
+  {n:"Kazakhstan",f:"🇰🇿",nat:"Kazakh"},{n:"Uzbekistan",f:"🇺🇿",nat:"Uzbek"},{n:"Turkmenistan",f:"🇹🇲",nat:"Turkmen"},
+  {n:"Kyrgyzstan",f:"🇰🇬",nat:"Kyrgyz"},{n:"Tajikistan",f:"🇹🇯",nat:"Tajik"},{n:"Afghanistan",f:"🇦🇫",nat:"Afghan"},
+  {n:"Mongolia",f:"🇲🇳",nat:"Mongolian"},{n:"Cambodia",f:"🇰🇭",nat:"Cambodian"},{n:"Myanmar",f:"🇲🇲",nat:"Burmese"},
+];
+function countryOpts(sel=""){return`<option value="">— Seçin —</option>`+WORLD_COUNTRIES.map(c=>`<option value="${c.n}"${c.n===sel?" selected":""}>${c.f} ${c.n}</option>`).join("");}
+function nationalityOpts(sel=""){return`<option value="">— Seçin —</option>`+WORLD_COUNTRIES.map(c=>`<option value="${c.nat}"${c.nat===sel?" selected":""}>${c.f} ${c.nat}</option>`).join("");}
+
 const STATUS_COLORS={walkin:"#94a3b8",consultation:"#60a5fa",assessed:"#a78bfa",pricing:"#f59e0b",booked:"#34d399",cancelled:"#f87171"};
 const ROLE_COLORS={admin:"#f97316",satis:"#60a5fa",okuyucu:"#f59e0b"};
 const TOOTH_COLORS={healthy:"transparent",cavity:"#f87171",crown:"#60a5fa",missing:"#374151",implant:"#f97316",root_canal:"#a78bfa",veneer:"#f472b6",filling:"#fbbf24",bridge:"#22d3ee",extraction:"#ef4444"};
@@ -689,8 +733,8 @@ function renderPtConsultation(p){
         <div class="field"><label>${t.fdob}</label><input type="date" id="pc-dob" value="${p.dob||""}"/></div>
       </div>
       <div class="field-row">
-        <div class="field"><label>${t.fcountry}</label><input id="pc-country" value="${p.country||""}"/></div>
-        <div class="field"><label>${t.fnationality}</label><input id="pc-nationality" value="${p.nationality||""}"/></div>
+        <div class="field"><label>${t.fcountry}</label><select id="pc-country">${countryOpts(p.country||"")}</select></div>
+        <div class="field"><label>${t.fnationality}</label><select id="pc-nationality">${nationalityOpts(p.nationality||"")}</select></div>
       </div>
       <div class="field-row">
         <div class="field"><label>${t.fstatus}</label><select id="pc-status">${statusOpts}</select></div>
@@ -1114,7 +1158,7 @@ function openPatientModal(editId){
   const body=`
     <div class="field-row"><div class="field"><label>${t.fname}</label><input id="pm-name" value="${p?.name||""}"/></div><div class="field"><label>${t.fphone}</label><input id="pm-phone" value="${p?.phone||""}"/></div></div>
     <div class="field"><label>${t.femail}</label><input id="pm-email" value="${p?.email||""}"/></div>
-    <div class="field-row"><div class="field"><label>${t.fcountry}</label><input id="pm-country" value="${p?.country||""}"/></div><div class="field"><label>${t.fnationality}</label><input id="pm-nationality" value="${p?.nationality||""}"/></div></div>
+    <div class="field-row"><div class="field"><label>${t.fcountry}</label><select id="pm-country">${countryOpts(p?.country||"")}</select></div><div class="field"><label>${t.fnationality}</label><select id="pm-nationality">${nationalityOpts(p?.nationality||"")}</select></div></div>
     <div class="field-row"><div class="field"><label>${t.fstatus}</label><select id="pm-status">${statusOpts}</select></div><div class="field"><label>${t.fevent}</label><select id="pm-eventId"><option value="">—</option>${evtOpts}</select></div></div>`;
   makeModal(editId?t.editPatient:t.newPatient,body,`savePatientModal(${editId||0})`);
 }
