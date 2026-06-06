@@ -97,11 +97,18 @@ nav button:hover:not(.active){color:#94a3b8}
 .modal-actions button{flex:1;padding:8px;border-radius:8px;cursor:pointer;font-weight:700;font-size:13px;border:none;font-family:'DM Sans',sans-serif}
 .modal-actions .cancel{background:#131b2a;color:#4a607d;border:1px solid #1a2236}
 .modal-actions .save{background:#f97316;color:#fff;flex:2}
-.toast-wrap{position:fixed;top:16px;right:16px;z-index:999;display:flex;flex-direction:column;gap:8px}
-.toast{padding:9px 14px;border-radius:10px;font-size:13px;font-weight:600;animation:fadeIn .2s ease}
-.toast.ok{background:#34d39918;border:1px solid #34d39944;color:#34d399}
-.toast.warn{background:#f59e0b18;border:1px solid #f59e0b44;color:#f59e0b}
-.toast.err{background:#f8717118;border:1px solid #f8717144;color:#f87171}
+.toast-wrap{position:fixed;top:24px;left:50%;transform:translateX(-50%);z-index:9999;display:flex;flex-direction:column;gap:8px;align-items:center;pointer-events:none}
+.toast{padding:13px 28px;border-radius:14px;font-size:15px;font-weight:700;animation:fadeIn .2s ease;box-shadow:0 6px 24px #0009;letter-spacing:.01em;white-space:nowrap}
+.toast.ok{background:#0d2b1a;border:2px solid #34d39966;color:#34d399}
+.toast.warn{background:#2b1f0a;border:2px solid #f59e0b66;color:#f59e0b}
+.toast.err{background:#2b0f0f;border:2px solid #f8717166;color:#f87171}
+.confirm-overlay{position:fixed;inset:0;background:#000000aa;z-index:2000;display:flex;align-items:center;justify-content:center}
+.confirm-box{background:#0d1320;border:1px solid #1a2236;border-radius:16px;padding:30px 28px;max-width:340px;width:90%;text-align:center;box-shadow:0 12px 40px #000c;animation:fadeIn .15s ease}
+.confirm-box .conf-msg{font-size:14px;color:#dde4ef;font-weight:600;margin:12px 0 22px;line-height:1.6}
+.confirm-box .conf-btns{display:flex;gap:10px}
+.confirm-box .conf-no{flex:1;padding:12px;background:#131b2a;color:#94a3b8;border:1px solid #1a2236;border-radius:9px;font-size:14px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif}
+.confirm-box .conf-yes{flex:1;padding:12px;background:linear-gradient(135deg,#f97316,#fbbf24);color:#090d14;border:none;border-radius:9px;font-size:14px;font-weight:800;cursor:pointer;font-family:'DM Sans',sans-serif}
+.confirm-box .conf-yes.danger{background:linear-gradient(135deg,#ef4444,#f87171)}
 #patient-overlay{position:fixed;inset:0;background:#090d14;z-index:50;display:none;flex-direction:column;overflow:hidden}
 .pt-header{background:#0d1320;border-bottom:1px solid #1a2236;padding:12px 20px;display:flex;align-items:center;gap:12px;flex-shrink:0}
 .pt-tabs{display:flex;gap:0;border-bottom:1px solid #1a2236;background:#0d1320;padding:0 20px;flex-shrink:0;overflow-x:auto}
@@ -452,7 +459,8 @@ const SEED_TREATMENTS=[
 function flag(c){const m={"United Kingdom":"🇬🇧","UK":"🇬🇧","UAE":"🇦🇪","United Arab Emirates":"🇦🇪","Russia":"🇷🇺","Ireland":"🇮🇪","Spain":"🇪🇸","Germany":"🇩🇪","France":"🇫🇷","USA":"🇺🇸","United States":"🇺🇸","Australia":"🇦🇺","Turkey":"🇹🇷","Türkiye":"🇹🇷","Netherlands":"🇳🇱","Belgium":"🇧🇪","Sweden":"🇸🇪","Norway":"🇳🇴","Denmark":"🇩🇰","Italy":"🇮🇹","Poland":"🇵🇱","Canada":"🇨🇦","Kuwait":"🇰🇼","Saudi Arabia":"🇸🇦","Qatar":"🇶🇦","Bahrain":"🇧🇭","Jordan":"🇯🇴","Romania":"🇷🇴","Bulgaria":"🇧🇬","Ukraine":"🇺🇦","Israel":"🇮🇱"};return m[c]||"🌍";}
 function statusLabel(s){return{walkin:t.statusWalkin,consultation:t.statusConsultation,assessed:t.statusAssessed,pricing:t.statusPricing,booked:t.statusBooked,cancelled:t.statusCancelled}[s]||s;}
 function statusBadge(s){const c=STATUS_COLORS[s]||"#4a607d";return`<span class="badge" style="background:${c}22;color:${c}">${statusLabel(s)}</span>`;}
-function toast(msg,type="ok"){const el=document.createElement("div");el.className=`toast ${type}`;el.textContent=msg;document.getElementById("toast-container").appendChild(el);setTimeout(()=>el.remove(),3200);}
+function toast(msg,type="ok"){const el=document.createElement("div");el.className=`toast ${type}`;el.textContent=msg;document.getElementById("toast-container").appendChild(el);setTimeout(()=>el.remove(),3500);}
+function confirmDialog(msg,danger=false){return new Promise(resolve=>{const ov=document.createElement("div");ov.className="confirm-overlay";ov.innerHTML=`<div class="confirm-box"><div style="font-size:28px">${danger?"🗑️":"💾"}</div><div class="conf-msg">${msg}</div><div class="conf-btns"><button class="conf-no">Hayır</button><button class="conf-yes${danger?" danger":""}">Evet</button></div></div>`;document.body.appendChild(ov);ov.querySelector(".conf-yes").onclick=()=>{ov.remove();resolve(true);};ov.querySelector(".conf-no").onclick=()=>{ov.remove();resolve(false);};});}
 function matches(fields){if(!searchQuery)return true;return fields.some(f=>f&&String(f).toLowerCase().includes(searchQuery.toLowerCase()));}
 function getPatient(id){return state.patients.find(p=>p.id==id);}
 function getEvent(id){return state.events.find(e=>e.id==id);}
@@ -1166,15 +1174,17 @@ function openPatientModal(editId){
 }
 async function savePatientModal(editId){
   const name=document.getElementById("pm-name")?.value?.trim();if(!name)return;
+  if(!await confirmDialog(editId?"Hasta bilgilerini kaydetmek istiyor musunuz?":"Yeni hasta eklemek istiyor musunuz?"))return;
   const item={name,phone:document.getElementById("pm-phone").value,email:document.getElementById("pm-email").value,country:document.getElementById("pm-country").value,nationality:document.getElementById("pm-nationality").value,status:document.getElementById("pm-status").value,eventId:+document.getElementById("pm-eventId").value||null};
-  if(editId){state.patients=state.patients.map(p=>p.id==editId?{...p,...item}:p);toast(t.updated);}
-  else{state.patients.push({...item,id:Date.now(),assignee:currentUser.username,createdAt:new Date().toISOString().slice(0,10),consultation:{dentalConcerns:"",medicalHistory:"",allergies:"",medications:"",smoking:false,pregnant:false,notes:""},assessment:{currentCondition:{},treatmentPlan:{},dentistNotes:""},booking:{treatments:[],accommodations:[],travels:[],discount:0,deposit:0,notes:""},notes:[]});toast(t.added);}
+  if(editId){state.patients=state.patients.map(p=>p.id==editId?{...p,...item}:p);toast("✅ "+t.updated);}
+  else{state.patients.push({...item,id:Date.now(),assignee:currentUser.username,createdAt:new Date().toISOString().slice(0,10),consultation:{dentalConcerns:"",medicalHistory:"",allergies:"",medications:"",smoking:false,pregnant:false,notes:""},assessment:{currentCondition:{},treatmentPlan:{},dentistNotes:""},booking:{treatments:[],accommodations:[],travels:[],discount:0,deposit:0,notes:""},notes:[]});toast("✅ "+t.added);}
   await persist("customers");closeModal();render();
 }
 
 // ── SAVE CURRENT PATIENT (from overlay)
 async function saveCurrentPatient(){
   const p=getPatient(currentPatientId);if(!p)return;
+  if(!await confirmDialog("Hasta bilgilerini kaydetmek istiyor musunuz?"))return;
   if(currentPtTab==="consultation"){
     p.name=document.getElementById("pc-name")?.value||p.name;
     p.email=document.getElementById("pc-email")?.value||"";
@@ -1199,7 +1209,7 @@ async function saveCurrentPatient(){
     ensureBooking(p);
     p.booking.notes=document.getElementById("pb-notes")?.value||"";
   }
-  await persist("customers");toast(t.saved);
+  await persist("customers");toast("✅ "+t.saved);
   renderPatientOverlay();
 }
 
@@ -1246,12 +1256,13 @@ async function addPatientNote(){
   const text=document.getElementById("new-note-text")?.value?.trim();if(!text)return;
   if(!p.notes)p.notes=[];
   p.notes.push({id:Date.now(),date:new Date().toISOString().slice(0,10),text,by:currentUser.username});
-  await persist("customers");toast(t.added);renderPtBody();
+  await persist("customers");toast("✅ "+t.added);renderPtBody();
 }
 async function deletePatientNote(noteId){
   const p=getPatient(currentPatientId);if(!p)return;
+  if(!await confirmDialog("Bu notu silmek istiyor musunuz?",true))return;
   p.notes=(p.notes||[]).filter(n=>n.id!==noteId);
-  await persist("customers");toast(t.deleted,"warn");renderPtBody();
+  await persist("customers");toast("🗑️ "+t.deleted,"warn");renderPtBody();
 }
 
 // ── EVENTS
@@ -1266,12 +1277,13 @@ function openEventModal(editId){
 }
 async function saveEvent(editId){
   const name=document.getElementById("em-name")?.value?.trim();if(!name)return;
+  if(!await confirmDialog(editId?"Etkinlik bilgilerini kaydetmek istiyor musunuz?":"Yeni etkinlik eklemek istiyor musunuz?"))return;
   const item={name,city:document.getElementById("em-city").value,venue:document.getElementById("em-venue").value,date:document.getElementById("em-date").value,active:document.getElementById("em-active").checked};
   if(editId){state.events=state.events.map(e=>e.id==editId?{...e,...item}:e);}
   else{state.events.push({...item,id:Date.now()});}
-  await persist("deals");toast(t.saved);closeModal();render();
+  await persist("deals");toast("✅ "+t.saved);closeModal();render();
 }
-async function deleteEvent(id){if(!canEdit())return;state.events=state.events.filter(e=>e.id!==id);await persist("deals");toast(t.deleted,"warn");render();}
+async function deleteEvent(id){if(!canEdit())return;if(!await confirmDialog("Bu etkinliği silmek istiyor musunuz?",true))return;state.events=state.events.filter(e=>e.id!==id);await persist("deals");toast("🗑️ Etkinlik silindi","warn");render();}
 
 // ── APPOINTMENTS
 function openAppointmentModal(){
@@ -1288,13 +1300,13 @@ async function saveAppointment(){
   if(!patientId||!eventId)return;
   const pat=getPatient(patientId);
   state.appointments.push({id:Date.now(),eventId,patientId,patientName:pat?.name||"",time:document.getElementById("am-time").value,status:"scheduled"});
-  await persist("tasks");toast(t.added);closeModal();render();
+  await persist("tasks");toast("✅ "+t.added);closeModal();render();
 }
 async function setAptStatus(id,status){
   state.appointments=state.appointments.map(a=>a.id==id?{...a,status}:a);
-  await persist("tasks");toast(t.saved);render();
+  await persist("tasks");toast("✅ "+t.saved);render();
 }
-async function deleteAppointment(id){state.appointments=state.appointments.filter(a=>a.id!==id);await persist("tasks");toast(t.deleted,"warn");render();}
+async function deleteAppointment(id){if(!await confirmDialog("Bu randevuyu silmek istiyor musunuz?",true))return;state.appointments=state.appointments.filter(a=>a.id!==id);await persist("tasks");toast("🗑️ Randevu silindi","warn");render();}
 
 // ── TREATMENTS
 function openTreatmentModal(editId,forcedType){
@@ -1331,12 +1343,13 @@ function openTreatmentModal(editId,forcedType){
 }
 async function saveTreatment(editId,type){
   const name=document.getElementById("trm-name")?.value?.trim();if(!name)return;
+  if(!await confirmDialog(editId?"Bu kaydı güncellemek istiyor musunuz?":"Yeni kayıt eklemek istiyor musunuz?"))return;
   const item={name,description:document.getElementById("trm-desc").value,category:document.getElementById("trm-cat").value,clinicCost:+document.getElementById("trm-clinicCost").value||0,salePrice:+document.getElementById("trm-salePrice").value||0,active:document.getElementById("trm-active").checked,type:type||"treatment"};
   if(editId){state.treatments=state.treatments.map(tr=>tr.id==editId?{...tr,...item}:tr);}
   else{state.treatments.push({...item,id:Date.now()});}
-  await persist("history");toast(t.saved);closeModal();render();
+  await persist("history");toast("✅ "+t.saved);closeModal();render();
 }
-async function deleteTreatment(id){if(!canEdit())return;state.treatments=state.treatments.filter(tr=>tr.id!==id);await persist("history");toast(t.deleted,"warn");render();}
+async function deleteTreatment(id){if(!canEdit())return;if(!await confirmDialog("Bu kaydı silmek istiyor musunuz?",true))return;state.treatments=state.treatments.filter(tr=>tr.id!==id);await persist("history");toast("🗑️ Kayıt silindi","warn");render();}
 
 // ── USERS
 function openUserModal(editId){
