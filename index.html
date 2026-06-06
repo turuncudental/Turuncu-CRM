@@ -289,6 +289,30 @@ const UPPER_L=[21,22,23,24,25,26,27,28];
 const LOWER_R=[48,47,46,45,44,43,42,41];
 const LOWER_L=[31,32,33,34,35,36,37,38];
 
+// SVG tooth shapes: gY=gumline y, crown=crown path, rx[]=root paths. viewBox "0 0 34 70"
+const TOOTH_SVG_DATA={
+  'u-central': {gY:28,crown:"M5,28 L6,8 Q17,2 28,8 L29,28Z",rx:["M12,28 L13,62 Q17,68 21,62 L22,28Z"]},
+  'u-lateral': {gY:28,crown:"M6,28 L7,10 Q17,5 27,10 L28,28Z",rx:["M12,28 L13,60 Q17,66 21,60 L22,28Z"]},
+  'u-canine':  {gY:28,crown:"M5,28 L8,14 L17,2 L26,14 L29,28Z",rx:["M11,28 L13,62 Q17,68 21,62 L23,28Z"]},
+  'u-premolar':{gY:28,crown:"M5,28 L6,18 L11,8 L17,12 L23,8 L28,18 L29,28Z",rx:["M12,28 L13,60 Q17,66 21,60 L22,28Z"]},
+  'u-molar':   {gY:28,crown:"M2,28 L3,14 L9,6 L17,9 L25,6 L31,14 L32,28Z",rx:["M3,28 L2,58 Q7,66 12,58 L12,28Z","M22,28 L22,58 Q27,66 32,58 L31,28Z"]},
+  'l-incisor': {gY:42,crown:"M5,42 L6,62 Q17,68 28,62 L29,42Z",rx:["M12,42 L13,10 Q17,3 21,10 L22,42Z"]},
+  'l-canine':  {gY:42,crown:"M5,42 L8,56 L17,68 L26,56 L29,42Z",rx:["M11,42 L13,8 Q17,1 21,8 L23,42Z"]},
+  'l-premolar':{gY:42,crown:"M5,42 L6,52 L11,62 L17,59 L23,62 L28,52 L29,42Z",rx:["M12,42 L13,10 Q17,3 21,10 L22,42Z"]},
+  'l-molar':   {gY:42,crown:"M2,42 L3,55 L9,65 L17,67 L25,65 L31,55 L32,42Z",rx:["M3,42 L2,12 Q7,4 12,12 L12,42Z","M22,42 L22,12 Q27,4 32,12 L31,42Z"]},
+};
+function getToothSVGKey(n){
+  if(n===11||n===21)return'u-central';
+  if(n===12||n===22)return'u-lateral';
+  if(n===13||n===23)return'u-canine';
+  if((n>=14&&n<=15)||(n>=24&&n<=25))return'u-premolar';
+  if((n>=16&&n<=18)||(n>=26&&n<=28))return'u-molar';
+  if(n===31||n===32||n===41||n===42)return'l-incisor';
+  if(n===33||n===43)return'l-canine';
+  if((n>=34&&n<=35)||(n>=44&&n<=45))return'l-premolar';
+  return'l-molar';
+}
+
 const T={
 tr:{
   navDashboard:"Panel",navPatients:"Hastalar",navEvents:"Etkinlikler",navAppointments:"Randevular",
@@ -779,26 +803,42 @@ function renderPtAssessment(p){
   function toothHTML(num){
     const cond=chart[num]||"healthy";
     const isMissing=cond==="missing";
-    const bg=TOOTH_COLORS[cond]||"transparent";
-    const ico=TOOTH_ICONS[cond]||"";
-    const alpha=cond==="crown"?"66":"55";
-    const bgFill=isMissing?"#0d1320":bg!=="transparent"?bg+alpha:"#131b2a";
-    const borderColor=isMissing?"#374151":bg!=="transparent"?bg:"#1a2236";
-    const extraStyle=isMissing?"border-style:dashed;opacity:0.3;":"";
-    return`<div class="tooth${paintBrush?" paint-mode":""}" id="tooth-${num}" onclick="toothClick(event,${num})"
-      style="background:${bgFill};border-color:${borderColor};${extraStyle}">
-      <span class="tooth-icon">${isMissing?"":ico}</span>
-      <span class="tooth-num" style="${isMissing?"color:#374151":""}">${num}</span>
+    const isHealthy=!chart[num]||cond==="healthy";
+    const condColor=TOOTH_COLORS[cond]||"transparent";
+    const crownFill=isHealthy?"#f0ede8":isMissing?"#111827":condColor+"cc";
+    const crownStroke=isHealthy?"#c4a882":isMissing?"#37415188":condColor;
+    const rootFill="#c8a47a";const rootStroke="#a07850";
+    const svgOp=isMissing?"0.18":"1";
+    const sh=TOOTH_SVG_DATA[getToothSVGKey(num)];
+    const isUpper=num>=11&&num<=28;
+    const ico=!isHealthy&&!isMissing?TOOTH_ICONS[cond]||"":'';
+    const icoY=isUpper?sh.gY-5:sh.gY+12;
+    const roots=sh.rx.map(d=>`<path d="${d}" fill="${rootFill}" stroke="${rootStroke}" stroke-width="0.8"/>`).join('');
+    const crownEl=isMissing
+      ?`<path d="${sh.crown}" fill="${crownFill}" stroke="#374151" stroke-width="0.7" stroke-dasharray="3,2"/>`
+      :`<path d="${sh.crown}" fill="${crownFill}" stroke="${crownStroke}" stroke-width="0.8"/>`;
+    const gumLine=`<line x1="2" y1="${sh.gY}" x2="32" y2="${sh.gY}" stroke="#4b556355" stroke-width="0.7"/>`;
+    const icoEl=ico?`<text x="17" y="${icoY}" text-anchor="middle" font-size="9" dominant-baseline="middle" style="pointer-events:none">${ico}</text>`:'';
+    const numStyle="font-size:7px;font-weight:800;color:#3d5270;height:9px;line-height:9px;text-align:center;width:34px";
+    const cursor=paintBrush?"crosshair":"pointer";
+    return`<div id="tooth-${num}" onclick="toothClick(event,${num})"
+      style="display:flex;flex-direction:column;align-items:center;cursor:${cursor};user-select:none"
+      onmouseenter="this.style.filter='brightness(1.2) drop-shadow(0 0 3px ${isHealthy?"#f97316":condColor})'"
+      onmouseleave="this.style.filter=''">
+      ${isUpper?`<div style="${numStyle}">${num}</div>`:''}
+      <svg viewBox="0 0 34 70" width="34" height="70" style="opacity:${svgOp};overflow:visible">${roots}${crownEl}${gumLine}${icoEl}</svg>
+      ${!isUpper?`<div style="${numStyle}">${num}</div>`:''}
     </div>`;
   }
-  const upperRow=`<div class="tooth-row">
+  const sepStyle="display:flex;align-items:center;justify-content:center;width:10px;color:#1e2d42;font-size:14px;font-weight:300;user-select:none";
+  const upperRow=`<div class="tooth-row" style="align-items:flex-end">
     ${UPPER_R.map(toothHTML).join("")}
-    <div class="tooth-sep">|</div>
+    <div style="${sepStyle}">│</div>
     ${UPPER_L.map(toothHTML).join("")}
   </div>`;
-  const lowerRow=`<div class="tooth-row">
+  const lowerRow=`<div class="tooth-row" style="align-items:flex-start">
     ${LOWER_R.map(toothHTML).join("")}
-    <div class="tooth-sep">|</div>
+    <div style="${sepStyle}">│</div>
     ${LOWER_L.map(toothHTML).join("")}
   </div>`;
   const condKeys=chartMode==="currentCondition"
