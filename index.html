@@ -142,8 +142,12 @@ nav button:hover:not(.active){color:#94a3b8}
 .toggle-btn.active{background:#f9731622;color:#f97316}
 .apt-slot{display:flex;align-items:center;gap:12px;padding:10px 14px;background:#0d1320;border:1px solid #1a2236;border-radius:10px;margin-bottom:7px}
 .time-badge{background:#131b2a;border:1px solid #1a2236;border-radius:6px;padding:4px 10px;font-size:13px;font-weight:800;color:#dde4ef;min-width:56px;text-align:center;flex-shrink:0}
-.legend-item{display:flex;align-items:center;gap:5px;font-size:11px;color:#4a607d}
+.legend-item{display:flex;align-items:center;gap:5px;font-size:11px;color:#4a607d;cursor:pointer;padding:4px 8px;border-radius:7px;border:1.5px solid transparent;transition:all .12s;user-select:none}
+.legend-item:hover{color:#dde4ef;background:#131b2a}
+.legend-item.active{color:#f97316;background:#1a22366e;border-color:#f97316;font-weight:700}
 .legend-dot{width:12px;height:12px;border-radius:3px;flex-shrink:0}
+.tooth.paint-mode{cursor:crosshair!important}
+.paint-hint{font-size:11px;color:#f97316;background:#1a223666;border:1px solid #f9731655;border-radius:8px;padding:5px 12px;display:flex;align-items:center;gap:6px;animation:fadeIn .2s ease}
 </style>
 </head>
 <body>
@@ -387,6 +391,7 @@ let currentTab="dashboard",searchQuery="",charts={};
 let currentPatientId=null,currentPtTab="consultation";
 let selectedEventId=null;
 let chartMode="currentCondition";
+let paintBrush=null;
 let catalogTab="treatment";
 let state={patients:[],events:[],appointments:[],treatments:[],users:[]};
 // ==SEED==
@@ -775,7 +780,7 @@ function renderPtAssessment(p){
     const cond=chart[num]||"healthy";
     const bg=TOOTH_COLORS[cond]||"transparent";
     const ico=TOOTH_ICONS[cond]||"";
-    return`<div class="tooth" id="tooth-${num}" onclick="toothClick(event,${num})"
+    return`<div class="tooth${paintBrush?" paint-mode":""}" id="tooth-${num}" onclick="toothClick(event,${num})"
       style="background:${bg!=="transparent"?bg+"33":"#131b2a"};border-color:${bg!=="transparent"?bg:"#1a2236"}">
       <span class="tooth-icon">${ico}</span>
       <span class="tooth-num">${num}</span>
@@ -792,7 +797,8 @@ function renderPtAssessment(p){
     ${LOWER_L.map(toothHTML).join("")}
   </div>`;
   const condKeys=["healthy","cavity","crown","missing","implant","root_canal","veneer","filling","bridge","extraction"];
-  const legend=condKeys.map(k=>`<div class="legend-item"><div class="legend-dot" style="background:${TOOTH_COLORS[k]||"#131b2a"};border:1px solid ${TOOTH_COLORS[k]!=="transparent"?TOOTH_COLORS[k]:"#1a2236"}"></div>${condLabel(k)}</div>`).join("");
+  const legend=condKeys.map(k=>`<div class="legend-item${paintBrush===k?" active":""}" data-cond="${k}" onclick="setPaintBrush('${k}')"><div class="legend-dot" style="background:${TOOTH_COLORS[k]||"#131b2a"};border:1px solid ${TOOTH_COLORS[k]!=="transparent"?TOOTH_COLORS[k]:"#1a2236"}"></div>${condLabel(k)}</div>`).join("");
+  const paintHint=paintBrush?`<div class="paint-hint">${TOOTH_ICONS[paintBrush]||"○"} <strong>${condLabel(paintBrush)}</strong> fırçası aktif — dişlere tıkla, iptal için tekrar tıkla</div>`:"";
   return`<div style="max-width:800px;display:flex;flex-direction:column;gap:14px">
     <div class="card">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
@@ -802,14 +808,15 @@ function renderPtAssessment(p){
           <button class="toggle-btn${chartMode==="treatmentPlan"?" active":""}" onclick="chartMode='treatmentPlan';renderPtBody()">${t.treatmentPlan}</button>
         </div>
       </div>
-      <div style="background:#131b2a;border:1px solid #1a2236;border-radius:10px;padding:16px;margin-bottom:12px">
+      ${paintHint}
+      <div style="background:#131b2a;border:1px solid #1a2236;border-radius:10px;padding:16px;margin-bottom:12px;${paintBrush?"border-color:#f9731644":""}">
         <div style="font-size:10px;font-weight:700;color:#3d5270;text-align:center;margin-bottom:8px;letter-spacing:1px">ÜÇÜNCÜ MOLAR → ORTA / UPPER JAW</div>
         <div class="tooth-chart-wrap">${upperRow}</div>
         <div style="border-top:1px dashed #1a2236;margin:10px 0"></div>
         <div class="tooth-chart-wrap">${lowerRow}</div>
         <div style="font-size:10px;font-weight:700;color:#3d5270;text-align:center;margin-top:8px;letter-spacing:1px">LOWER JAW / ALT ÇENE</div>
       </div>
-      <div style="display:flex;flex-wrap:wrap;gap:8px">${legend}</div>
+      <div style="display:flex;flex-wrap:wrap;gap:6px">${legend}</div>
     </div>
     <div class="card">
       <div class="section-title">${t.dentistNotes}</div>
@@ -820,6 +827,7 @@ function renderPtAssessment(p){
 
 function toothClick(e,num){
   e.stopPropagation();
+  if(paintBrush!==null){setToothCond(num,paintBrush);return;}
   document.querySelectorAll(".tooth-popup").forEach(p=>p.remove());
   const p=getPatient(currentPatientId);if(!p)return;
   const a=p.assessment||{currentCondition:{},treatmentPlan:{}};
@@ -848,6 +856,22 @@ function setToothCond(num,cond){
   if(!p.assessment[chartMode])p.assessment[chartMode]={};
   if(cond==="healthy")delete p.assessment[chartMode][num];
   else p.assessment[chartMode][num]=cond;
+  // In paint mode, update just the tooth element instead of full re-render for speed
+  if(paintBrush!==null){
+    const el=document.getElementById("tooth-"+num);
+    if(el){
+      const bg=TOOTH_COLORS[cond]||"transparent";
+      el.style.background=bg!=="transparent"?bg+"33":"#131b2a";
+      el.style.borderColor=bg!=="transparent"?bg:"#1a2236";
+      el.querySelector(".tooth-icon").textContent=TOOTH_ICONS[cond]||"";
+    }
+    persist("customers");
+  } else {
+    renderPtBody();
+  }
+}
+function setPaintBrush(k){
+  paintBrush=(paintBrush===k)?null:k;
   renderPtBody();
 }
 
