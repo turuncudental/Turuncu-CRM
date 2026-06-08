@@ -385,7 +385,7 @@ tr:{
   fname:"Ad Soyad *",femail:"E-posta",fphone:"Telefon",fdob:"Doğum Tarihi",fcountry:"Ülke",fnationality:"Uyruk",fstatus:"Durum",fevent:"Etkinlik",fassignee:"Sorumlu",
   dentalConcerns:"Diş Şikayetleri",medicalHistory:"Tıbbi Geçmiş",allergies:"Alerjiler",medications:"İlaçlar",smoking:"Sigara Kullanıyor",pregnant:"Hamile",consultNotes:"Notlar",
   currentCondition:"Mevcut Durum",treatmentPlan:"Tedavi Planı",dentistNotes:"Diş Hekimi Notları",
-  selectTreatments:"Tedavi Seç",bookingTreatments:"Seçilen Tedaviler",travelType:"Ulaşım",accommodation:"Konaklama",discount:"İndirim (£)",deposit:"Ön Ödeme (£)",bookingNotes:"Notlar",
+  selectTreatments:"Tedavi Seç",bookingTreatments:"Seçilen Tedaviler",travelType:"Ulaşım",accommodation:"Konaklama",discount:"İndirim ",deposit:"Ön Ödeme ",bookingNotes:"Notlar",
   subtotal:"Ara Toplam",totalCost:"Toplam",balanceDue:"Kalan Ödeme",
   addNote:"Not Ekle",noNotes:"Henüz not eklenmedi",
   events:"Etkinlikler",addEvent:"+ Etkinlik",newEvent:"Yeni Etkinlik",editEvent:"Etkinlik Düzenle",
@@ -394,12 +394,12 @@ tr:{
   aptTime:"Saat",aptPatient:"Hasta",aptStatus:"Durum",
   statusTurnedUp:"Geldi",statusDidNotCome:"Gelmedi",statusScheduled:"Planlandı",statusCancelled:"İptal",
   treatments:"Tedaviler",addTreatment:"+ Tedavi",newTreatment:"Yeni Tedavi",editTreatment:"Tedavi Düzenle",
-  tname:"Tedavi Adı",tdesc:"Açıklama",tcategory:"Kategori",tclinicCost:"Klinik Maliyeti (£)",tsalePrice:"Satış Fiyatı (£)",tactive:"Aktif",tmargin:"Kar Marjı",
+  tname:"Tedavi Adı",tdesc:"Açıklama",tcategory:"Kategori",tclinicCost:"Klinik Maliyeti ",tsalePrice:"Satış Fiyatı ",tactive:"Aktif",tmargin:"Kar Marjı",
   catTreatment:"Diş Tedavileri",catAccommodation:"Konaklama",catTravel:"Ulaşım",
   addAccommodation:"+ Konaklama",newAccommodation:"Yeni Konaklama",editAccommodation:"Konaklama Düzenle",
-  aname:"Tesis Adı",acity:"Şehir",atype:"Tür",apricePerNight:"Gecelik Fiyat (£)",
+  aname:"Tesis Adı",acity:"Şehir",atype:"Tür",apricePerNight:"Gecelik Fiyat ",
   addTravel:"+ Ulaşım",newTravel:"Yeni Ulaşım",editTravel:"Ulaşım Düzenle",
-  trvName:"Sefer / Firma Adı",trvRoute:"Güzergah / Açıklama",trvType:"Tür",trvPrice:"Kişi Başı Fiyat (£)",
+  trvName:"Sefer / Firma Adı",trvRoute:"Güzergah / Açıklama",trvType:"Tür",trvPrice:"Kişi Başı Fiyat ",
   nights:"Gece",persons:"Kişi",pricePerNight:"Gecelik",perPerson:"Kişi başı",
   addAccomToBooking:"Konaklama Ekle",addTravelToBooking:"Ulaşım Ekle",
   bookingAccommodation:"Konaklama",bookingTravel:"Ulaşım",
@@ -432,7 +432,7 @@ en:{
   fname:"Full Name *",femail:"Email",fphone:"Phone",fdob:"Date of Birth",fcountry:"Country",fnationality:"Nationality",fstatus:"Status",fevent:"Event",fassignee:"Assigned To",
   dentalConcerns:"Dental Concerns",medicalHistory:"Medical History",allergies:"Allergies",medications:"Medications",smoking:"Smoker",pregnant:"Pregnant",consultNotes:"Notes",
   currentCondition:"Current Condition",treatmentPlan:"Treatment Plan",dentistNotes:"Dentist Notes",
-  selectTreatments:"Select Treatments",bookingTreatments:"Selected Treatments",travelType:"Travel",accommodation:"Accommodation",discount:"Discount (£)",deposit:"Deposit (£)",bookingNotes:"Notes",
+  selectTreatments:"Select Treatments",bookingTreatments:"Selected Treatments",travelType:"Travel",accommodation:"Accommodation",discount:"Discount ",deposit:"Deposit ",bookingNotes:"Notes",
   subtotal:"Subtotal",totalCost:"Total",balanceDue:"Balance Due",
   addNote:"Add Note",noNotes:"No notes yet",
   events:"Events",addEvent:"+ Event",newEvent:"New Event",editEvent:"Edit Event",
@@ -441,12 +441,12 @@ en:{
   aptTime:"Time",aptPatient:"Patient",aptStatus:"Status",
   statusTurnedUp:"Turned Up",statusDidNotCome:"Did Not Turn Up",statusScheduled:"Scheduled",statusCancelled:"Cancelled",
   treatments:"Treatments",addTreatment:"+ Treatment",newTreatment:"New Treatment",editTreatment:"Edit Treatment",
-  tname:"Treatment Name",tdesc:"Description",tcategory:"Category",tclinicCost:"Clinic Cost (£)",tsalePrice:"Sale Price (£)",tactive:"Active",tmargin:"Margin",
+  tname:"Treatment Name",tdesc:"Description",tcategory:"Category",tclinicCost:"Clinic Cost ",tsalePrice:"Sale Price ",tactive:"Active",tmargin:"Margin",
   catTreatment:"Dental Treatments",catAccommodation:"Accommodation",catTravel:"Travel",
   addAccommodation:"+ Accommodation",newAccommodation:"New Accommodation",editAccommodation:"Edit Accommodation",
-  aname:"Property Name",acity:"City",atype:"Type",apricePerNight:"Price Per Night (£)",
+  aname:"Property Name",acity:"City",atype:"Type",apricePerNight:"Price Per Night ",
   addTravel:"+ Travel",newTravel:"New Travel",editTravel:"Edit Travel",
-  trvName:"Service / Provider Name",trvRoute:"Route / Description",trvType:"Type",trvPrice:"Price Per Person (£)",
+  trvName:"Service / Provider Name",trvRoute:"Route / Description",trvType:"Type",trvPrice:"Price Per Person ",
   nights:"Nights",persons:"Persons",pricePerNight:"Per night",perPerson:"Per person",
   addAccomToBooking:"Add Accommodation",addTravelToBooking:"Add Travel",
   bookingAccommodation:"Accommodation",bookingTravel:"Travel",
@@ -473,6 +473,16 @@ let currentPatientId=null,currentPtTab="consultation";
 let selectedEventId=null;
 let chartMode="treatmentPlan";
 let activePlan="treatmentPlan";
+let activeCurrency='GBP';
+const CURR_SYM={GBP:'£',EUR:'€',USD:'$'};
+function currSym(){return CURR_SYM[activeCurrency]||'£';}
+function setCurrency(c){activeCurrency=c;render();}
+function getEffectivePrice(item){
+  if(!item)return 0;
+  if(activeCurrency==='EUR'&&(item.salePriceEUR||0)>0)return item.salePriceEUR;
+  if(activeCurrency==='USD'&&(item.salePriceUSD||0)>0)return item.salePriceUSD;
+  return item.salePrice||0;
+}
 let paintBrush=null;
 let catalogTab="treatment";
 let state={patients:[],events:[],appointments:[],treatments:[],users:[]};
@@ -517,50 +527,50 @@ const SEED_APPOINTMENTS=[
   {id:6,eventId:2,patientId:5,patientName:"Ana Martinez",time:"09:30",status:"scheduled"}
 ];
 const SEED_TREATMENTS=[
-  {id:1,name:"All on 4 Implant per jaw",description:"Extractions, bone graft, temporary teeth included if needed",category:"İmplant",clinicCost:1750,salePrice:3500,active:true,type:"treatment"},
-  {id:2,name:"All on 6 Implant per jaw",description:"Extractions, bone graft, temporary teeth included if needed",category:"İmplant",clinicCost:2125,salePrice:4250,active:true,type:"treatment"},
-  {id:3,name:"Bleaching for Root Canal",description:"Internal bleaching after root canal treatment",category:"Endodonti",clinicCost:55,salePrice:110,active:true,type:"treatment"},
-  {id:4,name:"Bleaching with Laser",description:"Professional laser teeth whitening",category:"Estetik",clinicCost:75,salePrice:150,active:true,type:"treatment"},
-  {id:5,name:"Bone Graft 1cc",description:"Bone grafting material 1cc",category:"Cerrahi",clinicCost:125,salePrice:250,active:true,type:"treatment"},
-  {id:6,name:"Botox",description:"Dental botox treatment",category:"Estetik",clinicCost:125,salePrice:250,active:true,type:"treatment"},
-  {id:7,name:"Cleaning with Airflow",description:"Professional air polishing cleaning",category:"Genel",clinicCost:30,salePrice:60,active:true,type:"treatment"},
-  {id:8,name:"Composite Bonding Laminate",description:"Composite bonding laminate veneer",category:"Estetik",clinicCost:50,salePrice:100,active:true,type:"treatment"},
-  {id:9,name:"Composite Filling",description:"Aesthetic composite filling",category:"Restorasyon",clinicCost:30,salePrice:60,active:true,type:"treatment"},
-  {id:10,name:"E-Max Crown",description:"All-ceramic E-Max crown",category:"Restorasyon",clinicCost:110,salePrice:225,active:true,type:"treatment"},
-  {id:11,name:"E-Max Laminate Veneer",description:"E-Max ceramic laminate veneer",category:"Estetik",clinicCost:110,salePrice:225,active:true,type:"treatment"},
-  {id:12,name:"Fiber Post",description:"Fiber reinforced composite post",category:"Restorasyon",clinicCost:15,salePrice:30,active:true,type:"treatment"},
-  {id:13,name:"Functional Appliance for Orthodontics",description:"Orthodontic functional appliance",category:"Ortodonti",clinicCost:300,salePrice:600,active:true,type:"treatment"},
-  {id:14,name:"General Anesthesia",description:"Full general anesthesia for dental procedures",category:"Genel",clinicCost:300,salePrice:600,active:true,type:"treatment"},
-  {id:15,name:"Gum Contouring",description:"Gum reshaping and contouring",category:"Periodontoloji",clinicCost:50,salePrice:100,active:true,type:"treatment"},
-  {id:16,name:"Hollywood Smile (20 zirconium) + Mouth Guard",description:"Full smile makeover with 20 zirconium crowns and mouth guard",category:"Estetik",clinicCost:1500,salePrice:3000,active:true,type:"treatment"},
-  {id:17,name:"Hollywood Smile (24 zirconium) + Mouth Guard",description:"Full smile makeover with 24 zirconium crowns and mouth guard",category:"Estetik",clinicCost:1800,salePrice:3600,active:true,type:"treatment"},
-  {id:18,name:"Hollywood Smile (28 zirconium) + Mouth Guard",description:"Full smile makeover with 28 zirconium crowns and mouth guard",category:"Estetik",clinicCost:2100,salePrice:4200,active:true,type:"treatment"},
-  {id:19,name:"Hybrid Zirconium Prosthesis",description:"Hybrid zirconium full arch prosthesis",category:"Protez",clinicCost:875,salePrice:1750,active:true,type:"treatment"},
-  {id:20,name:"Impacted Teeth Extraction",description:"Surgical extraction of impacted teeth",category:"Cerrahi",clinicCost:90,salePrice:180,active:true,type:"treatment"},
-  {id:21,name:"Impacted Wisdom Teeth Extraction",description:"Surgical extraction of impacted wisdom teeth",category:"Cerrahi",clinicCost:50,salePrice:100,active:true,type:"treatment"},
-  {id:22,name:"Implant NTA (Swiss)",description:"Swiss NTA dental implant",category:"İmplant",clinicCost:185,salePrice:375,active:true,type:"treatment"},
-  {id:23,name:"Implant Osstem (Korean)",description:"Korean Osstem dental implant",category:"İmplant",clinicCost:150,salePrice:300,active:true,type:"treatment"},
-  {id:24,name:"Implant Straumann (Swiss)",description:"Swiss Straumann dental implant",category:"İmplant",clinicCost:385,salePrice:775,active:true,type:"treatment"},
-  {id:25,name:"Implant UNIQ-OSS (Turkish)",description:"Turkish UNIQ-OSS dental implant",category:"İmplant",clinicCost:110,salePrice:220,active:true,type:"treatment"},
-  {id:26,name:"Invisalign Aligner Orthodontic Treatment",description:"Clear aligner orthodontic treatment",category:"Ortodonti",clinicCost:1125,salePrice:2250,active:true,type:"treatment"},
-  {id:27,name:"Mouth Guard",description:"Custom dental mouth guard",category:"Genel",clinicCost:25,salePrice:50,active:true,type:"treatment"},
-  {id:28,name:"Multilayer Zirconium",description:"Multilayer aesthetic zirconium crown",category:"Restorasyon",clinicCost:110,salePrice:225,active:true,type:"treatment"},
-  {id:29,name:"Removable Denture",description:"Full or partial removable denture",category:"Protez",clinicCost:250,salePrice:500,active:true,type:"treatment"},
-  {id:30,name:"Removal of Implant",description:"Surgical implant removal",category:"Cerrahi",clinicCost:90,salePrice:180,active:true,type:"treatment"},
-  {id:31,name:"Retention Treatment for Orthodontics",description:"Orthodontic retention appliance",category:"Ortodonti",clinicCost:65,salePrice:130,active:true,type:"treatment"},
-  {id:32,name:"Root Canal Re-Treatment",description:"Revision root canal treatment",category:"Endodonti",clinicCost:110,salePrice:220,active:true,type:"treatment"},
-  {id:33,name:"Root Canal Treatment",description:"Root canal therapy",category:"Endodonti",clinicCost:75,salePrice:150,active:true,type:"treatment"},
-  {id:34,name:"Root Scaling",description:"Deep cleaning and root scaling",category:"Periodontoloji",clinicCost:75,salePrice:150,active:true,type:"treatment"},
-  {id:35,name:"Sedation",description:"IV sedation for dental procedures",category:"Genel",clinicCost:125,salePrice:250,active:true,type:"treatment"},
-  {id:36,name:"Sinus Lift + bone graft + membrane",description:"Sinus augmentation with bone graft and membrane",category:"Cerrahi",clinicCost:200,salePrice:400,active:true,type:"treatment"},
-  {id:37,name:"Temporary Denture",description:"Temporary removable denture",category:"Protez",clinicCost:125,salePrice:250,active:true,type:"treatment"},
-  {id:38,name:"Titanium Bar",description:"Titanium bar for implant-supported prosthesis",category:"İmplant",clinicCost:225,salePrice:450,active:true,type:"treatment"},
-  {id:39,name:"TMJ Anterior Positioner",description:"TMJ anterior repositioning appliance",category:"Genel",clinicCost:135,salePrice:270,active:true,type:"treatment"},
-  {id:40,name:"Tomography",description:"Dental 3D tomography/CBCT scan",category:"Teşhis",clinicCost:15,salePrice:30,active:true,type:"treatment"},
-  {id:41,name:"Tooth Extraction",description:"Simple tooth extraction",category:"Cerrahi",clinicCost:15,salePrice:30,active:true,type:"treatment"},
-  {id:42,name:"Wisdom Teeth Extraction",description:"Surgical wisdom tooth extraction",category:"Cerrahi",clinicCost:25,salePrice:50,active:true,type:"treatment"},
-  {id:43,name:"Zirconium Crown",description:"Full zirconium crown",category:"Restorasyon",clinicCost:75,salePrice:150,active:true,type:"treatment"},
-  {id:44,name:"Zygoma Implant Nobel",description:"Nobel Biocare zygomatic implant",category:"İmplant",clinicCost:1000,salePrice:2000,active:true,type:"treatment"},
+  {id:1,name:"All on 4 Implant per jaw",description:"Extractions, bone graft, temporary teeth included if needed",category:"İmplant",clinicCost:1750,salePrice:3500,salePriceEUR:0,salePriceUSD:0,active:true,type:"treatment"},
+  {id:2,name:"All on 6 Implant per jaw",description:"Extractions, bone graft, temporary teeth included if needed",category:"İmplant",clinicCost:2125,salePrice:4250,salePriceEUR:0,salePriceUSD:0,active:true,type:"treatment"},
+  {id:3,name:"Bleaching for Root Canal",description:"Internal bleaching after root canal treatment",category:"Endodonti",clinicCost:55,salePrice:110,salePriceEUR:0,salePriceUSD:0,active:true,type:"treatment"},
+  {id:4,name:"Bleaching with Laser",description:"Professional laser teeth whitening",category:"Estetik",clinicCost:75,salePrice:150,salePriceEUR:0,salePriceUSD:0,active:true,type:"treatment"},
+  {id:5,name:"Bone Graft 1cc",description:"Bone grafting material 1cc",category:"Cerrahi",clinicCost:125,salePrice:250,salePriceEUR:0,salePriceUSD:0,active:true,type:"treatment"},
+  {id:6,name:"Botox",description:"Dental botox treatment",category:"Estetik",clinicCost:125,salePrice:250,salePriceEUR:0,salePriceUSD:0,active:true,type:"treatment"},
+  {id:7,name:"Cleaning with Airflow",description:"Professional air polishing cleaning",category:"Genel",clinicCost:30,salePrice:60,salePriceEUR:0,salePriceUSD:0,active:true,type:"treatment"},
+  {id:8,name:"Composite Bonding Laminate",description:"Composite bonding laminate veneer",category:"Estetik",clinicCost:50,salePrice:100,salePriceEUR:0,salePriceUSD:0,active:true,type:"treatment"},
+  {id:9,name:"Composite Filling",description:"Aesthetic composite filling",category:"Restorasyon",clinicCost:30,salePrice:60,salePriceEUR:0,salePriceUSD:0,active:true,type:"treatment"},
+  {id:10,name:"E-Max Crown",description:"All-ceramic E-Max crown",category:"Restorasyon",clinicCost:110,salePrice:225,salePriceEUR:0,salePriceUSD:0,active:true,type:"treatment"},
+  {id:11,name:"E-Max Laminate Veneer",description:"E-Max ceramic laminate veneer",category:"Estetik",clinicCost:110,salePrice:225,salePriceEUR:0,salePriceUSD:0,active:true,type:"treatment"},
+  {id:12,name:"Fiber Post",description:"Fiber reinforced composite post",category:"Restorasyon",clinicCost:15,salePrice:30,salePriceEUR:0,salePriceUSD:0,active:true,type:"treatment"},
+  {id:13,name:"Functional Appliance for Orthodontics",description:"Orthodontic functional appliance",category:"Ortodonti",clinicCost:300,salePrice:600,salePriceEUR:0,salePriceUSD:0,active:true,type:"treatment"},
+  {id:14,name:"General Anesthesia",description:"Full general anesthesia for dental procedures",category:"Genel",clinicCost:300,salePrice:600,salePriceEUR:0,salePriceUSD:0,active:true,type:"treatment"},
+  {id:15,name:"Gum Contouring",description:"Gum reshaping and contouring",category:"Periodontoloji",clinicCost:50,salePrice:100,salePriceEUR:0,salePriceUSD:0,active:true,type:"treatment"},
+  {id:16,name:"Hollywood Smile (20 zirconium) + Mouth Guard",description:"Full smile makeover with 20 zirconium crowns and mouth guard",category:"Estetik",clinicCost:1500,salePrice:3000,salePriceEUR:0,salePriceUSD:0,active:true,type:"treatment"},
+  {id:17,name:"Hollywood Smile (24 zirconium) + Mouth Guard",description:"Full smile makeover with 24 zirconium crowns and mouth guard",category:"Estetik",clinicCost:1800,salePrice:3600,salePriceEUR:0,salePriceUSD:0,active:true,type:"treatment"},
+  {id:18,name:"Hollywood Smile (28 zirconium) + Mouth Guard",description:"Full smile makeover with 28 zirconium crowns and mouth guard",category:"Estetik",clinicCost:2100,salePrice:4200,salePriceEUR:0,salePriceUSD:0,active:true,type:"treatment"},
+  {id:19,name:"Hybrid Zirconium Prosthesis",description:"Hybrid zirconium full arch prosthesis",category:"Protez",clinicCost:875,salePrice:1750,salePriceEUR:0,salePriceUSD:0,active:true,type:"treatment"},
+  {id:20,name:"Impacted Teeth Extraction",description:"Surgical extraction of impacted teeth",category:"Cerrahi",clinicCost:90,salePrice:180,salePriceEUR:0,salePriceUSD:0,active:true,type:"treatment"},
+  {id:21,name:"Impacted Wisdom Teeth Extraction",description:"Surgical extraction of impacted wisdom teeth",category:"Cerrahi",clinicCost:50,salePrice:100,salePriceEUR:0,salePriceUSD:0,active:true,type:"treatment"},
+  {id:22,name:"Implant NTA (Swiss)",description:"Swiss NTA dental implant",category:"İmplant",clinicCost:185,salePrice:375,salePriceEUR:0,salePriceUSD:0,active:true,type:"treatment"},
+  {id:23,name:"Implant Osstem (Korean)",description:"Korean Osstem dental implant",category:"İmplant",clinicCost:150,salePrice:300,salePriceEUR:0,salePriceUSD:0,active:true,type:"treatment"},
+  {id:24,name:"Implant Straumann (Swiss)",description:"Swiss Straumann dental implant",category:"İmplant",clinicCost:385,salePrice:775,salePriceEUR:0,salePriceUSD:0,active:true,type:"treatment"},
+  {id:25,name:"Implant UNIQ-OSS (Turkish)",description:"Turkish UNIQ-OSS dental implant",category:"İmplant",clinicCost:110,salePrice:220,salePriceEUR:0,salePriceUSD:0,active:true,type:"treatment"},
+  {id:26,name:"Invisalign Aligner Orthodontic Treatment",description:"Clear aligner orthodontic treatment",category:"Ortodonti",clinicCost:1125,salePrice:2250,salePriceEUR:0,salePriceUSD:0,active:true,type:"treatment"},
+  {id:27,name:"Mouth Guard",description:"Custom dental mouth guard",category:"Genel",clinicCost:25,salePrice:50,salePriceEUR:0,salePriceUSD:0,active:true,type:"treatment"},
+  {id:28,name:"Multilayer Zirconium",description:"Multilayer aesthetic zirconium crown",category:"Restorasyon",clinicCost:110,salePrice:225,salePriceEUR:0,salePriceUSD:0,active:true,type:"treatment"},
+  {id:29,name:"Removable Denture",description:"Full or partial removable denture",category:"Protez",clinicCost:250,salePrice:500,salePriceEUR:0,salePriceUSD:0,active:true,type:"treatment"},
+  {id:30,name:"Removal of Implant",description:"Surgical implant removal",category:"Cerrahi",clinicCost:90,salePrice:180,salePriceEUR:0,salePriceUSD:0,active:true,type:"treatment"},
+  {id:31,name:"Retention Treatment for Orthodontics",description:"Orthodontic retention appliance",category:"Ortodonti",clinicCost:65,salePrice:130,salePriceEUR:0,salePriceUSD:0,active:true,type:"treatment"},
+  {id:32,name:"Root Canal Re-Treatment",description:"Revision root canal treatment",category:"Endodonti",clinicCost:110,salePrice:220,salePriceEUR:0,salePriceUSD:0,active:true,type:"treatment"},
+  {id:33,name:"Root Canal Treatment",description:"Root canal therapy",category:"Endodonti",clinicCost:75,salePrice:150,salePriceEUR:0,salePriceUSD:0,active:true,type:"treatment"},
+  {id:34,name:"Root Scaling",description:"Deep cleaning and root scaling",category:"Periodontoloji",clinicCost:75,salePrice:150,salePriceEUR:0,salePriceUSD:0,active:true,type:"treatment"},
+  {id:35,name:"Sedation",description:"IV sedation for dental procedures",category:"Genel",clinicCost:125,salePrice:250,salePriceEUR:0,salePriceUSD:0,active:true,type:"treatment"},
+  {id:36,name:"Sinus Lift + bone graft + membrane",description:"Sinus augmentation with bone graft and membrane",category:"Cerrahi",clinicCost:200,salePrice:400,salePriceEUR:0,salePriceUSD:0,active:true,type:"treatment"},
+  {id:37,name:"Temporary Denture",description:"Temporary removable denture",category:"Protez",clinicCost:125,salePrice:250,salePriceEUR:0,salePriceUSD:0,active:true,type:"treatment"},
+  {id:38,name:"Titanium Bar",description:"Titanium bar for implant-supported prosthesis",category:"İmplant",clinicCost:225,salePrice:450,salePriceEUR:0,salePriceUSD:0,active:true,type:"treatment"},
+  {id:39,name:"TMJ Anterior Positioner",description:"TMJ anterior repositioning appliance",category:"Genel",clinicCost:135,salePrice:270,salePriceEUR:0,salePriceUSD:0,active:true,type:"treatment"},
+  {id:40,name:"Tomography",description:"Dental 3D tomography/CBCT scan",category:"Teşhis",clinicCost:15,salePrice:30,salePriceEUR:0,salePriceUSD:0,active:true,type:"treatment"},
+  {id:41,name:"Tooth Extraction",description:"Simple tooth extraction",category:"Cerrahi",clinicCost:15,salePrice:30,salePriceEUR:0,salePriceUSD:0,active:true,type:"treatment"},
+  {id:42,name:"Wisdom Teeth Extraction",description:"Surgical wisdom tooth extraction",category:"Cerrahi",clinicCost:25,salePrice:50,salePriceEUR:0,salePriceUSD:0,active:true,type:"treatment"},
+  {id:43,name:"Zirconium Crown",description:"Full zirconium crown",category:"Restorasyon",clinicCost:75,salePrice:150,salePriceEUR:0,salePriceUSD:0,active:true,type:"treatment"},
+  {id:44,name:"Zygoma Implant Nobel",description:"Nobel Biocare zygomatic implant",category:"İmplant",clinicCost:1000,salePrice:2000,salePriceEUR:0,salePriceUSD:0,active:true,type:"treatment"},
   {id:101,name:"Hilton Bosphorus",description:"5 yıldızlı lüks otel",category:"İstanbul",clinicCost:0,salePrice:180,active:true,type:"accommodation"},
   {id:102,name:"Rixos Premium",description:"5 yıldızlı otel",category:"Antalya",clinicCost:0,salePrice:200,active:true,type:"accommodation"},
   {id:103,name:"Holiday Inn Istanbul",description:"4 yıldızlı otel",category:"İstanbul",clinicCost:0,salePrice:110,active:true,type:"accommodation"},
@@ -747,7 +757,7 @@ function renderDashboard(){
     {label:t.waitingDentist,val:evtPats.filter(p=>p.status==="assessed").length,color:"#a78bfa"},
     {label:t.pricingPending,val:evtPats.filter(p=>p.status==="pricing").length,color:"#f59e0b"},
     {label:t.bookedToday,val:evtPats.filter(p=>p.status==="booked").length,color:"#34d399"},
-    {label:t.revenueToday,val:`£${evtPats.filter(p=>p.status==="booked").reduce((s,p)=>s+bookingTotal(p),0).toLocaleString()}`,color:"#f97316"}
+    {label:t.revenueToday,val:`${currSym()}${evtPats.filter(p=>p.status==="booked").reduce((s,p)=>s+bookingTotal(p),0).toLocaleString()}`,color:"#f97316"}
   ]:[];
 
   const recent=[...state.patients].sort((a,b)=>(b.createdAt||"").localeCompare(a.createdAt||"")).slice(0,8);
@@ -757,7 +767,7 @@ function renderDashboard(){
       <div class="card"><div class="kpi-val" style="color:#60a5fa">${total}</div><div class="kpi-lbl">${t.totalPatients}</div><div class="kpi-sub">${state.patients.filter(p=>p.status==="consultation").length} konsültasyon</div></div>
       <div class="card"><div class="kpi-val" style="color:#a78bfa">${upcomingEvts}</div><div class="kpi-lbl">${t.upcomingEvents}</div><div class="kpi-sub">${state.events.length} toplam etkinlik</div></div>
       <div class="card"><div class="kpi-val" style="color:#f59e0b">%${conv}</div><div class="kpi-lbl">${t.convRate}</div><div class="kpi-sub">${booked} / ${total} hasta</div></div>
-      <div class="card"><div class="kpi-val" style="color:#34d399">£${totalRev.toLocaleString()}</div><div class="kpi-lbl">${t.totalRevenue}</div><div class="kpi-sub">${booked} rezervasyon</div></div>
+      <div class="card"><div class="kpi-val" style="color:#34d399">${currSym()}${totalRev.toLocaleString()}</div><div class="kpi-lbl">${t.totalRevenue}</div><div class="kpi-sub">${booked} rezervasyon</div></div>
     </div>
     ${nextEvt?`<div class="card">
       <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px">
@@ -1136,20 +1146,22 @@ function renderPtBooking(p){
   const activeAc=getCatalogByType("accommodation");
   const activeTr=getCatalogByType("travel");
   const inStyle="width:60px;background:#131b2a;border:1px solid #1a2236;border-radius:6px;padding:3px 6px;color:#dde4ef;font-size:12px;text-align:center";
+  const currBtn=['GBP','EUR','USD'].map(c=>`<button onclick="setCurrency('${c}')" style="padding:3px 10px;border-radius:14px;border:1px solid ${activeCurrency===c?'#f97316':'#1a2236'};background:${activeCurrency===c?'#f9731622':'#131b2a'};color:${activeCurrency===c?'#f97316':'#4a607d'};font-size:11px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif">${c==='GBP'?'£ GBP':c==='EUR'?'€ EUR':'$ USD'}</button>`).join('');
   return`<div style="max-width:740px;display:flex;flex-direction:column;gap:14px">
 
     <div class="card">
       <div class="section-title">🦷 ${t.selectTreatments}</div>
+      <div style="display:flex;gap:6px;margin-bottom:10px">${currBtn}</div>
       <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px">
-        ${activeTx.map(tr=>`<button class="sm-btn" onclick="addBookingItem('treatment',${tr.id})" style="font-size:11px">+ ${tr.name} <span style="color:#34d399">£${tr.salePrice}</span></button>`).join("")}
+        ${activeTx.map(tr=>`<button class="sm-btn" onclick="addBookingItem('treatment',${tr.id})" style="font-size:11px">+ ${tr.name} <span style="color:#34d399">${currSym()}${tr.salePrice}</span></button>`).join("")}
       </div>
       ${(b.treatments||[]).length?`<table class="data-table" style="width:100%">
         <thead><tr><th>${t.tname}</th><th>${t.nights.replace("Gece","Adet")}</th><th>Fiyat</th><th>Toplam</th><th></th></tr></thead>
         <tbody>${(b.treatments||[]).map((tr,i)=>`<tr>
           <td style="font-weight:600">${tr.name}</td>
           <td><input type="number" min="1" value="${tr.qty||1}" onchange="updateBookingQty('treatments',${i},+this.value)" style="${inStyle}"/></td>
-          <td>£${(tr.price||0).toLocaleString()}</td>
-          <td style="font-weight:700;color:#34d399">£${((tr.qty||1)*(tr.price||0)).toLocaleString()}</td>
+          <td>${currSym()}${(tr.price||0).toLocaleString()}</td>
+          <td style="font-weight:700;color:#34d399">${currSym()}${((tr.qty||1)*(tr.price||0)).toLocaleString()}</td>
           <td><button class="sm-btn danger" onclick="removeBookingItem('treatments',${i})">✕</button></td>
         </tr>`).join("")}</tbody>
       </table>`:`<div style="font-size:12px;color:#3d5270;padding:4px 0">${t.noTreatmentSelected}</div>`}
@@ -1160,7 +1172,7 @@ function renderPtBooking(p){
       <div style="display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap">
         <select id="pb-accom-sel" style="background:#131b2a;border:1px solid #1a2236;border-radius:8px;padding:6px 10px;color:#dde4ef;font-size:12px;outline:none;flex:1;min-width:180px">
           <option value="">— Tesis Seçin —</option>
-          ${activeAc.map(a=>`<option value="${a.id}">${a.name} (${a.category}) — £${a.salePrice}/gece</option>`).join("")}
+          ${activeAc.map(a=>`<option value="${a.id}">${a.name} (${a.category}) — ${currSym()}${a.salePrice}/gece</option>`).join("")}
         </select>
         <div style="display:flex;align-items:center;gap:6px">
           <input type="number" id="pb-accom-nights" min="1" value="3" style="${inStyle};width:54px"/>
@@ -1173,8 +1185,8 @@ function renderPtBooking(p){
         <tbody>${(b.accommodations||[]).map((a,i)=>`<tr>
           <td style="font-weight:600">🏨 ${a.name}</td>
           <td><input type="number" min="1" value="${a.nights||1}" onchange="updateBookingQty('accommodations',${i},+this.value,'nights')" style="${inStyle}"/></td>
-          <td>£${(a.pricePerNight||0).toLocaleString()}</td>
-          <td style="font-weight:700;color:#60a5fa">£${((a.nights||1)*(a.pricePerNight||0)).toLocaleString()}</td>
+          <td>${currSym()}${(a.pricePerNight||0).toLocaleString()}</td>
+          <td style="font-weight:700;color:#60a5fa">${currSym()}${((a.nights||1)*(a.pricePerNight||0)).toLocaleString()}</td>
           <td><button class="sm-btn danger" onclick="removeBookingItem('accommodations',${i})">✕</button></td>
         </tr>`).join("")}</tbody>
       </table>`:""}
@@ -1185,7 +1197,7 @@ function renderPtBooking(p){
       <div style="display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap">
         <select id="pb-travel-sel" style="background:#131b2a;border:1px solid #1a2236;border-radius:8px;padding:6px 10px;color:#dde4ef;font-size:12px;outline:none;flex:1;min-width:180px">
           <option value="">— Ulaşım Seçin —</option>
-          ${activeTr.map(tr=>`<option value="${tr.id}">${tr.name} (${tr.category}) — £${tr.salePrice}/kişi</option>`).join("")}
+          ${activeTr.map(tr=>`<option value="${tr.id}">${tr.name} (${tr.category}) — ${currSym()}${tr.salePrice}/kişi</option>`).join("")}
         </select>
         <div style="display:flex;align-items:center;gap:6px">
           <input type="number" id="pb-travel-persons" min="1" value="1" style="${inStyle};width:54px"/>
@@ -1198,8 +1210,8 @@ function renderPtBooking(p){
         <tbody>${(b.travels||[]).map((tr,i)=>`<tr>
           <td style="font-weight:600">✈️ ${tr.name}</td>
           <td><input type="number" min="1" value="${tr.persons||1}" onchange="updateBookingQty('travels',${i},+this.value,'persons')" style="${inStyle}"/></td>
-          <td>£${(tr.price||0).toLocaleString()}</td>
-          <td style="font-weight:700;color:#f97316">£${((tr.persons||1)*(tr.price||0)).toLocaleString()}</td>
+          <td>${currSym()}${(tr.price||0).toLocaleString()}</td>
+          <td style="font-weight:700;color:#f97316">${currSym()}${((tr.persons||1)*(tr.price||0)).toLocaleString()}</td>
           <td><button class="sm-btn danger" onclick="removeBookingItem('travels',${i})">✕</button></td>
         </tr>`).join("")}</tbody>
       </table>`:""}
@@ -1208,14 +1220,14 @@ function renderPtBooking(p){
     <div class="card">
       <div class="section-title">Finansal Özet</div>
       <div style="max-width:340px">
-        ${txSub?`<div class="stat-row"><span>🦷 Tedaviler</span><span>£${txSub.toLocaleString()}</span></div>`:""}
-        ${acSub?`<div class="stat-row"><span>🏨 Konaklama</span><span>£${acSub.toLocaleString()}</span></div>`:""}
-        ${trSub?`<div class="stat-row"><span>✈️ Ulaşım</span><span>£${trSub.toLocaleString()}</span></div>`:""}
-        <div class="stat-row"><span>${t.subtotal}</span><span style="font-weight:700">£${sub.toLocaleString()}</span></div>
+        ${txSub?`<div class="stat-row"><span>🦷 Tedaviler</span><span>${currSym()}${txSub.toLocaleString()}</span></div>`:""}
+        ${acSub?`<div class="stat-row"><span>🏨 Konaklama</span><span>${currSym()}${acSub.toLocaleString()}</span></div>`:""}
+        ${trSub?`<div class="stat-row"><span>✈️ Ulaşım</span><span>${currSym()}${trSub.toLocaleString()}</span></div>`:""}
+        <div class="stat-row"><span>${t.subtotal}</span><span style="font-weight:700">${currSym()}${sub.toLocaleString()}</span></div>
         <div class="stat-row"><span>${t.discount}</span><span><input type="number" min="0" value="${b.discount||0}" onchange="updateBookingDiscount(+this.value)" style="width:80px;background:#131b2a;border:1px solid #1a2236;border-radius:6px;padding:3px 6px;color:#dde4ef;font-size:12px;text-align:right"/></span></div>
-        <div class="stat-row"><span style="font-weight:700;color:#dde4ef">${t.totalCost}</span><span style="font-weight:800;color:#34d399;font-size:15px">£${total.toLocaleString()}</span></div>
+        <div class="stat-row"><span style="font-weight:700;color:#dde4ef">${t.totalCost}</span><span style="font-weight:800;color:#34d399;font-size:15px">${currSym()}${total.toLocaleString()}</span></div>
         <div class="stat-row"><span>${t.deposit}</span><span><input type="number" min="0" value="${b.deposit||0}" onchange="updateBookingDeposit(+this.value)" style="width:80px;background:#131b2a;border:1px solid #1a2236;border-radius:6px;padding:3px 6px;color:#dde4ef;font-size:12px;text-align:right"/></span></div>
-        <div class="stat-row"><span style="font-weight:700;color:#dde4ef">${t.balanceDue}</span><span style="font-weight:800;color:#f97316;font-size:15px">£${balance.toLocaleString()}</span></div>
+        <div class="stat-row"><span style="font-weight:700;color:#dde4ef">${t.balanceDue}</span><span style="font-weight:800;color:#f97316;font-size:15px">${currSym()}${balance.toLocaleString()}</span></div>
       </div>
       <div class="field" style="margin-top:12px"><label>${t.bookingNotes}</label><textarea id="pb-notes" rows="2">${b.notes||""}</textarea></div>
     </div>
@@ -1323,8 +1335,8 @@ function renderTreatments(){
         <td style="font-weight:700">${tr.name}</td>
         <td style="font-size:12px;color:#4a607d">${tr.description||""}</td>
         <td><span class="badge" style="background:#a78bfa22;color:#a78bfa;font-size:10px">${tr.category||""}</span></td>
-        <td>£${(tr.clinicCost||0).toLocaleString()}</td>
-        <td style="font-weight:700;color:#34d399">£${(tr.salePrice||0).toLocaleString()}</td>
+        <td>${currSym()}${(tr.clinicCost||0).toLocaleString()}</td>
+        <td style="font-weight:700;color:#34d399">${currSym()}${(tr.salePrice||0).toLocaleString()}</td>
         <td><span style="color:${mg>=50?"#34d399":mg>=30?"#f59e0b":"#f87171"};font-weight:700">%${mg}</span></td>
         <td><span class="badge" style="background:${tr.active?"#34d39922":"#f8717122"};color:${tr.active?"#34d399":"#f87171"}">${tr.active?"Aktif":"Pasif"}</span></td>
         <td>${canEdit()?`<div style="display:flex;gap:5px"><button class="sm-btn" onclick="openTreatmentModal(${tr.id},'treatment')">✎</button><button class="sm-btn danger" onclick="deleteTreatment(${tr.id})">✕</button></div>`:""}</td>
@@ -1337,7 +1349,7 @@ function renderTreatments(){
         <td style="font-weight:700">🏨 ${tr.name}</td>
         <td style="font-size:12px;color:#4a607d">${tr.description||""}</td>
         <td><span class="badge" style="background:#60a5fa22;color:#60a5fa;font-size:10px">${tr.category||""}</span></td>
-        <td style="font-weight:700;color:#34d399">£${(tr.salePrice||0).toLocaleString()}<span style="font-size:10px;color:#3d5270">/gece</span></td>
+        <td style="font-weight:700;color:#34d399">${currSym()}${(tr.salePrice||0).toLocaleString()}<span style="font-size:10px;color:#3d5270">/gece</span></td>
         <td><span class="badge" style="background:${tr.active?"#34d39922":"#f8717122"};color:${tr.active?"#34d399":"#f87171"}">${tr.active?"Aktif":"Pasif"}</span></td>
         <td>${canEdit()?`<div style="display:flex;gap:5px"><button class="sm-btn" onclick="openTreatmentModal(${tr.id},'accommodation')">✎</button><button class="sm-btn danger" onclick="deleteTreatment(${tr.id})">✕</button></div>`:""}</td>
       </tr>`).join("")}</tbody>
@@ -1349,14 +1361,16 @@ function renderTreatments(){
         <td style="font-weight:700">✈️ ${tr.name}</td>
         <td style="font-size:12px;color:#4a607d">${tr.description||""}</td>
         <td><span class="badge" style="background:#f9731622;color:#f97316;font-size:10px">${tr.category||""}</span></td>
-        <td style="font-weight:700;color:#34d399">£${(tr.salePrice||0).toLocaleString()}<span style="font-size:10px;color:#3d5270">/kişi</span></td>
+        <td style="font-weight:700;color:#34d399">${currSym()}${(tr.salePrice||0).toLocaleString()}<span style="font-size:10px;color:#3d5270">/kişi</span></td>
         <td><span class="badge" style="background:${tr.active?"#34d39922":"#f8717122"};color:${tr.active?"#34d399":"#f87171"}">${tr.active?"Aktif":"Pasif"}</span></td>
         <td>${canEdit()?`<div style="display:flex;gap:5px"><button class="sm-btn" onclick="openTreatmentModal(${tr.id},'travel')">✎</button><button class="sm-btn danger" onclick="deleteTreatment(${tr.id})">✕</button></div>`:""}</td>
       </tr>`).join("")}</tbody>
     </table>`;
   }
   const addBtn=canEdit()?`<button class="btn" onclick="openTreatmentModal(0,'${catalogTab}')" style="margin-left:auto;font-size:13px;padding:7px 16px">${catalogTab==="treatment"?t.addTreatment:catalogTab==="accommodation"?t.addAccommodation:t.addTravel}</button>`:"";
+  const catCurrBtn=['GBP','EUR','USD'].map(c=>`<button onclick="setCurrency('${c}')" style="padding:3px 10px;border-radius:14px;border:1px solid ${activeCurrency===c?'#f97316':'#1a2236'};background:${activeCurrency===c?'#f9731622':'#131b2a'};color:${activeCurrency===c?'#f97316':'#4a607d'};font-size:11px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif">${c==='GBP'?'£ GBP':c==='EUR'?'€ EUR':'$ USD'}</button>`).join('');
   return`<div style="display:flex;flex-direction:column;gap:14px">
+    <div style="display:flex;gap:6px;margin-bottom:2px">${catCurrBtn}</div>
     <div style="display:flex;align-items:center;gap:2px;border-bottom:1px solid #1a2236;padding-bottom:0;flex-wrap:wrap">
       ${tabs.map(([key,label,icon])=>`<button onclick="catalogTab='${key}';render()" style="padding:9px 18px;font-size:13px;font-weight:600;color:${catalogTab===key?"#f97316":"#4a607d"};border:none;background:transparent;cursor:pointer;border-bottom:2px solid ${catalogTab===key?"#f97316":"transparent"};font-family:'DM Sans',sans-serif;transition:all .15s">${icon} ${label}</button>`).join("")}
       ${addBtn}
@@ -1381,8 +1395,8 @@ function renderReports(){
         <div class="stat-row"><span>${t.totalPatients}</span><span>${total}</span></div>
         <div class="stat-row"><span>${t.totalBooked}</span><span style="color:#34d399;font-weight:700">${booked}</span></div>
         <div class="stat-row"><span>${t.convRate}</span><span>%${total?Math.round(booked/total*100):0}</span></div>
-        <div class="stat-row"><span>${t.totalRevenue}</span><span style="color:#34d399;font-weight:700">£${totalRev.toLocaleString()}</span></div>
-        <div class="stat-row"><span>${t.avgBooking}</span><span>£${avg.toLocaleString()}</span></div>
+        <div class="stat-row"><span>${t.totalRevenue}</span><span style="color:#34d399;font-weight:700">${currSym()}${totalRev.toLocaleString()}</span></div>
+        <div class="stat-row"><span>${t.avgBooking}</span><span>${currSym()}${avg.toLocaleString()}</span></div>
       </div>
     </div>
   </div>`;
@@ -1494,7 +1508,7 @@ function addBookingItem(type,treatmentId){
   ensureBooking(p);
   const existing=p.booking.treatments.find(bt=>bt.treatmentId===treatmentId);
   if(existing)existing.qty=(existing.qty||1)+1;
-  else p.booking.treatments.push({treatmentId:tr.id,name:tr.name,qty:1,price:tr.salePrice});
+  else p.booking.treatments.push({treatmentId:tr.id,name:tr.name,qty:1,price:getEffectivePrice(tr)});
   renderPtBody();
 }
 function addBookingAccommodation(){
@@ -1503,7 +1517,7 @@ function addBookingAccommodation(){
   const nights=+document.getElementById("pb-accom-nights")?.value||1;
   const prov=getTreatment(id);if(!prov)return;
   ensureBooking(p);
-  p.booking.accommodations.push({providerId:prov.id,name:prov.name,nights,pricePerNight:prov.salePrice});
+  p.booking.accommodations.push({providerId:prov.id,name:prov.name,nights,pricePerNight:getEffectivePrice(prov)});
   renderPtBody();
 }
 function addBookingTravel(){
@@ -1512,7 +1526,7 @@ function addBookingTravel(){
   const persons=+document.getElementById("pb-travel-persons")?.value||1;
   const prov=getTreatment(id);if(!prov)return;
   ensureBooking(p);
-  p.booking.travels.push({providerId:prov.id,name:prov.name,persons,price:prov.salePrice});
+  p.booking.travels.push({providerId:prov.id,name:prov.name,persons,price:getEffectivePrice(prov)});
   renderPtBody();
 }
 function removeBookingItem(arr,idx){const p=getPatient(currentPatientId);if(!p?.booking)return;p.booking[arr].splice(idx,1);renderPtBody();}
@@ -1593,7 +1607,11 @@ function openTreatmentModal(editId,forcedType){
       <div class="field"><label>${t.tcategory}</label><input id="trm-cat" value="${tr?.category||""}" placeholder="Estetik, Restorasyon, İmplant..."/></div>
       <div class="field-row">
         <div class="field"><label>${t.tclinicCost}</label><input type="number" id="trm-clinicCost" value="${tr?.clinicCost||0}"/></div>
-        <div class="field"><label>${t.tsalePrice}</label><input type="number" id="trm-salePrice" value="${tr?.salePrice||0}"/></div>
+        <div class="field"><label>${t.tsalePrice} (£ GBP)</label><input type="number" id="trm-salePrice" value="${tr?.salePrice||0}"/></div>
+      </div>
+      <div class="field-row">
+        <div class="field"><label>€ EUR</label><input type="number" id="trm-salePriceEUR" value="${tr?.salePriceEUR||0}"/></div>
+        <div class="field"><label>$ USD</label><input type="number" id="trm-salePriceUSD" value="${tr?.salePriceUSD||0}"/></div>
       </div>`;
   } else if(type==="accommodation"){
     body=`
@@ -1617,7 +1635,7 @@ function openTreatmentModal(editId,forcedType){
 async function saveTreatment(editId,type){
   const name=document.getElementById("trm-name")?.value?.trim();if(!name)return;
   if(!await confirmDialog(editId?"Bu kaydı güncellemek istiyor musunuz?":"Yeni kayıt eklemek istiyor musunuz?"))return;
-  const item={name,description:document.getElementById("trm-desc").value,category:document.getElementById("trm-cat").value,clinicCost:+document.getElementById("trm-clinicCost").value||0,salePrice:+document.getElementById("trm-salePrice").value||0,active:document.getElementById("trm-active").checked,type:type||"treatment"};
+  const item={name,description:document.getElementById("trm-desc").value,category:document.getElementById("trm-cat").value,clinicCost:+document.getElementById("trm-clinicCost").value||0,salePrice:+document.getElementById("trm-salePrice").value||0,salePriceEUR:+document.getElementById("trm-salePriceEUR")?.value||0,salePriceUSD:+document.getElementById("trm-salePriceUSD")?.value||0,active:document.getElementById("trm-active").checked,type:type||"treatment"};
   if(editId){state.treatments=state.treatments.map(tr=>tr.id==editId?{...tr,...item}:tr);}
   else{state.treatments.push({...item,id:Date.now()});}
   await persist("history");toast("✅ "+t.saved);closeModal();render();
@@ -1690,23 +1708,23 @@ async function downloadQuotePDF(patientId){
       <tbody>${treatments.length?treatments.map((tr,i)=>`<tr style="background:${i%2?"#fff8f0":"#fff"}">
         <td style="padding:9px 12px;font-size:12px">${tr.name}</td>
         <td style="padding:9px 12px;text-align:center;font-size:12px;color:#555">${tr.qty||1}</td>
-        <td style="padding:9px 12px;text-align:right;font-size:12px;color:#555">£${(tr.price||0).toLocaleString()}</td>
-        <td style="padding:9px 12px;text-align:right;font-size:12px;font-weight:700">£${((tr.qty||1)*(tr.price||0)).toLocaleString()}</td>
+        <td style="padding:9px 12px;text-align:right;font-size:12px;color:#555">${currSym()}${(tr.price||0).toLocaleString()}</td>
+        <td style="padding:9px 12px;text-align:right;font-size:12px;font-weight:700">${currSym()}${((tr.qty||1)*(tr.price||0)).toLocaleString()}</td>
       </tr>`).join(""):`<tr><td colspan="4" style="padding:16px;text-align:center;color:#888;font-size:12px">Tedavi seçilmemiş</td></tr>`}</tbody>
     </table>
     <div style="display:flex;justify-content:flex-end;margin-bottom:20px">
       <div style="min-width:220px">
-        <div style="display:flex;justify-content:space-between;padding:7px 12px;background:#f8f9fa;border:1px solid #e9ecef;border-bottom:none;border-radius:4px 4px 0 0"><span style="font-size:11px;color:#777">Ara Toplam</span><span style="font-size:12px;font-weight:600">£${sub.toLocaleString()}</span></div>
-        ${b.discount?`<div style="display:flex;justify-content:space-between;padding:7px 12px;background:#f8f9fa;border:1px solid #e9ecef;border-bottom:none"><span style="font-size:11px;color:#777">İndirim</span><span style="font-size:12px;font-weight:600;color:#e55">-£${(b.discount).toLocaleString()}</span></div>`:""}
-        <div style="display:flex;justify-content:space-between;padding:8px 12px;background:#f97316;border-radius:0 0 4px 4px"><span style="font-size:12px;font-weight:700;color:#fff">TOPLAM</span><span style="font-size:14px;font-weight:900;color:#fff">£${total.toLocaleString()}</span></div>
-        ${b.deposit?`<div style="display:flex;justify-content:space-between;padding:7px 12px;background:#f0fff4;border:1px solid #c6f6d5;border-top:none;border-radius:0 0 4px 4px"><span style="font-size:11px;color:#777">Alınan Ön Ödeme</span><span style="font-size:12px;font-weight:600;color:#22863a">£${(b.deposit).toLocaleString()}</span></div>
-        <div style="display:flex;justify-content:space-between;padding:7px 12px;background:#fff8f0;border:1px solid #fed7aa;border-top:none;border-radius:0 0 4px 4px"><span style="font-size:11px;color:#777">Kalan Ödeme</span><span style="font-size:12px;font-weight:600;color:#c2410c">£${balance.toLocaleString()}</span></div>`:""}
+        <div style="display:flex;justify-content:space-between;padding:7px 12px;background:#f8f9fa;border:1px solid #e9ecef;border-bottom:none;border-radius:4px 4px 0 0"><span style="font-size:11px;color:#777">Ara Toplam</span><span style="font-size:12px;font-weight:600">${currSym()}${sub.toLocaleString()}</span></div>
+        ${b.discount?`<div style="display:flex;justify-content:space-between;padding:7px 12px;background:#f8f9fa;border:1px solid #e9ecef;border-bottom:none"><span style="font-size:11px;color:#777">İndirim</span><span style="font-size:12px;font-weight:600;color:#e55">-${currSym()}${(b.discount).toLocaleString()}</span></div>`:""}
+        <div style="display:flex;justify-content:space-between;padding:8px 12px;background:#f97316;border-radius:0 0 4px 4px"><span style="font-size:12px;font-weight:700;color:#fff">TOPLAM</span><span style="font-size:14px;font-weight:900;color:#fff">${currSym()}${total.toLocaleString()}</span></div>
+        ${b.deposit?`<div style="display:flex;justify-content:space-between;padding:7px 12px;background:#f0fff4;border:1px solid #c6f6d5;border-top:none;border-radius:0 0 4px 4px"><span style="font-size:11px;color:#777">Alınan Ön Ödeme</span><span style="font-size:12px;font-weight:600;color:#22863a">${currSym()}${(b.deposit).toLocaleString()}</span></div>
+        <div style="display:flex;justify-content:space-between;padding:7px 12px;background:#fff8f0;border:1px solid #fed7aa;border-top:none;border-radius:0 0 4px 4px"><span style="font-size:11px;color:#777">Kalan Ödeme</span><span style="font-size:12px;font-weight:600;color:#c2410c">${currSym()}${balance.toLocaleString()}</span></div>`:""}
       </div>
     </div>
     ${(b.accommodations||[]).length||(b.travels||[]).length?`<div style="background:#f8f9fa;border-left:3px solid #f97316;padding:12px 16px;border-radius:0 6px 6px 0;margin-bottom:16px">
       <div style="font-size:9px;font-weight:700;color:#f97316;letter-spacing:1px;margin-bottom:8px">SEYAHAT & KONAKLAMA</div>
-      ${(b.accommodations||[]).map(a=>`<div style="font-size:12px;color:#555;margin-bottom:3px">🏨 ${a.name} — ${a.nights} gece × £${a.pricePerNight} = <strong>£${((a.nights||1)*(a.pricePerNight||0)).toLocaleString()}</strong></div>`).join("")}
-      ${(b.travels||[]).map(tr=>`<div style="font-size:12px;color:#555;margin-bottom:3px">✈️ ${tr.name} — ${tr.persons} kişi × £${tr.price} = <strong>£${((tr.persons||1)*(tr.price||0)).toLocaleString()}</strong></div>`).join("")}
+      ${(b.accommodations||[]).map(a=>`<div style="font-size:12px;color:#555;margin-bottom:3px">🏨 ${a.name} — ${a.nights} gece × ${currSym()}${a.pricePerNight} = <strong>${currSym()}${((a.nights||1)*(a.pricePerNight||0)).toLocaleString()}</strong></div>`).join("")}
+      ${(b.travels||[]).map(tr=>`<div style="font-size:12px;color:#555;margin-bottom:3px">✈️ ${tr.name} — ${tr.persons} kişi × ${currSym()}${tr.price} = <strong>${currSym()}${((tr.persons||1)*(tr.price||0)).toLocaleString()}</strong></div>`).join("")}
     </div>`:""}
     <div style="margin-top:24px;padding-top:12px;border-top:1px solid #e9ecef;text-align:center;font-size:9px;color:#aaa">
       Hazırlayan: ${currentUser.display_name||currentUser.username} · Tarih: ${dateStr} · Turuncu Dental CRM
