@@ -472,6 +472,7 @@ let currentTab="dashboard",searchQuery="",charts={};
 let currentPatientId=null,currentPtTab="consultation";
 let selectedEventId=null;
 let chartMode="treatmentPlan";
+let activePlan="treatmentPlan";
 let paintBrush=null;
 let catalogTab="treatment";
 let state={patients:[],events:[],appointments:[],treatments:[],users:[]};
@@ -856,8 +857,8 @@ function renderPtConsultation(p){
 // ==RENDER_DETAIL==
 function renderPtAssessment(p){
   const a=p.assessment||{currentCondition:{},treatmentPlan:{},dentistNotes:""};
-  const chart=a[chartMode]||{};
-  const gId=chartMode;
+  const chart=a[activePlan]||{};
+  const gId='treatmentPlan';
   function toothHTML(num){
     const cond=chart[num]||"healthy";
     const isMissing=cond==="missing";
@@ -980,8 +981,12 @@ function renderPtAssessment(p){
   const paintHint=paintBrush&&paintBrush!=="healthy"?`<div class="paint-hint">${TOOTH_ICONS[paintBrush]||"○"} <strong>${condLabel(paintBrush)}</strong> fırçası aktif — dişlere tıkla, iptal için tekrar tıkla</div>`:paintBrush==="healthy"?`<div class="paint-hint">✕ <strong>Temizle</strong> fırçası aktif — tıklanan dişi sıfırlar</div>`:"";
   return`<div style="max-width:800px;display:flex;flex-direction:column;gap:14px">
     <div class="card">
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
-        <div class="section-title" style="margin-bottom:0">${t.treatmentPlan}</div>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:8px">
+        <div style="display:flex;align-items:center;gap:10px">
+          <div class="section-title" style="margin-bottom:0">${t.treatmentPlan}</div>
+          ${['treatmentPlan','plan2','plan3'].map((pl,i)=>`<button onclick="setActivePlan('${pl}')" style="padding:4px 12px;border-radius:20px;border:1px solid ${activePlan===pl?'#f97316':'#1a2236'};background:${activePlan===pl?'#f9731622':'#131b2a'};color:${activePlan===pl?'#f97316':'#4a607d'};font-size:11px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif">${i+1}. Plan</button>`).join('')}
+        </div>
+        <button onclick="resetActivePlan()" style="padding:4px 14px;border-radius:20px;border:1px solid #ef444444;background:#2b0f0f;color:#ef4444;font-size:11px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif">✕ Hepsini Sıfırla</button>
       </div>
       ${paintHint}
       <svg aria-hidden="true" style="position:absolute;width:0;height:0;overflow:hidden"><defs>
@@ -1043,30 +1048,39 @@ function toothClick(e,num){
   setTimeout(()=>document.addEventListener("click",()=>popup.remove(),{once:true}),10);
 }
 
+function setActivePlan(pl){activePlan=pl;renderPtBody();}
+async function resetActivePlan(){
+  if(!await confirmDialog("Tüm seçimleri sıfırlamak istediğinizden emin misiniz?"))return;
+  const p=getPatient(currentPatientId);if(!p)return;
+  if(!p.assessment)p.assessment={currentCondition:{},treatmentPlan:{},dentistNotes:""};
+  p.assessment[activePlan]={};
+  persist("customers");renderPtBody();
+}
 function setToothCond(num,cond){
   document.querySelectorAll(".tooth-popup").forEach(p=>p.remove());
   const p=getPatient(currentPatientId);if(!p)return;
   if(!p.assessment)p.assessment={currentCondition:{},treatmentPlan:{},dentistNotes:""};
-  if(!p.assessment[chartMode])p.assessment[chartMode]={};
-  const existing=p.assessment[chartMode][num];
+  if(!p.assessment[activePlan])p.assessment[activePlan]={};
+  const existing=p.assessment[activePlan][num];
+  if(cond==='root_canal'&&existing&&(existing==='implant'||existing.startsWith('implant+'))){toast("Bu dişte kanal seçemezsiniz","warn");return;}
   if(cond==='filling'&&existing==='missing'){toast("Seçtiğiniz bölgede kron bulunmamaktadır","warn");return;}
   // Crown-type conditions that can sit on top of an implant
   const crownTypes=["crown","veneer","cavity","filling","bridge"];
   if(existing==="implant"&&crownTypes.includes(cond)){
     // Add crown on top of implant
-    p.assessment[chartMode][num]="implant+"+cond;
+    p.assessment[activePlan][num]="implant+"+cond;
   } else if(existing&&existing.startsWith("implant+")&&cond===existing.split("+")[1]){
     // Toggle off the crown part → back to bare implant
-    p.assessment[chartMode][num]="implant";
+    p.assessment[activePlan][num]="implant";
   } else if(existing&&existing.startsWith("implant+")&&cond==="implant"){
     // Remove implant → keep only crown part
-    p.assessment[chartMode][num]=existing.split("+")[1];
+    p.assessment[activePlan][num]=existing.split("+")[1];
   } else if(existing&&existing.startsWith("implant+")&&cond==="healthy"){
-    delete p.assessment[chartMode][num];
+    delete p.assessment[activePlan][num];
   } else if(cond==="healthy"||existing===cond){
-    delete p.assessment[chartMode][num];
+    delete p.assessment[activePlan][num];
   } else {
-    p.assessment[chartMode][num]=cond;
+    p.assessment[activePlan][num]=cond;
   }
   persist("customers");
   renderPtBody();
