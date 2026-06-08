@@ -915,8 +915,15 @@ function renderPtAssessment(p){
     } else {
       const svgKey=getToothSVGKey(num);
       const isMolarTooth=svgKey==='u-molar'||svgKey==='l-molar';
+      // Cavity: keep real tooth image, overlay crown area with brown tint
+      if(cond==='cavity'&&!isMissing){
+        const img=TOOTH_IMAGES[svgKey];
+        const ix=(34-img.w)/2;
+        const toothImg=`<image href="data:image/png;base64,${img.d}" x="${ix.toFixed(1)}" y="1" width="${img.w}" height="${img.h}"/>`;
+        const crownOverlay=`<path d="${sh.crown}" fill="${condColor}bb" stroke="${condColor}" stroke-width="0.8"/>`;
+        svgContent=toothImg+crownOverlay;
       // Crown condition on molar: use crown image + natural roots
-      if(cond==='crown'&&isMolarTooth&&!isMissing){
+      } else if(cond==='crown'&&isMolarTooth&&!isMissing){
         const rFill=`url(#tooth-rg-${gId})`;
         const roots=sh.rx.map(d=>`<path d="${d}" fill="${rFill}" stroke="#60500e" stroke-width="0.7"/>`).join('');
         const ci=CROWN_MOLAR_IMG;
