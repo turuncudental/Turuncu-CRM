@@ -937,7 +937,7 @@ function renderPtAssessment(p){
     ${LOWER_L.map(toothHTML).join("")}
   </div>`;
   const condKeys=chartMode==="currentCondition"
-    ?["cavity","crown","missing","root","implant","root_canal","veneer","filling","bridge","extraction"]
+    ?["cavity","crown","missing","root","implant","root_canal","filling"]
     :["healthy","cavity","crown","missing","implant","root_canal","veneer","filling","bridge","extraction"];
   const legend=condKeys.map(k=>`<div class="legend-item${paintBrush===k?" active":""}" data-cond="${k}" onclick="setPaintBrush('${k}')"><div class="legend-dot" style="background:${TOOTH_COLORS[k]||"#131b2a"};border:1px solid ${TOOTH_COLORS[k]!=="transparent"?TOOTH_COLORS[k]:"#1a2236"}"></div>${condLabel(k)}</div>`).join("");
   const clearBtn=chartMode==="currentCondition"?`<div class="legend-item${paintBrush==="healthy"?" active":""}" data-cond="healthy" onclick="setPaintBrush('healthy')" style="margin-left:auto;border-style:dashed"><div class="legend-dot" style="background:#131b2a;border:1px dashed #3d5270"></div>Temizle</div>`:"";
