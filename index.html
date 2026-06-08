@@ -902,7 +902,7 @@ function renderPtAssessment(p){
         const crownOverlay=`<path d="${sh.crown}" fill="#e2e8f0ee" stroke="#94a3b8" stroke-width="0.8"/>`;
         svgContent=defs+screwEl+crownOverlay;
       } else {
-        svgContent=defs+crownImg+screwEl;
+        svgContent=screwEl;
       }
     } else {
       const svgKey=getToothSVGKey(num);
