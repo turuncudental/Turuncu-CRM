@@ -881,17 +881,10 @@ function renderPtAssessment(p){
       const svgKey=getToothSVGKey(num);
       const img=TOOTH_IMAGES[svgKey];
       const tix=(34-img.w)/2;
-      // Clip tooth image to crown area only — roots removed, replaced by screw
-      const clipId=`ic${num}`;
-      const clipRect=isUpper
-        ?`<rect x="0" y="${sh.gY}" width="34" height="${70-sh.gY}"/>`
-        :`<rect x="0" y="0" width="34" height="${sh.gY}"/>`;
-      const defs=`<defs><clipPath id="${clipId}">${clipRect}</clipPath></defs>`;
-      const crownImg=`<image href="data:image/png;base64,${img.d}" x="${tix.toFixed(1)}" y="1" width="${img.w}" height="${img.h}" clip-path="url(#${clipId})"/>`;
-      // Screw in root area, touching gumline (no tooth roots behind it)
-      const rootH=isUpper?sh.gY:(70-sh.gY);
-      const iw=30;
-      const ih=Math.min(Math.round(IMPLANT_IMG.h*(iw/IMPLANT_IMG.w)), rootH);
+      const toothImg=`<image href="data:image/png;base64,${img.d}" x="${tix.toFixed(1)}" y="1" width="${img.w}" height="${img.h}"/>`;
+      // Screw: larger size, starts right at gumline, natural proportions
+      const iw=32;
+      const ih=Math.round(IMPLANT_IMG.h*(iw/IMPLANT_IMG.w));
       const six=(34-iw)/2;
       const siy=isUpper?sh.gY-ih:sh.gY;
       const flip=isUpper
@@ -899,12 +892,10 @@ function renderPtAssessment(p){
         :'';
       const screwEl=`<image href="data:image/png;base64,${IMPLANT_IMG.d}" x="${six.toFixed(1)}" y="${siy.toFixed(1)}" width="${iw}" height="${ih}" ${flip}/>`;
       if(isCompound){
-        // implant+crown: screw in root + crown overlay in crown area
         const crownOverlay=`<path d="${sh.crown}" fill="#e2e8f0ee" stroke="#94a3b8" stroke-width="0.8"/>`;
-        svgContent=defs+screwEl+crownOverlay;
+        svgContent=toothImg+screwEl+crownOverlay;
       } else {
-        // implant only: clipped crown (roots removed) + screw touching gumline
-        svgContent=defs+crownImg+screwEl;
+        svgContent=toothImg+screwEl;
       }
     } else {
       const svgKey=getToothSVGKey(num);
