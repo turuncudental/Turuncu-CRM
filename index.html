@@ -1315,9 +1315,9 @@ function renderAppointments(){
         <span class="badge" style="background:${si.color}22;color:${si.color}">${si.label}</span>
         ${canEdit()?`<div style="display:flex;gap:5px;flex-shrink:0">
           ${a.status!=="turned_up"?`<button class="sm-btn success" onclick="setAptStatus(${a.id},'turned_up')" title="${t.statusTurnedUp}">✓</button>`:""}
-          ${a.status!=="did_not_turn_up"?`<button class="sm-btn danger" onclick="setAptStatus(${a.id},'did_not_turn_up')" title="${t.statusDidNotCome}">✗</button>`:""}
+          ${a.status!=="did_not_turn_up"?`<button class="sm-btn danger" onclick="setAptStatus(${a.id},'did_not_turn_up')" title="${t.statusDidNotCome}">−</button>`:""}
           ${a.status!=="cancelled"?`<button class="sm-btn warn" onclick="setAptStatus(${a.id},'cancelled')" title="${t.statusCancelled}">~</button>`:""}
-          <button class="sm-btn danger" onclick="deleteAppointment(${a.id})">✕</button>
+          <button class="sm-btn danger" onclick="deleteAppointment(${a.id})">Sil</button>
         </div>`:""}
       </div>`;
     }).join("")}</div>`}
