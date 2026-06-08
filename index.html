@@ -517,18 +517,50 @@ const SEED_APPOINTMENTS=[
   {id:6,eventId:2,patientId:5,patientName:"Ana Martinez",time:"09:30",status:"scheduled"}
 ];
 const SEED_TREATMENTS=[
-  {id:1,name:"Diş Beyazlatma",description:"Profesyonel ofis tipi beyazlatma",category:"Estetik",clinicCost:80,salePrice:250,active:true,type:"treatment"},
-  {id:2,name:"Porselen Kaplama",description:"Laminate veneer",category:"Estetik",clinicCost:150,salePrice:400,active:true,type:"treatment"},
-  {id:3,name:"Zirkonyum Kron",description:"Tam zirkonyum kron",category:"Restorasyon",clinicCost:200,salePrice:520,active:true,type:"treatment"},
-  {id:4,name:"Porselen Kron",description:"Metal destekli porselen kron",category:"Restorasyon",clinicCost:120,salePrice:320,active:true,type:"treatment"},
-  {id:5,name:"Kompozit Dolgu",description:"Estetik kompozit dolgu",category:"Restorasyon",clinicCost:40,salePrice:120,active:true,type:"treatment"},
-  {id:6,name:"Kanal Tedavisi",description:"Kök kanal tedavisi",category:"Endodonti",clinicCost:100,salePrice:280,active:true,type:"treatment"},
-  {id:7,name:"Diş Çekimi",description:"Basit diş çekimi",category:"Cerrahi",clinicCost:30,salePrice:100,active:true,type:"treatment"},
-  {id:8,name:"Dental İmplant",description:"Titan implant (Straumann/Nobel)",category:"İmplant",clinicCost:450,salePrice:950,active:true,type:"treatment"},
-  {id:9,name:"İmplant Üstü Kron",description:"İmplant üzerine zirkonyum kron",category:"İmplant",clinicCost:180,salePrice:420,active:true,type:"treatment"},
-  {id:10,name:"Sabit Köprü (3 Üye)",description:"3 üyeli sabit porselen köprü",category:"Restorasyon",clinicCost:300,salePrice:750,active:true,type:"treatment"},
-  {id:11,name:"Hareketli Protez",description:"Tam ya da bölümlü protez",category:"Protez",clinicCost:200,salePrice:500,active:true,type:"treatment"},
-  {id:12,name:"Diş Eti Tedavisi",description:"Periodontal tedavi ve küretaj",category:"Periodontoloji",clinicCost:80,salePrice:220,active:true,type:"treatment"},
+  {id:1,name:"All on 4 Implant per jaw",description:"Extractions, bone graft, temporary teeth included if needed",category:"İmplant",clinicCost:1750,salePrice:3500,active:true,type:"treatment"},
+  {id:2,name:"All on 6 Implant per jaw",description:"Extractions, bone graft, temporary teeth included if needed",category:"İmplant",clinicCost:2125,salePrice:4250,active:true,type:"treatment"},
+  {id:3,name:"Bleaching for Root Canal",description:"Internal bleaching after root canal treatment",category:"Endodonti",clinicCost:55,salePrice:110,active:true,type:"treatment"},
+  {id:4,name:"Bleaching with Laser",description:"Professional laser teeth whitening",category:"Estetik",clinicCost:75,salePrice:150,active:true,type:"treatment"},
+  {id:5,name:"Bone Graft 1cc",description:"Bone grafting material 1cc",category:"Cerrahi",clinicCost:125,salePrice:250,active:true,type:"treatment"},
+  {id:6,name:"Botox",description:"Dental botox treatment",category:"Estetik",clinicCost:125,salePrice:250,active:true,type:"treatment"},
+  {id:7,name:"Cleaning with Airflow",description:"Professional air polishing cleaning",category:"Genel",clinicCost:30,salePrice:60,active:true,type:"treatment"},
+  {id:8,name:"Composite Bonding Laminate",description:"Composite bonding laminate veneer",category:"Estetik",clinicCost:50,salePrice:100,active:true,type:"treatment"},
+  {id:9,name:"Composite Filling",description:"Aesthetic composite filling",category:"Restorasyon",clinicCost:30,salePrice:60,active:true,type:"treatment"},
+  {id:10,name:"E-Max Crown",description:"All-ceramic E-Max crown",category:"Restorasyon",clinicCost:110,salePrice:225,active:true,type:"treatment"},
+  {id:11,name:"E-Max Laminate Veneer",description:"E-Max ceramic laminate veneer",category:"Estetik",clinicCost:110,salePrice:225,active:true,type:"treatment"},
+  {id:12,name:"Fiber Post",description:"Fiber reinforced composite post",category:"Restorasyon",clinicCost:15,salePrice:30,active:true,type:"treatment"},
+  {id:13,name:"Functional Appliance for Orthodontics",description:"Orthodontic functional appliance",category:"Ortodonti",clinicCost:300,salePrice:600,active:true,type:"treatment"},
+  {id:14,name:"General Anesthesia",description:"Full general anesthesia for dental procedures",category:"Genel",clinicCost:300,salePrice:600,active:true,type:"treatment"},
+  {id:15,name:"Gum Contouring",description:"Gum reshaping and contouring",category:"Periodontoloji",clinicCost:50,salePrice:100,active:true,type:"treatment"},
+  {id:16,name:"Hollywood Smile (20 zirconium) + Mouth Guard",description:"Full smile makeover with 20 zirconium crowns and mouth guard",category:"Estetik",clinicCost:1500,salePrice:3000,active:true,type:"treatment"},
+  {id:17,name:"Hollywood Smile (24 zirconium) + Mouth Guard",description:"Full smile makeover with 24 zirconium crowns and mouth guard",category:"Estetik",clinicCost:1800,salePrice:3600,active:true,type:"treatment"},
+  {id:18,name:"Hollywood Smile (28 zirconium) + Mouth Guard",description:"Full smile makeover with 28 zirconium crowns and mouth guard",category:"Estetik",clinicCost:2100,salePrice:4200,active:true,type:"treatment"},
+  {id:19,name:"Hybrid Zirconium Prosthesis",description:"Hybrid zirconium full arch prosthesis",category:"Protez",clinicCost:875,salePrice:1750,active:true,type:"treatment"},
+  {id:20,name:"Impacted Teeth Extraction",description:"Surgical extraction of impacted teeth",category:"Cerrahi",clinicCost:90,salePrice:180,active:true,type:"treatment"},
+  {id:21,name:"Impacted Wisdom Teeth Extraction",description:"Surgical extraction of impacted wisdom teeth",category:"Cerrahi",clinicCost:50,salePrice:100,active:true,type:"treatment"},
+  {id:22,name:"Implant NTA (Swiss)",description:"Swiss NTA dental implant",category:"İmplant",clinicCost:185,salePrice:375,active:true,type:"treatment"},
+  {id:23,name:"Implant Osstem (Korean)",description:"Korean Osstem dental implant",category:"İmplant",clinicCost:150,salePrice:300,active:true,type:"treatment"},
+  {id:24,name:"Implant Straumann (Swiss)",description:"Swiss Straumann dental implant",category:"İmplant",clinicCost:385,salePrice:775,active:true,type:"treatment"},
+  {id:25,name:"Implant UNIQ-OSS (Turkish)",description:"Turkish UNIQ-OSS dental implant",category:"İmplant",clinicCost:110,salePrice:220,active:true,type:"treatment"},
+  {id:26,name:"Invisalign Aligner Orthodontic Treatment",description:"Clear aligner orthodontic treatment",category:"Ortodonti",clinicCost:1125,salePrice:2250,active:true,type:"treatment"},
+  {id:27,name:"Mouth Guard",description:"Custom dental mouth guard",category:"Genel",clinicCost:25,salePrice:50,active:true,type:"treatment"},
+  {id:28,name:"Multilayer Zirconium",description:"Multilayer aesthetic zirconium crown",category:"Restorasyon",clinicCost:110,salePrice:225,active:true,type:"treatment"},
+  {id:29,name:"Removable Denture",description:"Full or partial removable denture",category:"Protez",clinicCost:250,salePrice:500,active:true,type:"treatment"},
+  {id:30,name:"Removal of Implant",description:"Surgical implant removal",category:"Cerrahi",clinicCost:90,salePrice:180,active:true,type:"treatment"},
+  {id:31,name:"Retention Treatment for Orthodontics",description:"Orthodontic retention appliance",category:"Ortodonti",clinicCost:65,salePrice:130,active:true,type:"treatment"},
+  {id:32,name:"Root Canal Re-Treatment",description:"Revision root canal treatment",category:"Endodonti",clinicCost:110,salePrice:220,active:true,type:"treatment"},
+  {id:33,name:"Root Canal Treatment",description:"Root canal therapy",category:"Endodonti",clinicCost:75,salePrice:150,active:true,type:"treatment"},
+  {id:34,name:"Root Scaling",description:"Deep cleaning and root scaling",category:"Periodontoloji",clinicCost:75,salePrice:150,active:true,type:"treatment"},
+  {id:35,name:"Sedation",description:"IV sedation for dental procedures",category:"Genel",clinicCost:125,salePrice:250,active:true,type:"treatment"},
+  {id:36,name:"Sinus Lift + bone graft + membrane",description:"Sinus augmentation with bone graft and membrane",category:"Cerrahi",clinicCost:200,salePrice:400,active:true,type:"treatment"},
+  {id:37,name:"Temporary Denture",description:"Temporary removable denture",category:"Protez",clinicCost:125,salePrice:250,active:true,type:"treatment"},
+  {id:38,name:"Titanium Bar",description:"Titanium bar for implant-supported prosthesis",category:"İmplant",clinicCost:225,salePrice:450,active:true,type:"treatment"},
+  {id:39,name:"TMJ Anterior Positioner",description:"TMJ anterior repositioning appliance",category:"Genel",clinicCost:135,salePrice:270,active:true,type:"treatment"},
+  {id:40,name:"Tomography",description:"Dental 3D tomography/CBCT scan",category:"Teşhis",clinicCost:15,salePrice:30,active:true,type:"treatment"},
+  {id:41,name:"Tooth Extraction",description:"Simple tooth extraction",category:"Cerrahi",clinicCost:15,salePrice:30,active:true,type:"treatment"},
+  {id:42,name:"Wisdom Teeth Extraction",description:"Surgical wisdom tooth extraction",category:"Cerrahi",clinicCost:25,salePrice:50,active:true,type:"treatment"},
+  {id:43,name:"Zirconium Crown",description:"Full zirconium crown",category:"Restorasyon",clinicCost:75,salePrice:150,active:true,type:"treatment"},
+  {id:44,name:"Zygoma Implant Nobel",description:"Nobel Biocare zygomatic implant",category:"İmplant",clinicCost:1000,salePrice:2000,active:true,type:"treatment"},
   {id:101,name:"Hilton Bosphorus",description:"5 yıldızlı lüks otel",category:"İstanbul",clinicCost:0,salePrice:180,active:true,type:"accommodation"},
   {id:102,name:"Rixos Premium",description:"5 yıldızlı otel",category:"Antalya",clinicCost:0,salePrice:200,active:true,type:"accommodation"},
   {id:103,name:"Holiday Inn Istanbul",description:"4 yıldızlı otel",category:"İstanbul",clinicCost:0,salePrice:110,active:true,type:"accommodation"},
@@ -587,11 +619,13 @@ async function loadAll(){
   state.patients=Array.isArray(p?.[0]?.data)?p[0].data:SEED_PATIENTS;
   state.events=Array.isArray(e?.[0]?.data)?e[0].data:SEED_EVENTS;
   state.appointments=Array.isArray(a?.[0]?.data)?a[0].data:SEED_APPOINTMENTS;
-  state.treatments=Array.isArray(tr?.[0]?.data)?tr[0].data:SEED_TREATMENTS;
+  const loadedTr=Array.isArray(tr?.[0]?.data)?tr[0].data:null;
+  // Migrate: if stored treatments are fewer than seed (catalog update), replace with new seed
+  state.treatments=(loadedTr&&loadedTr.length>=SEED_TREATMENTS.length)?loadedTr:SEED_TREATMENTS;
   if(!p||!p[0])dbSet("customers",SEED_PATIENTS);
   if(!e||!e[0])dbSet("deals",SEED_EVENTS);
   if(!a||!a[0])dbSet("tasks",SEED_APPOINTMENTS);
-  if(!tr||!tr[0])dbSet("history",SEED_TREATMENTS);
+  if(!loadedTr||loadedTr.length<SEED_TREATMENTS.length)dbSet("history",SEED_TREATMENTS);
 }
 async function loadUsers(){try{const r=await fetch(`${SUPA_URL}/rest/v1/crm_users?select=id,username,role,display_name&order=id`,{headers:H});if(r.ok)state.users=await r.json();}catch{}}
 
