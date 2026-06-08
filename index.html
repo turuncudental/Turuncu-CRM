@@ -940,22 +940,19 @@ function renderPtAssessment(p){
       // Extraction: tooth removed, red X only
       } else if(cond==='extraction'){
         svgContent=`<line x1="14" y1="27" x2="20" y2="43" stroke="#ef4444" stroke-width="2" stroke-linecap="round"/><line x1="20" y1="27" x2="14" y2="43" stroke="#ef4444" stroke-width="2" stroke-linecap="round"/>`;
-      } else {
-        // Other conditions / missing: SVG paths
-        const cFill=isMissing?"#111827":condColor+"dd";
-        const cStroke=isMissing?"#37415188":condColor;
+      } else if(!isMissing){
+        const cFill=condColor+"dd";
+        const cStroke=condColor;
         const rFill=`url(#tooth-rg-${gId})`;
         const roots=sh.rx.map(d=>`<path d="${d}" fill="${rFill}" stroke="#60500e" stroke-width="0.7"/>`).join('');
-        const crown=isMissing
-          ?`<path d="${sh.crown}" fill="${cFill}" stroke="#374151" stroke-width="0.7" stroke-dasharray="3,2"/>`
-          :`<path d="${sh.crown}" fill="${cFill}" stroke="${cStroke}" stroke-width="0.8"/>`;
+        const crown=`<path d="${sh.crown}" fill="${cFill}" stroke="${cStroke}" stroke-width="0.8"/>`;
         const ico=TOOTH_ICONS[cond]||'';
         const icoY=isUpper?sh.gY+20:sh.gY-12;
         const icoEl=ico?`<text x="17" y="${icoY}" text-anchor="middle" font-size="9" dominant-baseline="middle" style="pointer-events:none">${ico}</text>`:'';
         svgContent=`${roots}${crown}${icoEl}`;
       }
     }
-    const svgOp=isMissing?"0.18":"1";
+    const svgOp="1";
     const glow=isHealthy?"#f97316":condColor;
     return`<div id="tooth-${num}" onclick="toothClick(event,${num})"
       style="display:flex;flex-direction:column;align-items:center;cursor:${cursor};user-select:none"
