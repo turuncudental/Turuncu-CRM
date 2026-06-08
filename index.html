@@ -888,10 +888,9 @@ function renderPtAssessment(p){
         :`<rect x="0" y="0" width="34" height="${sh.gY}" fill="white"/>`;
       const defs=`<defs><mask id="${maskId}">${maskRect}</mask></defs>`;
       const crownImg=`<image href="data:image/png;base64,${img.d}" x="${tix.toFixed(1)}" y="1" width="${img.w}" height="${img.h}" mask="url(#${maskId})"/>`;
-      // Screw: natural proportions, capped at root height for upper to stay within SVG
       const iw=32;
       const ihNat=Math.round(IMPLANT_IMG.h*(iw/IMPLANT_IMG.w));
-      const ih=isUpper?Math.min(ihNat,sh.gY):ihNat;
+      const ih=ihNat;
       const six=(34-iw)/2;
       const siy=isUpper?sh.gY-ih:sh.gY;
       const flip=isUpper
