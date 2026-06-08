@@ -876,21 +876,21 @@ function renderPtAssessment(p){
       svgContent=`<image href="data:image/png;base64,${img.d}" x="${ix.toFixed(1)}" y="${iy}" width="${img.w}" height="${img.h}" style="image-rendering:crisp-edges"/>`;
     } else {
       if(cond==='implant'){
-        // Show real tooth image + implant screw overlay in root area
-        const ti=TOOTH_IMAGES[getToothSVGKey(num)];
-        const tx=(34-ti.w)/2;
-        // Implant screw: scale to fill root region
-        const iScaleH=isUpper?26:36;
-        const iw=Math.round(IMPLANT_IMG.w*(iScaleH/IMPLANT_IMG.h));
-        const ih=iScaleH;
+        // NO crown — only implant screw in root area, crown area left empty
+        // Upper: root is y=0..gY, screw tip points up (flip vertically)
+        // Lower: root is y=gY..70, screw tip points down (natural)
+        const rootH=isUpper?sh.gY:(70-sh.gY); // 28 or 42
+        // Scale screw to fill root region width-first, cap at rootH
+        const scaleW=(30)/IMPLANT_IMG.w; // target w=30
+        const iw=30;
+        const ih=Math.min(Math.round(IMPLANT_IMG.h*scaleW), rootH-2);
         const ix=(34-iw)/2;
-        // Upper: root is top (y=0..28), flip screw so tip points up
-        // Lower: root is bottom (y=28..70), screw tip points down (natural orientation)
-        const iy=isUpper?sh.gY-ih-1:sh.gY+1;
-        // Flip transform for upper teeth (tip must point toward bone = upward)
-        const flip=isUpper?`transform="translate(${(ix+iw/2).toFixed(1)},${(iy+ih/2).toFixed(1)}) scale(1,-1) translate(${-(ix+iw/2).toFixed(1)},${-(iy+ih/2).toFixed(1)})"`:'';
-        svgContent=`<image href="data:image/png;base64,${ti.d}" x="${tx.toFixed(1)}" y="1" width="${ti.w}" height="${ti.h}"/>`
-          +`<image href="data:image/png;base64,${IMPLANT_IMG.d}" x="${ix.toFixed(1)}" y="${iy.toFixed(1)}" width="${iw}" height="${ih}" ${flip}/>`;
+        const iy=isUpper?sh.gY-ih-1:sh.gY+2;
+        // Flip for upper: tip must point up (toward bone)
+        const flip=isUpper
+          ?`transform="translate(${(ix+iw/2).toFixed(1)},${(iy+ih/2).toFixed(1)}) scale(1,-1) translate(${-(ix+iw/2).toFixed(1)},${-(iy+ih/2).toFixed(1)})"`
+          :'';
+        svgContent=`<image href="data:image/png;base64,${IMPLANT_IMG.d}" x="${ix.toFixed(1)}" y="${iy.toFixed(1)}" width="${iw}" height="${ih}" ${flip}/>`;
       } else {
         // Other conditions / missing: use SVG paths
         const cFill=isMissing?"#111827":condColor+"dd";
