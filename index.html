@@ -969,7 +969,7 @@ function renderPtAssessment(p){
     <div style="${sepStyle}">│</div>
     ${LOWER_L.map(toothHTML).join("")}
   </div>`;
-  const condKeys=["healthy","cavity","crown","missing","implant","root_canal","veneer","filling","bridge","extraction"];
+  const condKeys=["crown","missing","implant","root_canal","filling","extraction"];
   const legend=condKeys.map(k=>`<div class="legend-item${paintBrush===k?" active":""}" data-cond="${k}" onclick="setPaintBrush('${k}')"><div class="legend-dot" style="background:${TOOTH_COLORS[k]||"#131b2a"};border:1px solid ${TOOTH_COLORS[k]!=="transparent"?TOOTH_COLORS[k]:"#1a2236"}"></div>${condLabel(k)}</div>`).join("");
   const clearBtn="";
   const paintHint=paintBrush&&paintBrush!=="healthy"?`<div class="paint-hint">${TOOTH_ICONS[paintBrush]||"○"} <strong>${condLabel(paintBrush)}</strong> fırçası aktif — dişlere tıkla, iptal için tekrar tıkla</div>`:paintBrush==="healthy"?`<div class="paint-hint">✕ <strong>Temizle</strong> fırçası aktif — tıklanan dişi sıfırlar</div>`:"";
@@ -1018,7 +1018,7 @@ function toothClick(e,num){
   const p=getPatient(currentPatientId);if(!p)return;
   const a=p.assessment||{currentCondition:{},treatmentPlan:{}};
   const chart=a[chartMode]||{};
-  const popupKeys=["healthy","cavity","crown","missing","implant","root_canal","veneer","filling","bridge","extraction"];
+  const popupKeys=["crown","missing","implant","root_canal","filling","extraction"];
   const popup=document.createElement("div");
   popup.className="tooth-popup";
   const rect=e.currentTarget.getBoundingClientRect();
