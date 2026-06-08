@@ -290,25 +290,61 @@ const LOWER_R=[48,47,46,45,44,43,42,41];
 const LOWER_L=[31,32,33,34,35,36,37,38];
 
 // SVG tooth shapes: gY=28. Upper: roots top(y<28) crown down(y>28). Lower: crown top(y<28) roots down(y>28).
+// Each tooth has crown, rx (roots), crownHi (highlight path), rxHi (root highlight paths)
 const TOOTH_SVG_DATA={
-  // Upper central incisor: trapezoidal crown wider at incisal, single root
-  'u-central':{gY:28,crown:"M9,28 C7,40 6,54 6,60 C9,68 25,68 28,60 C28,54 27,40 25,28Z",rx:["M13,28 C12,20 12,9 13,4 Q17,0 21,4 C22,9 22,20 21,28Z"]},
-  // Upper lateral incisor: narrower than central, slightly rounded distal
-  'u-lateral':{gY:28,crown:"M10,28 C8,40 8,54 8,59 C11,66 23,66 26,59 C26,54 26,40 24,28Z",rx:["M14,28 C13,20 13,11 14,6 Q17,2 20,6 C21,11 21,20 20,28Z"]},
-  // Upper canine: slender diamond crown, very long narrow root
-  'u-canine': {gY:28,crown:"M9,28 C8,42 10,58 17,68 C24,58 26,42 25,28Z",rx:["M12,28 C12,18 13,8 14,3 Q17,0 20,3 C21,8 22,18 22,28Z"]},
-  // Upper premolar: two cusps, bifurcated root
-  'u-premolar':{gY:28,crown:"M7,28 C6,38 5,47 8,53 C11,59 14,56 17,52 C20,56 23,59 26,53 C29,47 28,38 27,28Z",rx:["M9,28 C9,21 8,13 8,7 Q12,2 16,6 C16,12 16,20 16,28Z","M18,28 C18,20 18,12 18,6 Q22,2 26,7 C26,13 25,21 25,28Z"]},
-  // Upper molar: wide multi-cusp crown, 3 fanning roots
-  'u-molar':  {gY:28,crown:"M2,28 C2,38 1,47 3,53 C6,59 10,57 13,53 L17,60 L21,53 C24,57 28,59 31,53 C33,47 32,38 32,28Z",rx:["M1,28 C1,20 0,11 1,5 Q5,1 9,5 C9,11 10,20 11,28Z","M13,28 C13,19 14,9 14,4 Q17,0 20,4 C20,9 21,19 21,28Z","M23,28 C23,20 24,11 25,5 Q29,1 33,5 C33,11 33,20 33,28Z"]},
-  // Lower incisor: narrow flat crown, single long root
-  'l-incisor':{gY:28,crown:"M9,28 C7,20 7,11 8,7 Q17,2 26,7 C27,11 27,20 25,28Z",rx:["M13,28 C12,38 12,52 13,58 Q17,65 21,58 C22,52 22,38 21,28Z"]},
-  // Lower canine: slightly pointed crown, long single root
-  'l-canine': {gY:28,crown:"M9,28 C7,18 9,8 17,3 C25,8 27,18 25,28Z",rx:["M12,28 C12,40 13,54 14,60 Q17,67 20,60 C21,54 22,40 22,28Z"]},
-  // Lower premolar: two cusps at top, single root
-  'l-premolar':{gY:28,crown:"M7,28 C6,20 6,12 9,7 C12,2 15,5 17,10 C19,5 22,2 25,7 C28,12 28,20 27,28Z",rx:["M13,28 C12,40 12,52 13,58 Q17,65 21,58 C22,52 22,40 21,28Z"]},
-  // Lower molar: wide crown cusps at top, 2 forked roots
-  'l-molar':  {gY:28,crown:"M2,28 C2,18 2,10 4,5 C7,0 11,2 13,8 L17,2 L21,8 C23,2 27,0 30,5 C32,10 32,18 32,28Z",rx:["M2,28 C2,40 2,50 2,56 Q7,65 12,56 C12,50 12,40 12,28Z","M22,28 C22,40 22,50 22,56 Q27,65 32,56 C32,50 32,40 32,28Z"]},
+  'u-central':{gY:28,
+    crown:"M9,28 C8,38 7,52 7,59 C9,65 13,68 17,68 C21,68 25,65 27,59 C27,52 26,38 25,28Z",
+    crownHi:"M12,30 C11,38 10,50 11,56 C13,61 16,63 17,63 C18,63 20,60 20,55 C20,49 19,38 18,30Z",
+    rx:["M13,28 C12,20 12,10 13,4 Q17,0 21,4 C22,10 22,20 21,28Z"],
+    rxHi:["M15,26 C15,19 15,11 16,6 Q17,3 18,6 C19,11 19,19 19,26Z"]},
+  'u-lateral':{gY:28,
+    crown:"M10,28 C9,38 8,52 9,58 C11,64 14,67 17,67 C20,67 23,64 25,58 C26,52 25,38 24,28Z",
+    crownHi:"M13,30 C12,38 11,50 12,55 C13,59 15,62 17,62 C18,62 20,59 20,54 C20,49 19,38 18,30Z",
+    rx:["M14,28 C13,20 13,11 14,6 Q17,2 20,6 C21,11 21,20 20,28Z"],
+    rxHi:["M15,26 C15,20 15,12 16,7 Q17,4 18,7 C19,12 19,20 19,26Z"]},
+  'u-canine':{gY:28,
+    crown:"M9,28 C8,40 9,56 17,69 C25,56 26,40 25,28Z",
+    crownHi:"M12,30 C11,42 13,56 17,65 C21,56 21,42 20,30Z",
+    rx:["M12,28 C12,18 13,7 14,2 Q17,0 20,2 C21,7 22,18 22,28Z"],
+    rxHi:["M15,26 C15,18 15,9 16,4 Q17,2 18,4 C19,9 19,18 19,26Z"]},
+  'u-premolar':{gY:28,
+    crown:"M7,28 C6,37 5,46 8,53 C11,59 14,57 17,52 C20,57 23,59 26,53 C29,46 28,37 27,28Z",
+    crownHi:"M11,30 C10,38 10,46 12,51 C14,55 16,54 17,51 C18,54 19,54 20,50 C21,46 21,38 20,30Z",
+    rx:["M9,28 C9,21 8,13 8,7 Q12,2 16,6 C16,12 16,21 16,28Z",
+        "M18,28 C18,21 18,12 18,6 Q22,2 26,7 C26,13 25,21 25,28Z"],
+    rxHi:["M11,26 C11,20 11,14 11,9 Q12,5 13,8 C14,13 14,20 14,26Z",
+          "M20,26 C20,20 20,14 20,9 Q22,5 23,8 C23,13 23,20 23,26Z"]},
+  'u-molar':{gY:28,
+    crown:"M2,28 C2,37 1,46 3,52 C6,58 10,57 13,53 L17,61 L21,53 C24,57 28,58 31,52 C33,46 32,37 32,28Z",
+    crownHi:"M5,30 C5,38 4,46 6,51 C8,55 11,54 13,51 L17,56 L21,51 C22,53 24,54 25,51 C27,47 26,39 25,30Z",
+    rx:["M1,28 C1,19 0,10 1,5 Q5,0 9,5 C9,10 10,19 11,28Z",
+        "M13,28 C13,18 14,9 14,4 Q17,0 20,4 C20,9 21,18 21,28Z",
+        "M23,28 C23,19 24,10 25,5 Q29,0 33,5 C33,10 33,19 33,28Z"],
+    rxHi:["M3,26 C3,18 3,11 4,7 Q5,3 6,6 C7,10 7,18 8,26Z",
+          "M15,26 C15,19 15,10 15,5 Q17,2 18,5 C18,10 19,19 19,26Z",
+          "M25,26 C25,18 25,11 25,7 Q29,3 30,6 C30,10 30,18 30,26Z"]},
+  'l-incisor':{gY:28,
+    crown:"M9,28 C7,20 7,11 8,7 Q17,2 26,7 C27,11 27,20 25,28Z",
+    crownHi:"M12,27 C11,21 11,13 12,9 Q17,5 22,9 C22,13 22,21 21,27Z",
+    rx:["M13,28 C12,38 12,52 13,58 Q17,66 21,58 C22,52 22,38 21,28Z"],
+    rxHi:["M15,30 C15,39 15,51 15,56 Q17,62 18,56 C18,51 19,39 19,30Z"]},
+  'l-canine':{gY:28,
+    crown:"M9,28 C7,18 9,8 17,3 C25,8 27,18 25,28Z",
+    crownHi:"M12,27 C11,19 13,10 17,6 C21,10 22,19 21,27Z",
+    rx:["M12,28 C12,40 13,54 14,60 Q17,67 20,60 C21,54 22,40 22,28Z"],
+    rxHi:["M15,30 C15,41 15,53 15,58 Q17,63 18,58 C18,53 19,41 19,30Z"]},
+  'l-premolar':{gY:28,
+    crown:"M7,28 C6,20 6,12 9,7 C12,2 15,5 17,10 C19,5 22,2 25,7 C28,12 28,20 27,28Z",
+    crownHi:"M11,27 C10,21 10,14 12,9 C14,5 16,7 17,10 C18,7 19,5 21,9 C22,13 22,20 21,27Z",
+    rx:["M13,28 C12,40 12,52 13,58 Q17,65 21,58 C22,52 22,40 21,28Z"],
+    rxHi:["M15,30 C15,40 15,51 15,56 Q17,62 18,56 C18,51 19,40 19,30Z"]},
+  'l-molar':{gY:28,
+    crown:"M2,28 C2,18 2,10 4,5 C7,0 11,2 13,8 L17,2 L21,8 C23,2 27,0 30,5 C32,10 32,18 32,28Z",
+    crownHi:"M5,27 C5,18 6,11 8,7 C10,3 12,5 13,8 L17,4 L21,8 C22,5 23,3 25,7 C27,10 27,18 27,27Z",
+    rx:["M2,28 C2,40 2,50 2,56 Q7,65 12,56 C12,50 12,40 12,28Z",
+        "M22,28 C22,40 22,50 22,56 Q27,65 32,56 C32,50 32,40 32,28Z"],
+    rxHi:["M4,30 C4,41 4,50 5,55 Q7,60 9,55 C9,50 9,41 10,30Z",
+          "M24,30 C24,41 24,50 24,55 Q27,60 29,55 C29,50 29,41 30,30Z"]},
 };
 function getToothSVGKey(n){
   if(n===11||n===21)return'u-central';
@@ -815,28 +851,43 @@ function renderPtAssessment(p){
     const isMissing=cond==="missing";
     const isHealthy=!chart[num]||cond==="healthy";
     const condColor=TOOTH_COLORS[cond]||"transparent";
-    const crownFill=isHealthy?`url(#tooth-cg-${gId})`:isMissing?"#111827":condColor+"dd";
-    const crownStroke=isHealthy?"#a8a8a4":isMissing?"#37415188":condColor;
-    const rootFill=`url(#tooth-rg-${gId})`;const rootStroke="#7a6418";
-    const svgOp=isMissing?"0.18":"1";
     const sh=TOOTH_SVG_DATA[getToothSVGKey(num)];
     const isUpper=num>=11&&num<=28;
+    // Fills & strokes
+    const cFill=isHealthy?`url(#tooth-cg-${gId})`:isMissing?"#111827":condColor+"dd";
+    const cStroke=isHealthy?"#888886":isMissing?"#37415188":condColor;
+    const rFill=`url(#tooth-rg-${gId})`;
+    const rStroke="#60500e";
+    // Shadow offsets (behind roots and crown)
+    const shadow=isHealthy&&!isMissing
+      ?sh.rx.map(d=>`<path d="${d}" fill="#00000055" transform="translate(1,1)"/>`).join('')
+       +`<path d="${sh.crown}" fill="#00000044" transform="translate(1,1)"/>`:'';
+    // Base root layers
+    const roots=sh.rx.map(d=>`<path d="${d}" fill="${rFill}" stroke="${rStroke}" stroke-width="0.7"/>`).join('');
+    // Root inner highlight
+    const rootHi=isHealthy&&!isMissing
+      ?sh.rxHi.map(d=>`<path d="${d}" fill="rgba(255,245,180,0.42)" stroke="none"/>`).join(''):'';
+    // Base crown
+    const crown=isMissing
+      ?`<path d="${sh.crown}" fill="${cFill}" stroke="#374151" stroke-width="0.7" stroke-dasharray="3,2"/>`
+      :`<path d="${sh.crown}" fill="${cFill}" stroke="${cStroke}" stroke-width="0.7"/>`;
+    // Crown inner highlight
+    const crownHi=isHealthy&&!isMissing
+      ?`<path d="${sh.crownHi}" fill="rgba(255,255,255,0.48)" stroke="none"/>`:'';
+    const gumLine=`<line x1="2" y1="${sh.gY}" x2="32" y2="${sh.gY}" stroke="#ffffff22" stroke-width="0.5"/>`;
     const ico=!isHealthy&&!isMissing?TOOTH_ICONS[cond]||"":'';
     const icoY=isUpper?sh.gY+20:sh.gY-12;
-    const roots=sh.rx.map(d=>`<path d="${d}" fill="${rootFill}" stroke="${rootStroke}" stroke-width="0.8"/>`).join('');
-    const crownEl=isMissing
-      ?`<path d="${sh.crown}" fill="${crownFill}" stroke="#374151" stroke-width="0.7" stroke-dasharray="3,2"/>`
-      :`<path d="${sh.crown}" fill="${crownFill}" stroke="${crownStroke}" stroke-width="0.8"/>`;
-    const gumLine=`<line x1="2" y1="${sh.gY}" x2="32" y2="${sh.gY}" stroke="#4b556344" stroke-width="0.5"/>`;
     const icoEl=ico?`<text x="17" y="${icoY}" text-anchor="middle" font-size="9" dominant-baseline="middle" style="pointer-events:none">${ico}</text>`:'';
     const numStyle="font-size:7px;font-weight:800;color:#3d5270;height:9px;line-height:9px;text-align:center;width:34px";
     const cursor=paintBrush?"crosshair":"pointer";
+    const svgFilter=isHealthy&&!isMissing?"drop-shadow(0 1px 3px rgba(0,0,0,0.7))":"";
+    const svgOp=isMissing?"0.18":"1";
     return`<div id="tooth-${num}" onclick="toothClick(event,${num})"
       style="display:flex;flex-direction:column;align-items:center;cursor:${cursor};user-select:none"
-      onmouseenter="this.style.filter='brightness(1.15) drop-shadow(0 0 3px ${isHealthy?"#f97316":condColor})'"
+      onmouseenter="this.style.filter='brightness(1.2) drop-shadow(0 0 4px ${isHealthy?"#f97316":condColor})'"
       onmouseleave="this.style.filter=''">
       ${isUpper?`<div style="${numStyle}">${num}</div>`:''}
-      <svg viewBox="0 0 34 70" width="34" height="70" style="opacity:${svgOp};overflow:visible">${roots}${crownEl}${gumLine}${icoEl}</svg>
+      <svg viewBox="0 0 34 70" width="34" height="70" style="opacity:${svgOp};overflow:visible;filter:${svgFilter}">${shadow}${roots}${rootHi}${crown}${crownHi}${gumLine}${icoEl}</svg>
       ${!isUpper?`<div style="${numStyle}">${num}</div>`:''}
     </div>`;
   }
@@ -868,22 +919,22 @@ function renderPtAssessment(p){
       </div>
       ${paintHint}
       <svg aria-hidden="true" style="position:absolute;width:0;height:0;overflow:hidden"><defs>
-        <linearGradient id="tooth-cg-currentCondition" x1="0" y1="0" x2="1" y2="0">
-          <stop offset="0%" stop-color="#b0afac"/><stop offset="35%" stop-color="#ffffff"/>
-          <stop offset="65%" stop-color="#f4f4f0"/><stop offset="100%" stop-color="#acacaa"/>
-        </linearGradient>
-        <linearGradient id="tooth-cg-treatmentPlan" x1="0" y1="0" x2="1" y2="0">
-          <stop offset="0%" stop-color="#b0afac"/><stop offset="35%" stop-color="#ffffff"/>
-          <stop offset="65%" stop-color="#f4f4f0"/><stop offset="100%" stop-color="#acacaa"/>
-        </linearGradient>
-        <linearGradient id="tooth-rg-currentCondition" x1="0" y1="0" x2="1" y2="0">
-          <stop offset="0%" stop-color="#7a6318"/><stop offset="40%" stop-color="#d8bc50"/>
-          <stop offset="100%" stop-color="#7a6318"/>
-        </linearGradient>
-        <linearGradient id="tooth-rg-treatmentPlan" x1="0" y1="0" x2="1" y2="0">
-          <stop offset="0%" stop-color="#7a6318"/><stop offset="40%" stop-color="#d8bc50"/>
-          <stop offset="100%" stop-color="#7a6318"/>
-        </linearGradient>
+        <radialGradient id="tooth-cg-currentCondition" cx="40%" cy="35%" r="70%" fx="32%" fy="26%">
+          <stop offset="0%" stop-color="#ffffff"/><stop offset="45%" stop-color="#e8e8e4"/>
+          <stop offset="100%" stop-color="#909090"/>
+        </radialGradient>
+        <radialGradient id="tooth-cg-treatmentPlan" cx="40%" cy="35%" r="70%" fx="32%" fy="26%">
+          <stop offset="0%" stop-color="#ffffff"/><stop offset="45%" stop-color="#e8e8e4"/>
+          <stop offset="100%" stop-color="#909090"/>
+        </radialGradient>
+        <radialGradient id="tooth-rg-currentCondition" cx="40%" cy="35%" r="70%" fx="32%" fy="26%">
+          <stop offset="0%" stop-color="#ecd870"/><stop offset="50%" stop-color="#c8a838"/>
+          <stop offset="100%" stop-color="#5a4a10"/>
+        </radialGradient>
+        <radialGradient id="tooth-rg-treatmentPlan" cx="40%" cy="35%" r="70%" fx="32%" fy="26%">
+          <stop offset="0%" stop-color="#ecd870"/><stop offset="50%" stop-color="#c8a838"/>
+          <stop offset="100%" stop-color="#5a4a10"/>
+        </radialGradient>
       </defs></svg>
       <div style="background:#131b2a;border:1px solid #1a2236;border-radius:10px;padding:16px;margin-bottom:12px;${paintBrush?"border-color:#f9731644":""}">
         <div class="tooth-chart-wrap">${upperRow}</div>
