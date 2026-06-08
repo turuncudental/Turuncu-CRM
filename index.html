@@ -630,12 +630,13 @@ async function loadAll(){
   state.events=Array.isArray(e?.[0]?.data)?e[0].data:SEED_EVENTS;
   state.appointments=Array.isArray(a?.[0]?.data)?a[0].data:SEED_APPOINTMENTS;
   const loadedTr=Array.isArray(tr?.[0]?.data)?tr[0].data:null;
-  // Migrate: if stored treatments are fewer than seed (catalog update), replace with new seed
-  state.treatments=(loadedTr&&loadedTr.length>=SEED_TREATMENTS.length)?loadedTr:SEED_TREATMENTS;
+  // Migrate: replace if fewer entries OR if EUR prices are missing/zero (price list update)
+  const needsTrUpdate=!loadedTr||loadedTr.length<SEED_TREATMENTS.length||loadedTr.some(t=>t.type==='treatment'&&!(t.salePriceEUR>0));
+  state.treatments=needsTrUpdate?SEED_TREATMENTS:loadedTr;
   if(!p||!p[0])dbSet("customers",SEED_PATIENTS);
   if(!e||!e[0])dbSet("deals",SEED_EVENTS);
   if(!a||!a[0])dbSet("tasks",SEED_APPOINTMENTS);
-  if(!loadedTr||loadedTr.length<SEED_TREATMENTS.length)dbSet("history",SEED_TREATMENTS);
+  if(needsTrUpdate)dbSet("history",SEED_TREATMENTS);
 }
 async function loadUsers(){try{const r=await fetch(`${SUPA_URL}/rest/v1/crm_users?select=id,username,role,display_name&order=id`,{headers:H});if(r.ok)state.users=await r.json();}catch{}}
 
