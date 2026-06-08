@@ -304,29 +304,29 @@ const LOWER_L=[31,32,33,34,35,36,37,38];
 // SVG tooth shapes: gY=28. Upper: roots top(y<28) crown down(y>28). Lower: crown top(y<28) roots down(y>28).
 // Each tooth has crown, rx (roots), crownHi (highlight path), rxHi (root highlight paths)
 const TOOTH_SVG_DATA={
-  'u-central':{gY:28,
+  'u-central':{gY:28,photoGY:43,
     crown:"M9,28 C8,38 7,52 7,59 C9,65 13,68 17,68 C21,68 25,65 27,59 C27,52 26,38 25,28Z",
     crownHi:"M12,30 C11,38 10,50 11,56 C13,61 16,63 17,63 C18,63 20,60 20,55 C20,49 19,38 18,30Z",
     rx:["M13,28 C12,20 12,10 13,4 Q17,0 21,4 C22,10 22,20 21,28Z"],
     rxHi:["M15,26 C15,19 15,11 16,6 Q17,3 18,6 C19,11 19,19 19,26Z"]},
-  'u-lateral':{gY:28,
+  'u-lateral':{gY:28,photoGY:43,
     crown:"M10,28 C9,38 8,52 9,58 C11,64 14,67 17,67 C20,67 23,64 25,58 C26,52 25,38 24,28Z",
     crownHi:"M13,30 C12,38 11,50 12,55 C13,59 15,62 17,62 C18,62 20,59 20,54 C20,49 19,38 18,30Z",
     rx:["M14,28 C13,20 13,11 14,6 Q17,2 20,6 C21,11 21,20 20,28Z"],
     rxHi:["M15,26 C15,20 15,12 16,7 Q17,4 18,7 C19,12 19,20 19,26Z"]},
-  'u-canine':{gY:28,
+  'u-canine':{gY:28,photoGY:46,
     crown:"M9,28 C8,40 9,56 17,69 C25,56 26,40 25,28Z",
     crownHi:"M12,30 C11,42 13,56 17,65 C21,56 21,42 20,30Z",
     rx:["M12,28 C12,18 13,7 14,2 Q17,0 20,2 C21,7 22,18 22,28Z"],
     rxHi:["M15,26 C15,18 15,9 16,4 Q17,2 18,4 C19,9 19,18 19,26Z"]},
-  'u-premolar':{gY:28,
+  'u-premolar':{gY:28,photoGY:41,
     crown:"M7,28 C6,37 5,46 8,53 C11,59 14,57 17,52 C20,57 23,59 26,53 C29,46 28,37 27,28Z",
     crownHi:"M11,30 C10,38 10,46 12,51 C14,55 16,54 17,51 C18,54 19,54 20,50 C21,46 21,38 20,30Z",
     rx:["M9,28 C9,21 8,13 8,7 Q12,2 16,6 C16,12 16,21 16,28Z",
         "M18,28 C18,21 18,12 18,6 Q22,2 26,7 C26,13 25,21 25,28Z"],
     rxHi:["M11,26 C11,20 11,14 11,9 Q12,5 13,8 C14,13 14,20 14,26Z",
           "M20,26 C20,20 20,14 20,9 Q22,5 23,8 C23,13 23,20 23,26Z"]},
-  'u-molar':{gY:28,
+  'u-molar':{gY:28,photoGY:36,
     crown:"M2,28 C2,37 1,46 3,52 C6,58 10,57 13,53 L17,61 L21,53 C24,57 28,58 31,52 C33,46 32,37 32,28Z",
     crownHi:"M5,30 C5,38 4,46 6,51 C8,55 11,54 13,51 L17,56 L21,51 C22,53 24,54 25,51 C27,47 26,39 25,30Z",
     rx:["M1,28 C1,19 0,10 1,5 Q5,0 9,5 C9,10 10,19 11,28Z",
@@ -930,10 +930,10 @@ function renderPtAssessment(p){
         const toothImg=`<image href="data:image/png;base64,${img.d}" x="${ix.toFixed(1)}" y="1" width="${img.w}" height="${img.h}"/>`;
         const rMaskId=`rcr${num}`;
         const filtId=`rcf${num}`;
-        // Rect mask covering full root half — photo alpha keeps non-tooth pixels transparent
-        const rMaskRect=isUpper
-          ?`<rect x="0" y="0" width="34" height="${sh.gY}" fill="white"/>`
-          :`<rect x="0" y="${sh.gY}" width="34" height="${70-sh.gY}" fill="white"/>`;
+        // Rect mask using photoGY for upper (actual photo crown-root boundary) — photo alpha clips outside tooth
+        const rootEnd=isUpper?(sh.photoGY||sh.gY):70;
+        const rootStart=isUpper?0:sh.gY;
+        const rMaskRect=`<rect x="0" y="${rootStart}" width="34" height="${rootEnd-rootStart}" fill="white"/>`;
         const defs=`<defs><mask id="${rMaskId}">${rMaskRect}</mask><filter id="${filtId}"><feColorMatrix type="matrix" values="1 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 1 0"/></filter></defs>`;
         const redRootImg=`<image href="data:image/png;base64,${img.d}" x="${ix.toFixed(1)}" y="1" width="${img.w}" height="${img.h}" mask="url(#${rMaskId})" filter="url(#${filtId})"/>`;
         svgContent=defs+toothImg+redRootImg;
