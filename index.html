@@ -884,13 +884,14 @@ function renderPtAssessment(p){
       const iw=30;
       const ih=Math.min(Math.round(IMPLANT_IMG.h*(iw/IMPLANT_IMG.w)), rootH-2);
       const ix=(34-iw)/2;
-      const iy=isUpper?sh.gY-ih-1:sh.gY+2;
+      // Screw: bottom touches gumline for upper, top touches gumline for lower
+      const iy=isUpper?sh.gY-ih:sh.gY;
       const flip=isUpper
         ?`transform="translate(${(ix+iw/2).toFixed(1)},${(iy+ih/2).toFixed(1)}) scale(1,-1) translate(${-(ix+iw/2).toFixed(1)},${-(iy+ih/2).toFixed(1)})"`
         :'';
       const screwEl=`<image href="data:image/png;base64,${IMPLANT_IMG.d}" x="${ix.toFixed(1)}" y="${iy.toFixed(1)}" width="${iw}" height="${ih}" ${flip}/>`;
       if(isCompound){
-        // Crown on top of implant — use crown image if molar, else colored path
+        // Crown: top touches gumline for upper, bottom touches gumline for lower
         const cc=crownCond;
         const svgKey=getToothSVGKey(num);
         const isMolarTooth=svgKey==='u-molar'||svgKey==='l-molar';
@@ -899,7 +900,7 @@ function renderPtAssessment(p){
           const ci=CROWN_MOLAR_IMG;
           const ciw=32;const cih=Math.round(ci.h*(ciw/ci.w));
           const cix=(34-ciw)/2;
-          const ciy=isUpper?sh.gY+Math.round((70-sh.gY-cih)/2):Math.round((sh.gY-cih)/2);
+          const ciy=isUpper?sh.gY:sh.gY-cih;
           crownPart=`<image href="data:image/png;base64,${ci.d}" x="${cix.toFixed(1)}" y="${ciy}" width="${ciw}" height="${cih}"/>`;
         } else {
           const ccColor=TOOTH_COLORS[cc]||"#888";
