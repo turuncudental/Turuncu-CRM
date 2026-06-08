@@ -289,17 +289,19 @@ const UPPER_L=[21,22,23,24,25,26,27,28];
 const LOWER_R=[48,47,46,45,44,43,42,41];
 const LOWER_L=[31,32,33,34,35,36,37,38];
 
-// SVG tooth shapes: gY=gumline y, crown=crown path, rx[]=root paths. viewBox "0 0 34 70"
+// SVG tooth shapes: gY=28 for all. Upper: roots top(y<28), crown hangs down(y>28). Lower: crown top(y<28), roots down(y>28).
 const TOOTH_SVG_DATA={
-  'u-central': {gY:28,crown:"M5,28 L6,8 Q17,2 28,8 L29,28Z",rx:["M12,28 L13,62 Q17,68 21,62 L22,28Z"]},
-  'u-lateral': {gY:28,crown:"M6,28 L7,10 Q17,5 27,10 L28,28Z",rx:["M12,28 L13,60 Q17,66 21,60 L22,28Z"]},
-  'u-canine':  {gY:28,crown:"M5,28 L8,14 L17,2 L26,14 L29,28Z",rx:["M11,28 L13,62 Q17,68 21,62 L23,28Z"]},
-  'u-premolar':{gY:28,crown:"M5,28 L6,18 L11,8 L17,12 L23,8 L28,18 L29,28Z",rx:["M12,28 L13,60 Q17,66 21,60 L22,28Z"]},
-  'u-molar':   {gY:28,crown:"M2,28 L3,14 L9,6 L17,9 L25,6 L31,14 L32,28Z",rx:["M3,28 L2,58 Q7,66 12,58 L12,28Z","M22,28 L22,58 Q27,66 32,58 L31,28Z"]},
-  'l-incisor': {gY:42,crown:"M5,42 L6,62 Q17,68 28,62 L29,42Z",rx:["M12,42 L13,10 Q17,3 21,10 L22,42Z"]},
-  'l-canine':  {gY:42,crown:"M5,42 L8,56 L17,68 L26,56 L29,42Z",rx:["M11,42 L13,8 Q17,1 21,8 L23,42Z"]},
-  'l-premolar':{gY:42,crown:"M5,42 L6,52 L11,62 L17,59 L23,62 L28,52 L29,42Z",rx:["M12,42 L13,10 Q17,3 21,10 L22,42Z"]},
-  'l-molar':   {gY:42,crown:"M2,42 L3,55 L9,65 L17,67 L25,65 L31,55 L32,42Z",rx:["M3,42 L2,12 Q7,4 12,12 L12,42Z","M22,42 L22,12 Q27,4 32,12 L31,42Z"]},
+  // Upper teeth — roots y=0-28 (top), crown y=28-68 (hanging down)
+  'u-central': {gY:28,crown:"M5,28 L6,52 Q17,64 28,52 L29,28Z",rx:["M12,28 L13,6 Q17,0 21,6 L22,28Z"]},
+  'u-lateral': {gY:28,crown:"M6,28 L7,50 Q17,62 27,50 L28,28Z",rx:["M12,28 L13,8 Q17,2 21,8 L22,28Z"]},
+  'u-canine':  {gY:28,crown:"M5,28 L8,44 L17,66 L26,44 L29,28Z",rx:["M11,28 L13,6 Q17,0 21,6 L23,28Z"]},
+  'u-premolar':{gY:28,crown:"M5,28 L6,40 L11,52 L17,49 L23,52 L28,40 L29,28Z",rx:["M12,28 L13,8 Q17,2 21,8 L22,28Z"]},
+  'u-molar':   {gY:28,crown:"M2,28 L3,42 L9,54 L17,57 L25,54 L31,42 L32,28Z",rx:["M3,28 L2,8 Q7,2 12,8 L12,28Z","M22,28 L22,8 Q27,2 32,8 L31,28Z"]},
+  // Lower teeth — crown y=0-28 (top, pointing up), roots y=28-68 (hanging down)
+  'l-incisor': {gY:28,crown:"M5,28 L6,8 Q17,2 28,8 L29,28Z",rx:["M12,28 L13,60 Q17,67 21,60 L22,28Z"]},
+  'l-canine':  {gY:28,crown:"M5,28 L8,14 L17,2 L26,14 L29,28Z",rx:["M11,28 L13,62 Q17,68 21,62 L23,28Z"]},
+  'l-premolar':{gY:28,crown:"M5,28 L6,18 L11,8 L17,11 L23,8 L28,18 L29,28Z",rx:["M12,28 L13,60 Q17,66 21,60 L22,28Z"]},
+  'l-molar':   {gY:28,crown:"M2,28 L3,14 L9,6 L17,9 L25,6 L31,14 L32,28Z",rx:["M3,28 L2,58 Q7,66 12,58 L12,28Z","M22,28 L22,58 Q27,66 32,58 L31,28Z"]},
 };
 function getToothSVGKey(n){
   if(n===11||n===21)return'u-central';
@@ -812,7 +814,7 @@ function renderPtAssessment(p){
     const sh=TOOTH_SVG_DATA[getToothSVGKey(num)];
     const isUpper=num>=11&&num<=28;
     const ico=!isHealthy&&!isMissing?TOOTH_ICONS[cond]||"":'';
-    const icoY=isUpper?sh.gY-5:sh.gY+12;
+    const icoY=isUpper?sh.gY+20:sh.gY-12;
     const roots=sh.rx.map(d=>`<path d="${d}" fill="${rootFill}" stroke="${rootStroke}" stroke-width="0.8"/>`).join('');
     const crownEl=isMissing
       ?`<path d="${sh.crown}" fill="${crownFill}" stroke="#374151" stroke-width="0.7" stroke-dasharray="3,2"/>`
@@ -831,12 +833,12 @@ function renderPtAssessment(p){
     </div>`;
   }
   const sepStyle="display:flex;align-items:center;justify-content:center;width:10px;color:#1e2d42;font-size:14px;font-weight:300;user-select:none";
-  const upperRow=`<div class="tooth-row" style="align-items:flex-end">
+  const upperRow=`<div class="tooth-row" style="align-items:flex-end;margin-bottom:0">
     ${UPPER_R.map(toothHTML).join("")}
     <div style="${sepStyle}">│</div>
     ${UPPER_L.map(toothHTML).join("")}
   </div>`;
-  const lowerRow=`<div class="tooth-row" style="align-items:flex-start">
+  const lowerRow=`<div class="tooth-row" style="align-items:flex-start;margin-top:0">
     ${LOWER_R.map(toothHTML).join("")}
     <div style="${sepStyle}">│</div>
     ${LOWER_L.map(toothHTML).join("")}
@@ -858,11 +860,9 @@ function renderPtAssessment(p){
       </div>
       ${paintHint}
       <div style="background:#131b2a;border:1px solid #1a2236;border-radius:10px;padding:16px;margin-bottom:12px;${paintBrush?"border-color:#f9731644":""}">
-        <div style="font-size:10px;font-weight:700;color:#3d5270;text-align:center;margin-bottom:8px;letter-spacing:1px">ÜÇÜNCÜ MOLAR → ORTA / UPPER JAW</div>
         <div class="tooth-chart-wrap">${upperRow}</div>
-        <div style="border-top:1px dashed #1a2236;margin:10px 0"></div>
+        <div style="border-top:1px dashed #1a2236;margin:6px 0"></div>
         <div class="tooth-chart-wrap">${lowerRow}</div>
-        <div style="font-size:10px;font-weight:700;color:#3d5270;text-align:center;margin-top:8px;letter-spacing:1px">LOWER JAW / ALT ÇENE</div>
       </div>
       <div style="display:flex;flex-wrap:wrap;gap:6px;align-items:center">${legend}${clearBtn}</div>
     </div>
