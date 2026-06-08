@@ -920,11 +920,9 @@ function renderPtAssessment(p){
         const ix=(34-img.w)/2;
         const toothImg=`<image href="data:image/png;base64,${img.d}" x="${ix.toFixed(1)}" y="1" width="${img.w}" height="${img.h}"/>`;
         const cMaskId=`krc${num}`;
-        const cMaskRect=isUpper
-          ?`<rect x="0" y="${sh.gY}" width="34" height="${70-sh.gY}" fill="white"/>`
-          :`<rect x="0" y="0" width="34" height="${sh.gY}" fill="white"/>`;
         const filtId=`krf${num}`;
-        const defs=`<defs><mask id="${cMaskId}">${cMaskRect}</mask><filter id="${filtId}"><feColorMatrix type="matrix" values="0 0 0 0 0  0 0 0 0 0  1 0 0 0 0  0 0 0 1 0"/></filter></defs>`;
+        // Use SVG crown path as mask — exact anatomical boundary, not a flat rect
+        const defs=`<defs><mask id="${cMaskId}"><path d="${sh.crown}" fill="white"/></mask><filter id="${filtId}"><feColorMatrix type="matrix" values="0 0 0 0 0  0 0 0 0 0  1 0 0 0 0  0 0 0 1 0"/></filter></defs>`;
         const blueImg=`<image href="data:image/png;base64,${img.d}" x="${ix.toFixed(1)}" y="1" width="${img.w}" height="${img.h}" mask="url(#${cMaskId})" filter="url(#${filtId})"/>`;
         svgContent=defs+toothImg+blueImg;
       // Root canal: natural crown + root photo recolored red via feColorMatrix
@@ -934,12 +932,11 @@ function renderPtAssessment(p){
         const toothImg=`<image href="data:image/png;base64,${img.d}" x="${ix.toFixed(1)}" y="1" width="${img.w}" height="${img.h}"/>`;
         // Root-area mask: white = show, black = hide
         const rMaskId=`rcr${num}`;
-        const rMaskRect=isUpper
-          ?`<rect x="0" y="0" width="34" height="${sh.gY}" fill="white"/>`
-          :`<rect x="0" y="${sh.gY}" width="34" height="${70-sh.gY}" fill="white"/>`;
+        // Use SVG root paths as mask — exact anatomical boundary per tooth type
+        const rMaskPaths=sh.rx.map(d=>`<path d="${d}" fill="white"/>`).join('');
         const filtId=`rcf${num}`;
         // feColorMatrix: keep R channel, zero out G and B → beige texture becomes red
-        const defs=`<defs><mask id="${rMaskId}">${rMaskRect}</mask><filter id="${filtId}"><feColorMatrix type="matrix" values="1 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 1 0"/></filter></defs>`;
+        const defs=`<defs><mask id="${rMaskId}">${rMaskPaths}</mask><filter id="${filtId}"><feColorMatrix type="matrix" values="1 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 1 0"/></filter></defs>`;
         const redRootImg=`<image href="data:image/png;base64,${img.d}" x="${ix.toFixed(1)}" y="1" width="${img.w}" height="${img.h}" mask="url(#${rMaskId})" filter="url(#${filtId})"/>`;
         svgContent=defs+toothImg+redRootImg;
       // Extraction: tooth removed, red X only
