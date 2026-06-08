@@ -881,10 +881,17 @@ function renderPtAssessment(p){
       const svgKey=getToothSVGKey(num);
       const img=TOOTH_IMAGES[svgKey];
       const tix=(34-img.w)/2;
-      const toothImg=`<image href="data:image/png;base64,${img.d}" x="${tix.toFixed(1)}" y="1" width="${img.w}" height="${img.h}"/>`;
-      // Screw: larger size, starts right at gumline, natural proportions
+      // SVG mask: white = visible, black = hidden. Show only crown area of tooth photo.
+      const maskId=`m${num}`;
+      const maskRect=isUpper
+        ?`<rect x="0" y="${sh.gY}" width="34" height="${70-sh.gY}" fill="white"/>`
+        :`<rect x="0" y="0" width="34" height="${sh.gY}" fill="white"/>`;
+      const defs=`<defs><mask id="${maskId}">${maskRect}</mask></defs>`;
+      const crownImg=`<image href="data:image/png;base64,${img.d}" x="${tix.toFixed(1)}" y="1" width="${img.w}" height="${img.h}" mask="url(#${maskId})"/>`;
+      // Screw: natural proportions, capped at root height for upper to stay within SVG
       const iw=32;
-      const ih=Math.round(IMPLANT_IMG.h*(iw/IMPLANT_IMG.w));
+      const ihNat=Math.round(IMPLANT_IMG.h*(iw/IMPLANT_IMG.w));
+      const ih=isUpper?Math.min(ihNat,sh.gY):ihNat;
       const six=(34-iw)/2;
       const siy=isUpper?sh.gY-ih:sh.gY;
       const flip=isUpper
@@ -893,9 +900,9 @@ function renderPtAssessment(p){
       const screwEl=`<image href="data:image/png;base64,${IMPLANT_IMG.d}" x="${six.toFixed(1)}" y="${siy.toFixed(1)}" width="${iw}" height="${ih}" ${flip}/>`;
       if(isCompound){
         const crownOverlay=`<path d="${sh.crown}" fill="#e2e8f0ee" stroke="#94a3b8" stroke-width="0.8"/>`;
-        svgContent=toothImg+screwEl+crownOverlay;
+        svgContent=defs+screwEl+crownOverlay;
       } else {
-        svgContent=toothImg+screwEl;
+        svgContent=defs+crownImg+screwEl;
       }
     } else {
       const svgKey=getToothSVGKey(num);
