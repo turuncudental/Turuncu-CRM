@@ -484,6 +484,7 @@ function getEffectivePrice(item){
   return item.salePrice||0;
 }
 let paintBrush=null;
+let activeTxBrush=null;
 let catalogTab="treatment";
 let state={patients:[],events:[],appointments:[],treatments:[],users:[]};
 // ==SEED==
@@ -1025,23 +1026,20 @@ function renderPtAssessment(p){
   const legend=condKeys.map(k=>`<div class="legend-item${paintBrush===k?" active":""}" data-cond="${k}" onclick="setPaintBrush('${k}')"><div class="legend-dot" style="background:${TOOTH_COLORS[k]||"#131b2a"};border:1px solid ${TOOTH_COLORS[k]!=="transparent"?TOOTH_COLORS[k]:"#1a2236"}"></div>${condLabel(k)}</div>`).join("");
   const clearBtn="";
   const allTxCatalog=state.treatments.filter(tx=>tx.type==='treatment'&&tx.active);
-  const overrides=(a.txOverrides)||{};
-  const autoRows=[];
-  Object.keys(chart).map(Number).sort((x,y)=>x-y).forEach(num=>{
-    const cond=chart[num];if(!cond)return;
-    cond.split('+').forEach(part=>{
-      if(!COND_TX_MAP[part])return;
-      const oKey=`${activePlan}_${num}_${part}`;
-      const txId=overrides[oKey]||COND_TX_MAP[part];
-      const foundTx=allTxCatalog.find(tx=>tx.id===txId);
-      if(foundTx)autoRows.push({num,cond:part,tx:foundTx,oKey});
-    });
+  const toothTxMap=(a.toothTx||{})[activePlan]||{};
+  const txGroupsMap={};
+  Object.entries(toothTxMap).forEach(([num,txId])=>{
+    const k=+txId;
+    if(!txGroupsMap[k])txGroupsMap[k]={txId:k,count:0,toothNums:[]};
+    txGroupsMap[k].count++;
+    txGroupsMap[k].toothNums.push(+num);
   });
+  const groupedRows=Object.values(txGroupsMap).map(g=>({...g,tx:allTxCatalog.find(t=>t.id===g.txId)})).filter(g=>g.tx);
   const extraRows=((a.planExtras||{})[activePlan]||[]).map((e,i)=>({...e,idx:i,tx:allTxCatalog.find(tx=>tx.id===e.txId)})).filter(e=>e.tx);
   const b=p.booking||{};
   const activeAc=getCatalogByType("accommodation");
   const activeTrv=getCatalogByType("travel");
-  const autoSub=autoRows.reduce((s,r)=>s+getEffectivePrice(r.tx),0);
+  const autoSub=groupedRows.reduce((s,r)=>s+r.count*getEffectivePrice(r.tx),0);
   const extrasSub=extraRows.reduce((s,r)=>s+(r.qty||1)*(r.price||getEffectivePrice(r.tx)),0);
   const txSub=autoSub+extrasSub;
   const acSub=(b.accommodations||[]).reduce((s,ac)=>s+(ac.nights||1)*(ac.pricePerNight||0),0);
@@ -1051,6 +1049,8 @@ function renderPtAssessment(p){
   const balance=total-(b.deposit||0);
   const inStyle="width:60px;background:#131b2a;border:1px solid #1a2236;border-radius:6px;padding:3px 6px;color:#dde4ef;font-size:12px;text-align:center";
   const currBtn=['GBP','EUR','USD'].map(c=>`<button onclick="setCurrency('${c}')" style="padding:3px 10px;border-radius:14px;border:1px solid ${activeCurrency===c?'#f97316':'#1a2236'};background:${activeCurrency===c?'#f9731622':'#131b2a'};color:${activeCurrency===c?'#f97316':'#4a607d'};font-size:11px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif">${c==='GBP'?'£ GBP':c==='EUR'?'€ EUR':'$ USD'}</button>`).join('');
+  const activeBrushTx=activeTxBrush?allTxCatalog.find(t=>t.id===activeTxBrush):null;
+  const txBrushHint=activeBrushTx?`<div class="paint-hint">🖌 <strong>${activeBrushTx.name}</strong> aktif — dişe tıkla, aynı dişe tekrar tıkla iptal</div>`:'';
   const paintHint=paintBrush&&paintBrush!=="healthy"?`<div class="paint-hint">${TOOTH_ICONS[paintBrush]||"○"} <strong>${condLabel(paintBrush)}</strong> fırçası aktif — dişlere tıkla, iptal için tekrar tıkla</div>`:paintBrush==="healthy"?`<div class="paint-hint">✕ <strong>Temizle</strong> fırçası aktif — tıklanan dişi sıfırlar</div>`:"";
   return`<div style="max-width:800px;display:flex;flex-direction:column;gap:14px">
     <div class="card">
@@ -1061,7 +1061,7 @@ function renderPtAssessment(p){
         </div>
         <button onclick="resetActivePlan()" style="padding:4px 14px;border-radius:20px;border:1px solid #ef444444;background:#2b0f0f;color:#ef4444;font-size:11px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif">✕ Hepsini Sıfırla</button>
       </div>
-      ${paintHint}
+      ${txBrushHint}
       <svg aria-hidden="true" style="position:absolute;width:0;height:0;overflow:hidden"><defs>
         <radialGradient id="tooth-cg-currentCondition" cx="40%" cy="35%" r="70%" fx="32%" fy="26%">
           <stop offset="0%" stop-color="#ffffff"/><stop offset="45%" stop-color="#e8e8e4"/>
@@ -1080,39 +1080,43 @@ function renderPtAssessment(p){
           <stop offset="100%" stop-color="#5a4a10"/>
         </radialGradient>
       </defs></svg>
-      <div style="background:#131b2a;border:1px solid #1a2236;border-radius:10px;padding:16px;margin-bottom:12px;${paintBrush?"border-color:#f9731644":""}">
+      <div style="background:#131b2a;border:1px solid #1a2236;border-radius:10px;padding:16px;margin-bottom:12px;${activeTxBrush?"border-color:#f9731644":""}">
         <div class="tooth-chart-wrap">${upperRow}</div>
         <div style="border-top:1px dashed #1a2236;margin:6px 0"></div>
         <div class="tooth-chart-wrap">${lowerRow}</div>
       </div>
-      <div style="display:flex;flex-wrap:wrap;gap:6px;align-items:center">${legend}${clearBtn}</div>
+      <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:4px">
+        <select id="tx-brush-main" onchange="setTxBrush(+this.value||null)" style="background:#131b2a;border:1px solid ${activeTxBrush?'#f97316':'#1a2236'};border-radius:8px;padding:6px 10px;color:${activeTxBrush?'#f97316':'#dde4ef'};font-size:12px;outline:none;flex:1;min-width:200px">
+          <option value="">— Tedavi Seçip Dişe Tıkla —</option>
+          ${allTxCatalog.map(tx=>`<option value="${tx.id}"${activeTxBrush===tx.id?' selected':''}>${tx.name} — ${currSym()}${getEffectivePrice(tx)}</option>`).join('')}
+        </select>
+        ${activeTxBrush?`<button onclick="setTxBrush(null)" style="padding:5px 12px;border-radius:8px;border:1px solid #ef444444;background:#2b0f0f;color:#ef4444;font-size:11px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif">✕ İptal</button>`:''}
+      </div>
     </div>
     <div class="card">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;flex-wrap:wrap;gap:8px">
         <div class="section-title" style="margin-bottom:0">🦷 Tedavi Listesi</div>
         <div style="display:flex;gap:5px">${currBtn}</div>
       </div>
-      ${autoRows.length||extraRows.length?`<table class="data-table" style="width:100%;margin-bottom:10px">
-        <thead><tr><th>Diş</th><th>Durum</th><th>Tedavi</th><th>Fiyat</th><th></th></tr></thead>
+      ${groupedRows.length||extraRows.length?`<table class="data-table" style="width:100%;margin-bottom:10px">
+        <thead><tr><th>Tedavi</th><th>Adet</th><th>Birim</th><th>Toplam</th><th></th></tr></thead>
         <tbody>
-          ${autoRows.map(r=>`<tr>
-            <td style="font-weight:700;color:#f97316;font-size:13px">${r.num}</td>
-            <td style="font-size:12px">${condLabel(r.cond)}</td>
-            <td><select onchange="setTxOverride('${activePlan}',${r.num},'${r.cond}',this.value)" style="background:#131b2a;border:1px solid #1a2236;border-radius:6px;padding:3px 6px;color:#dde4ef;font-size:11px;outline:none;max-width:220px">
-              ${allTxCatalog.map(tx=>`<option value="${tx.id}"${tx.id===r.tx.id?' selected':''}>${tx.name}</option>`).join('')}
-            </select></td>
-            <td style="font-weight:700;color:#34d399;font-size:12px">${currSym()}${getEffectivePrice(r.tx).toLocaleString()}</td>
-            <td><button class="sm-btn danger" onclick="setToothCond(${r.num},'healthy')" title="Kaldır">✕</button></td>
+          ${groupedRows.map(r=>`<tr>
+            <td style="font-weight:600">${r.tx.name}</td>
+            <td style="font-weight:700;color:#f97316;text-align:center">${r.count}</td>
+            <td style="font-size:12px">${currSym()}${getEffectivePrice(r.tx).toLocaleString()}</td>
+            <td style="font-weight:700;color:#34d399">${currSym()}${(r.count*getEffectivePrice(r.tx)).toLocaleString()}</td>
+            <td><button class="sm-btn danger" onclick="removeTxGroup(${r.txId})" title="Tümünü Kaldır">✕</button></td>
           </tr>`).join('')}
           ${extraRows.map(r=>`<tr>
-            <td style="color:#4a607d;font-size:12px">Ekstra</td>
-            <td style="font-size:12px">—</td>
-            <td style="font-weight:600;font-size:12px">${r.tx.name}</td>
-            <td style="font-size:12px"><input type="number" min="1" value="${r.qty||1}" onchange="updateExtraTxQty(${r.idx},+this.value)" style="${inStyle}"/> × ${currSym()}${getEffectivePrice(r.tx).toLocaleString()} = <span style="color:#34d399;font-weight:700">${currSym()}${((r.qty||1)*getEffectivePrice(r.tx)).toLocaleString()}</span></td>
+            <td style="font-weight:600">${r.tx.name} <span style="color:#4a607d;font-size:10px">ekstra</span></td>
+            <td><input type="number" min="1" value="${r.qty||1}" onchange="updateExtraTxQty(${r.idx},+this.value)" style="${inStyle};text-align:center"/></td>
+            <td style="font-size:12px">${currSym()}${getEffectivePrice(r.tx).toLocaleString()}</td>
+            <td style="font-weight:700;color:#34d399">${currSym()}${((r.qty||1)*getEffectivePrice(r.tx)).toLocaleString()}</td>
             <td><button class="sm-btn danger" onclick="removeExtraTreatment(${r.idx})">✕</button></td>
           </tr>`).join('')}
         </tbody>
-      </table>`:`<div style="font-size:12px;color:#3d5270;padding:6px 0">Henüz diş seçilmedi</div>`}
+      </table>`:`<div style="font-size:12px;color:#3d5270;padding:6px 0">Yukarıdan tedavi seçip dişe tıklayın</div>`}
       <div style="display:flex;gap:8px;align-items:center;margin-top:8px;flex-wrap:wrap">
         <select id="pa-extra-tx" style="background:#131b2a;border:1px solid #1a2236;border-radius:8px;padding:6px 10px;color:#dde4ef;font-size:12px;outline:none;flex:1;min-width:180px">
           <option value="">— Ekstra Tedavi Ekle —</option>
@@ -1195,6 +1199,7 @@ function renderPtAssessment(p){
 
 function toothClick(e,num){
   e.stopPropagation();
+  if(activeTxBrush!==null){applyTxToTooth(num,activeTxBrush);return;}
   if(paintBrush!==null){setToothCond(num,paintBrush);return;}
   document.querySelectorAll(".tooth-popup").forEach(p=>p.remove());
   const p=getPatient(currentPatientId);if(!p)return;
@@ -1220,6 +1225,45 @@ function toothClick(e,num){
   setTimeout(()=>document.addEventListener("click",()=>popup.remove(),{once:true}),10);
 }
 
+function txToCondition(tx){
+  if(!tx)return null;
+  const cat=tx.category;const name=(tx.name||'').toLowerCase();
+  if(cat==='İmplant')return'implant';
+  if(cat==='Endodonti')return'root_canal';
+  if(name.includes('extraction'))return'extraction';
+  if(name.includes('filling')||name.includes('composite'))return'filling';
+  if(cat==='Restorasyon'||cat==='Estetik'||name.includes('crown')||name.includes('veneer')||name.includes('laminate'))return'crown';
+  return null;
+}
+function setTxBrush(txId){activeTxBrush=txId||null;paintBrush=null;renderPtBody();}
+function applyTxToTooth(num,txId){
+  document.querySelectorAll(".tooth-popup").forEach(p=>p.remove());
+  const p=getPatient(currentPatientId);if(!p)return;
+  if(!p.assessment)p.assessment={};
+  if(!p.assessment[activePlan])p.assessment[activePlan]={};
+  if(!p.assessment.toothTx)p.assessment.toothTx={};
+  if(!p.assessment.toothTx[activePlan])p.assessment.toothTx[activePlan]={};
+  const tx=getTreatment(txId);if(!tx)return;
+  if(p.assessment.toothTx[activePlan][num]===txId){
+    delete p.assessment.toothTx[activePlan][num];
+    delete p.assessment[activePlan][num];
+  } else {
+    p.assessment.toothTx[activePlan][num]=txId;
+    const cond=txToCondition(tx);
+    if(cond)p.assessment[activePlan][num]=cond;
+    else delete p.assessment[activePlan][num];
+  }
+  persist("customers");renderPtBody();
+}
+function removeTxGroup(txId){
+  const p=getPatient(currentPatientId);if(!p)return;
+  const plan=p.assessment?.toothTx?.[activePlan];
+  if(!plan)return;
+  Object.keys(plan).forEach(num=>{
+    if(plan[num]===+txId){delete plan[num];if(p.assessment[activePlan])delete p.assessment[activePlan][num];}
+  });
+  persist("customers");renderPtBody();
+}
 function setActivePlan(pl){activePlan=pl;renderPtBody();}
 function setTxOverride(plan,num,cond,txId){
   const p=getPatient(currentPatientId);if(!p)return;
@@ -1256,6 +1300,8 @@ async function resetActivePlan(){
   const p=getPatient(currentPatientId);if(!p)return;
   if(!p.assessment)p.assessment={currentCondition:{},treatmentPlan:{},dentistNotes:""};
   p.assessment[activePlan]={};
+  if(!p.assessment.toothTx)p.assessment.toothTx={};
+  p.assessment.toothTx[activePlan]={};
   persist("customers");renderPtBody();
 }
 function setToothCond(num,cond){
