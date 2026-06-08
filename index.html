@@ -472,7 +472,7 @@ let currentUser=null;
 let currentTab="dashboard",searchQuery="",charts={};
 let currentPatientId=null,currentPtTab="consultation";
 let selectedEventId=null;
-let chartMode="currentCondition";
+let chartMode="treatmentPlan";
 let paintBrush=null;
 let catalogTab="treatment";
 let state={patients:[],events:[],appointments:[],treatments:[],users:[]};
@@ -969,20 +969,14 @@ function renderPtAssessment(p){
     <div style="${sepStyle}">│</div>
     ${LOWER_L.map(toothHTML).join("")}
   </div>`;
-  const condKeys=chartMode==="currentCondition"
-    ?["cavity","crown","missing","root","implant","root_canal","filling"]
-    :["healthy","cavity","crown","missing","implant","root_canal","veneer","filling","bridge","extraction"];
+  const condKeys=["healthy","cavity","crown","missing","implant","root_canal","veneer","filling","bridge","extraction"];
   const legend=condKeys.map(k=>`<div class="legend-item${paintBrush===k?" active":""}" data-cond="${k}" onclick="setPaintBrush('${k}')"><div class="legend-dot" style="background:${TOOTH_COLORS[k]||"#131b2a"};border:1px solid ${TOOTH_COLORS[k]!=="transparent"?TOOTH_COLORS[k]:"#1a2236"}"></div>${condLabel(k)}</div>`).join("");
-  const clearBtn=chartMode==="currentCondition"?`<div class="legend-item${paintBrush==="healthy"?" active":""}" data-cond="healthy" onclick="setPaintBrush('healthy')" style="margin-left:auto;border-style:dashed"><div class="legend-dot" style="background:#131b2a;border:1px dashed #3d5270"></div>Temizle</div>`:"";
+  const clearBtn="";
   const paintHint=paintBrush&&paintBrush!=="healthy"?`<div class="paint-hint">${TOOTH_ICONS[paintBrush]||"○"} <strong>${condLabel(paintBrush)}</strong> fırçası aktif — dişlere tıkla, iptal için tekrar tıkla</div>`:paintBrush==="healthy"?`<div class="paint-hint">✕ <strong>Temizle</strong> fırçası aktif — tıklanan dişi sıfırlar</div>`:"";
   return`<div style="max-width:800px;display:flex;flex-direction:column;gap:14px">
     <div class="card">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
-        <div class="section-title" style="margin-bottom:0">${chartMode==="currentCondition"?t.currentCondition:t.treatmentPlan}</div>
-        <div class="toggle-group">
-          <button class="toggle-btn${chartMode==="currentCondition"?" active":""}" onclick="chartMode='currentCondition';renderPtBody()">${t.currentCondition}</button>
-          <button class="toggle-btn${chartMode==="treatmentPlan"?" active":""}" onclick="chartMode='treatmentPlan';renderPtBody()">${t.treatmentPlan}</button>
-        </div>
+        <div class="section-title" style="margin-bottom:0">${t.treatmentPlan}</div>
       </div>
       ${paintHint}
       <svg aria-hidden="true" style="position:absolute;width:0;height:0;overflow:hidden"><defs>
@@ -1024,9 +1018,7 @@ function toothClick(e,num){
   const p=getPatient(currentPatientId);if(!p)return;
   const a=p.assessment||{currentCondition:{},treatmentPlan:{}};
   const chart=a[chartMode]||{};
-  const popupKeys=chartMode==="currentCondition"
-    ?["cavity","crown","missing","root","implant","root_canal","veneer","filling","bridge","extraction"]
-    :["healthy","cavity","crown","missing","implant","root_canal","veneer","filling","bridge","extraction"];
+  const popupKeys=["healthy","cavity","crown","missing","implant","root_canal","veneer","filling","bridge","extraction"];
   const popup=document.createElement("div");
   popup.className="tooth-popup";
   const rect=e.currentTarget.getBoundingClientRect();
@@ -1036,8 +1028,8 @@ function toothClick(e,num){
   if(top+200>window.innerHeight)top=rect.top-208;
   popup.style.left=left+"px";popup.style.top=top+"px";
   const hasCond=chart[num]&&chart[num]!=="healthy";
-  const clearRow=chartMode==="currentCondition"&&hasCond?`<button onclick="setToothCond(${num},'healthy')" style="grid-column:1/-1;padding:5px 8px;border-radius:6px;border:1px dashed #3d5270;background:#131b2a;color:#3d5270;font-size:11px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif">✕ Temizle</button>`:"";
-  popup.innerHTML=`<div style="font-size:11px;font-weight:800;color:#f97316;margin-bottom:8px">Diş ${num} — ${chartMode==="currentCondition"?t.currentCondition:t.treatmentPlan}</div>
+  const clearRow=hasCond?`<button onclick="setToothCond(${num},'healthy')" style="grid-column:1/-1;padding:5px 8px;border-radius:6px;border:1px dashed #3d5270;background:#131b2a;color:#3d5270;font-size:11px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif">✕ Temizle</button>`:"";
+  popup.innerHTML=`<div style="font-size:11px;font-weight:800;color:#f97316;margin-bottom:8px">Diş ${num} — ${t.treatmentPlan}</div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:5px">
     ${popupKeys.map(k=>{const cur=chart[num]===k||(!chart[num]&&k==="healthy");return`<button onclick="setToothCond(${num},'${k}')" style="padding:5px 8px;border-radius:6px;border:1px solid ${cur?"#f97316":"#1a2236"};background:${cur?"#f9731622":"#131b2a"};color:${cur?"#f97316":"#4a607d"};font-size:11px;font-weight:600;cursor:pointer;text-align:left;font-family:'DM Sans',sans-serif;display:flex;align-items:center;gap:4px"><span>${TOOTH_ICONS[k]||"○"}</span><span>${condLabel(k)}</span></button>`}).join("")}
     ${clearRow}
