@@ -957,7 +957,7 @@ function renderPtAssessment(p){
       style="display:flex;flex-direction:column;align-items:center;cursor:${cursor};user-select:none"
       onmouseenter="this.style.filter='brightness(1.18) drop-shadow(0 0 4px ${glow})'"
       onmouseleave="this.style.filter=''">
-      ${isUpper?`<div style="${numStyle}">${num}</div>`:''}
+      ${isUpper?`<div style="${numStyle};margin-bottom:10px">${num}</div>`:''}
       <svg viewBox="0 0 34 70" width="34" height="70" style="opacity:${svgOp};overflow:visible">${svgContent}</svg>
       ${!isUpper?`<div style="${numStyle}">${num}</div>`:''}
     </div>`;
