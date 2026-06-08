@@ -921,6 +921,9 @@ function renderPtAssessment(p){
         const toothImg=`<image href="data:image/png;base64,${img.d}" x="${ix.toFixed(1)}" y="1" width="${img.w}" height="${img.h}"/>`;
         const crownOverlay=`<path d="${sh.crown}" fill="#e2e8f0ee" stroke="#94a3b8" stroke-width="0.8"/>`;
         svgContent=toothImg+crownOverlay;
+      // Extraction: tooth removed, red X only
+      } else if(cond==='extraction'){
+        svgContent=`<line x1="5" y1="5" x2="29" y2="65" stroke="#ef4444" stroke-width="4" stroke-linecap="round"/><line x1="29" y1="5" x2="5" y2="65" stroke="#ef4444" stroke-width="4" stroke-linecap="round"/>`;
       } else {
         // Other conditions / missing: SVG paths
         const cFill=isMissing?"#111827":condColor+"dd";
