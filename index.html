@@ -877,8 +877,7 @@ function renderPtConsultation(p){
         <div class="field"><label>${t.fdob}</label><input type="date" id="pc-dob" value="${p.dob||""}"/></div>
       </div>
       <div class="field-row">
-        <div class="field"><label>${t.fcountry}</label><select id="pc-country">${countryOpts(p.country||"")}</select></div>
-        <div class="field"><label>${t.fnationality}</label><select id="pc-nationality">${nationalityOpts(p.nationality||"")}</select></div>
+        <div class="field"><label>${t.fnationality}</label><select id="pc-nationality">${countryOpts(p.country||p.nationality||"")}</select></div>
       </div>
       <div class="field-row">
         <div class="field"><label>${t.fstatus}</label><select id="pc-status">${statusOpts}</select></div>
@@ -1660,14 +1659,15 @@ function openPatientModal(editId){
   const body=`
     <div class="field-row"><div class="field"><label>${t.fname}</label><input id="pm-name" value="${p?.name||""}"/></div><div class="field"><label>${t.fphone}</label><input id="pm-phone" value="${p?.phone||""}"/></div></div>
     <div class="field"><label>${t.femail}</label><input id="pm-email" value="${p?.email||""}"/></div>
-    <div class="field-row"><div class="field"><label>${t.fcountry}</label><select id="pm-country">${countryOpts(p?.country||"")}</select></div><div class="field"><label>${t.fnationality}</label><select id="pm-nationality">${nationalityOpts(p?.nationality||"")}</select></div></div>
+    <div class="field-row"><div class="field"><label>${t.fnationality}</label><select id="pm-nationality">${countryOpts(p?.country||p?.nationality||"")}</select></div></div>
     <div class="field-row"><div class="field"><label>${t.fstatus}</label><select id="pm-status">${statusOpts}</select></div><div class="field"><label>${t.fevent}</label><select id="pm-eventId"><option value="">—</option>${evtOpts}</select></div></div>`;
   makeModal(editId?t.editPatient:t.newPatient,body,`savePatientModal(${editId||0})`);
 }
 async function savePatientModal(editId){
   const name=document.getElementById("pm-name")?.value?.trim();if(!name)return;
   if(!await confirmDialog(editId?"Hasta bilgilerini kaydetmek istiyor musunuz?":"Yeni hasta eklemek istiyor musunuz?"))return;
-  const item={name,phone:document.getElementById("pm-phone").value,email:document.getElementById("pm-email").value,country:document.getElementById("pm-country").value,nationality:document.getElementById("pm-nationality").value,status:document.getElementById("pm-status").value,eventId:+document.getElementById("pm-eventId").value||null};
+  const _nat=document.getElementById("pm-nationality").value;
+  const item={name,phone:document.getElementById("pm-phone").value,email:document.getElementById("pm-email").value,country:_nat,nationality:_nat,status:document.getElementById("pm-status").value,eventId:+document.getElementById("pm-eventId").value||null};
   if(editId){state.patients=state.patients.map(p=>p.id==editId?{...p,...item}:p);toast("✅ "+t.updated);}
   else{state.patients.push({...item,id:Date.now(),assignee:currentUser.username,createdAt:new Date().toISOString().slice(0,10),consultation:{dentalConcerns:"",medicalHistory:"",allergies:"",medications:"",smoking:false,pregnant:false,notes:""},assessment:{currentCondition:{},treatmentPlan:{},dentistNotes:""},booking:{treatments:[],accommodations:[],travels:[],discount:0,deposit:0,notes:""},notes:[]});toast("✅ "+t.added);}
   await persist("customers");closeModal();render();
@@ -1682,7 +1682,7 @@ async function saveCurrentPatient(){
     p.email=document.getElementById("pc-email")?.value||"";
     p.phone=document.getElementById("pc-phone")?.value||"";
     p.dob=document.getElementById("pc-dob")?.value||"";
-    p.country=document.getElementById("pc-country")?.value||"";
+    p.country=document.getElementById("pc-nationality")?.value||"";
     p.nationality=document.getElementById("pc-nationality")?.value||"";
     p.status=document.getElementById("pc-status")?.value||p.status;
     p.eventId=+document.getElementById("pc-eventId")?.value||null;
