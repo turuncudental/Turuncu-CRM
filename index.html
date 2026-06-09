@@ -1600,7 +1600,7 @@ function renderEvents(){
         <button onclick="currentEventDetailId=null;render()" style="padding:6px 14px;border-radius:20px;border:1px solid #1a2236;background:#1a2236;color:#dde4ef;font-size:12px;cursor:pointer;font-family:'DM Sans',sans-serif">← Etkinlikler</button>
         <div>
           <div style="font-weight:800;font-size:16px">${e.name}</div>
-          <div style="font-size:12px;color:#4a607d">📍 ${e.city} · ${e.venue} &nbsp;·&nbsp; 📆 ${eventDateLabel(e)}</div>
+          <div style="font-size:12px;color:#4a607d">📍 ${e.city} · ${e.venue} &nbsp;·&nbsp; ${(d=>d.main?`<span style="color:#22c55e;font-weight:700">${d.main} ${d.year}</span>`:"")(formatEventDateDisplay(e))}</div>
         </div>
         <div style="margin-left:auto;display:flex;gap:12px">
           <span style="color:#60a5fa;font-size:13px;font-weight:700">${pats.length} hasta</span>
@@ -1630,12 +1630,13 @@ function renderEvents(){
     const booked=pats.filter(p=>p.status==="booked").length;
     return`<div class="card" style="cursor:pointer;transition:border-color .15s;border-color:#1a2236" onclick="currentEventDetailId=${e.id};render()" onmouseover="this.style.borderColor='#f97316'" onmouseout="this.style.borderColor='#1a2236'">
       <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px">
-        <div style="font-size:22px">📅</div>
+        <div>
+          ${(d=>d.main?`<div style="font-size:18px;font-weight:800;color:#22c55e;line-height:1.2">${d.main}</div><div style="font-size:11px;color:#4a607d;margin-top:1px">${d.year}</div>`:`<div style="font-size:13px;color:#4a607d">—</div>`)(formatEventDateDisplay(e))}
+        </div>
         <span class="badge" style="background:${e.active?"#34d39922":"#1a2236"};color:${e.active?"#34d399":"#4a607d"}">${e.active?"Aktif":"Pasif"}</span>
       </div>
       <div style="font-weight:800;font-size:14px;margin-bottom:4px">${e.name}</div>
-      <div style="font-size:12px;color:#4a607d;margin-bottom:2px">📍 ${e.city} · ${e.venue}</div>
-      <div style="font-size:12px;color:#4a607d;margin-bottom:10px">📆 ${eventDateLabel(e)}</div>
+      <div style="font-size:12px;color:#4a607d;margin-bottom:10px">📍 ${e.city} · ${e.venue}</div>
       <div style="display:flex;gap:10px;padding-top:10px;border-top:1px solid #1a2236;font-size:12px">
         <span style="color:#60a5fa">${pats.length} hasta</span>
         <span style="color:#34d399">${booked} rezerve</span>
@@ -1919,6 +1920,17 @@ function eventDateLabel(e){
   if(e.dateStart&&e.dateEnd&&e.dateStart!==e.dateEnd)return`${e.dateStart} – ${e.dateEnd}`;
   if(e.dateStart)return e.dateStart;
   return e.date||"";
+}
+function formatEventDateDisplay(e){
+  const MONTHS=['January','February','March','April','May','June','July','August','September','October','November','December'];
+  const ds=e.dateStart||e.date||"";
+  const de=e.dateEnd||e.dateStart||e.date||"";
+  if(!ds)return{main:"",year:""};
+  const [sy,sm,sd]=ds.split("-").map(Number);
+  const [,em,ed]=de.split("-").map(Number);
+  if(ds===de||!e.dateEnd||e.dateEnd===e.dateStart)return{main:`${sd} ${MONTHS[sm-1]}`,year:String(sy)};
+  if(sm===em)return{main:`${sd} – ${ed} ${MONTHS[sm-1]}`,year:String(sy)};
+  return{main:`${sd} ${MONTHS[sm-1]} – ${ed} ${MONTHS[em-1]}`,year:String(sy)};
 }
 function openEventModal(editId){
   const e=editId?getEvent(editId):null;
