@@ -809,6 +809,8 @@ function renderDashboard(){
 // ==RENDER_PATIENTS==
 let filterStatus="all";
 let patientViewMode="grid";
+let patientSortKey=null;
+let patientSortDir=1;
 function renderPatients(){
   const statuses=["all","walkin","consultation","assessed","pricing","booked","cancelled"];
   const filtered=state.patients.filter(p=>{
@@ -825,11 +827,24 @@ function renderPatients(){
 
   const statusBar=`<div class="status-tabs">${statuses.map(s=>`<button class="status-tab${filterStatus===s?" active":""}" onclick="setFilterStatus('${s}')">${s==="all"?"Tümü":statusLabel(s)} <span style="font-size:10px;opacity:.7">${counts[s]}</span></button>`).join("")}</div>`;
   if(patientViewMode==='list'){
+    const sortedList=[...filtered].sort((a,b)=>{
+      if(!patientSortKey)return 0;
+      let av,bv;
+      if(patientSortKey==='name'){av=a.name||"";bv=b.name||"";}
+      else if(patientSortKey==='country'){av=a.country||"";bv=b.country||"";}
+      else if(patientSortKey==='event'){av=getEvent(a.eventId)?.name||"";bv=getEvent(b.eventId)?.name||"";}
+      else if(patientSortKey==='status'){av=a.status||"";bv=b.status||"";}
+      else if(patientSortKey==='quote'){av=bookingTotal(a);bv=bookingTotal(b);return(av-bv)*patientSortDir;}
+      return av.localeCompare(bv)*patientSortDir;
+    });
+    const thStyle="cursor:pointer;user-select:none;white-space:nowrap";
+    const arrow=k=>patientSortKey===k?(patientSortDir===1?' ↑':' ↓'):' ↕';
+    const th=(k,label)=>`<th style="${thStyle}" onclick="patientSortKey=patientSortKey==='${k}'?'${k}':'${k}';patientSortDir=patientSortKey==='${k}'&&patientSortDir===1?-1:1;patientSortKey='${k}';render()">${label}<span style="color:#4a607d;font-size:10px">${arrow(k)}</span></th>`;
     return`<div>
       ${statusBar}
       <table class="data-table" style="width:100%">
-        <thead><tr><th>Hasta</th><th>Ülke</th><th>Etkinlik</th><th>Durum</th><th>Teklif</th><th></th></tr></thead>
-        <tbody>${filtered.map(p=>{
+        <thead><tr>${th('name','Hasta')}${th('country','Ülke')}${th('event','Etkinlik')}${th('status','Durum')}${th('quote','Teklif')}<th></th></tr></thead>
+        <tbody>${sortedList.map(p=>{
           const evt=getEvent(p.eventId);
           const quote=bookingTotal(p);
           return`<tr style="cursor:pointer" onclick="openPatient(${p.id})">
