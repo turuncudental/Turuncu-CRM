@@ -473,6 +473,7 @@ let currentUser=null;
 let currentTab="dashboard",searchQuery="",charts={};
 let currentPatientId=null,currentPtTab="consultation";
 let selectedEventId=null;
+let currentEventDetailId=null;
 let chartMode="treatmentPlan";
 let activePlan="treatmentPlan";
 let activeCurrency='GBP';
@@ -1561,12 +1562,46 @@ function renderPtNotes(p){
 }
 // ==RENDER_MODULES==
 function renderEvents(){
+  if(currentEventDetailId){
+    const e=state.events.find(ev=>ev.id===currentEventDetailId);
+    if(!e){currentEventDetailId=null;return renderEvents();}
+    const pats=state.patients.filter(p=>p.eventId==e.id);
+    const booked=pats.filter(p=>p.status==="booked").length;
+    const statuses=["walkin","consultation","assessed","pricing","booked","cancelled"];
+    return`<div>
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:18px;flex-wrap:wrap">
+        <button onclick="currentEventDetailId=null;render()" style="padding:6px 14px;border-radius:20px;border:1px solid #1a2236;background:#1a2236;color:#dde4ef;font-size:12px;cursor:pointer;font-family:'DM Sans',sans-serif">← Etkinlikler</button>
+        <div>
+          <div style="font-weight:800;font-size:16px">${e.name}</div>
+          <div style="font-size:12px;color:#4a607d">📍 ${e.city} · ${e.venue} &nbsp;·&nbsp; 📆 ${e.date}</div>
+        </div>
+        <div style="margin-left:auto;display:flex;gap:12px">
+          <span style="color:#60a5fa;font-size:13px;font-weight:700">${pats.length} hasta</span>
+          <span style="color:#34d399;font-size:13px;font-weight:700">${booked} rezerve</span>
+        </div>
+      </div>
+      ${pats.length===0?`<div class="empty">Bu etkinliğe kayıtlı hasta yok</div>`:`
+      <div class="grid3">${pats.map(p=>{
+        const sc=STATUS_COLORS[p.status]||"#4a607d";
+        return`<div class="card" style="cursor:pointer;transition:border-color .15s;border-color:#1a2236" onclick="openPatient(${p.id})" onmouseover="this.style.borderColor='#f97316'" onmouseout="this.style.borderColor='#1a2236'">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px">
+            <div style="width:40px;height:40px;border-radius:50%;background:${sc}22;display:flex;align-items:center;justify-content:center;font-size:17px;font-weight:800;color:${sc};border:2px solid ${sc}44;flex-shrink:0">${p.name[0]}</div>
+            ${statusBadge(p.status)}
+          </div>
+          <div style="font-weight:700;font-size:14px;margin-bottom:2px">${p.name}</div>
+          <div style="font-size:13px;color:#4a607d;margin-bottom:4px">${flag(p.country||"")} ${p.country||""}</div>
+          <div style="font-size:12px;color:#3d5270">${p.phone||""}</div>
+          ${p.consultation?.dentalConcerns?`<div style="font-size:11px;color:#4a607d;margin-top:7px;border-top:1px solid #1a2236;padding-top:7px;line-height:1.4;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical">${p.consultation.dentalConcerns}</div>`:""}
+        </div>`;
+      }).join("")}</div>`}
+    </div>`;
+  }
   const filtered=state.events.filter(e=>matches([e.name,e.city,e.venue]));
   if(!filtered.length)return`<div class="empty">Etkinlik bulunamadı</div>`;
   return`<div class="grid3">${filtered.map(e=>{
     const pats=state.patients.filter(p=>p.eventId==e.id);
     const booked=pats.filter(p=>p.status==="booked").length;
-    return`<div class="card">
+    return`<div class="card" style="cursor:pointer;transition:border-color .15s;border-color:#1a2236" onclick="currentEventDetailId=${e.id};render()" onmouseover="this.style.borderColor='#f97316'" onmouseout="this.style.borderColor='#1a2236'">
       <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px">
         <div style="font-size:22px">📅</div>
         <span class="badge" style="background:${e.active?"#34d39922":"#1a2236"};color:${e.active?"#34d399":"#4a607d"}">${e.active?"Aktif":"Pasif"}</span>
@@ -1578,7 +1613,7 @@ function renderEvents(){
         <span style="color:#60a5fa">${pats.length} hasta</span>
         <span style="color:#34d399">${booked} rezerve</span>
       </div>
-      ${canEdit()?`<div style="display:flex;gap:6px;margin-top:9px"><button class="sm-btn" onclick="openEventModal(${e.id})">✎ Düzenle</button><button class="sm-btn danger" onclick="deleteEvent(${e.id})">✕</button></div>`:""}
+      ${canEdit()?`<div style="display:flex;gap:6px;margin-top:9px" onclick="event.stopPropagation()"><button class="sm-btn" onclick="openEventModal(${e.id})">✎ Düzenle</button><button class="sm-btn danger" onclick="deleteEvent(${e.id})">✕</button></div>`:""}
     </div>`;
   }).join("")}</div>`;
 }
