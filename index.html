@@ -385,7 +385,7 @@ tr:{
   fname:"Ad Soyad *",femail:"E-posta",fphone:"Telefon",fdob:"Doğum Tarihi",fcountry:"Ülke",fnationality:"Uyruk",fstatus:"Durum",fevent:"Etkinlik",fassignee:"Sorumlu",
   dentalConcerns:"Diş Şikayetleri",medicalHistory:"Tıbbi Geçmiş",allergies:"Alerjiler",medications:"İlaçlar",smoking:"Sigara Kullanıyor",pregnant:"Hamile",consultNotes:"Notlar",
   currentCondition:"Mevcut Durum",treatmentPlan:"Tedavi Planı",dentistNotes:"Diş Hekimi Notları",
-  selectTreatments:"Tedavi Seç",bookingTreatments:"Seçilen Tedaviler",travelType:"Ulaşım",accommodation:"Konaklama",discount:"İndirim ",deposit:"Ön Ödeme ",bookingNotes:"Notlar",
+  selectTreatments:"Tedavi Seç",bookingTreatments:"Seçilen Tedaviler",travelType:"Transfer",accommodation:"Konaklama",discount:"İndirim ",deposit:"Ön Ödeme ",bookingNotes:"Notlar",
   subtotal:"Ara Toplam",totalCost:"Toplam",balanceDue:"Kalan Ödeme",
   addNote:"Not Ekle",noNotes:"Henüz not eklenmedi",
   events:"Etkinlikler",addEvent:"+ Etkinlik",newEvent:"Yeni Etkinlik",editEvent:"Etkinlik Düzenle",
@@ -395,14 +395,14 @@ tr:{
   statusTurnedUp:"Geldi",statusDidNotCome:"Gelmedi",statusScheduled:"Planlandı",statusCancelled:"İptal",statusNoAnswer:"Cevap Vermedi",
   treatments:"Tedaviler",addTreatment:"+ Tedavi",newTreatment:"Yeni Tedavi",editTreatment:"Tedavi Düzenle",
   tname:"Tedavi Adı",tdesc:"Açıklama",tcategory:"Kategori",tclinicCost:"Klinik Maliyeti ",tsalePrice:"Satış Fiyatı ",tactive:"Aktif",tmargin:"Kar Marjı",
-  catTreatment:"Diş Tedavileri",catAccommodation:"Konaklama",catTravel:"Ulaşım",
+  catTreatment:"Diş Tedavileri",catAccommodation:"Konaklama",catTravel:"Transfer",
   addAccommodation:"+ Konaklama",newAccommodation:"Yeni Konaklama",editAccommodation:"Konaklama Düzenle",
   aname:"Tesis Adı",acity:"Şehir",atype:"Tür",apricePerNight:"Gecelik Fiyat ",
-  addTravel:"+ Ulaşım",newTravel:"Yeni Ulaşım",editTravel:"Ulaşım Düzenle",
-  trvName:"Sefer / Firma Adı",trvRoute:"Güzergah / Açıklama",trvType:"Tür",trvPrice:"Kişi Başı Fiyat ",
+  addTravel:"+ Transfer",newTravel:"Yeni Transfer",editTravel:"Transfer Düzenle",
+  trvName:"Transfer Firması",trvRoute:"Açıklama / Güzergah",trvType:"Tür",trvPrice:"Kişi Başı Fiyat ",
   nights:"Gece",persons:"Kişi",pricePerNight:"Gecelik",perPerson:"Kişi başı",
-  addAccomToBooking:"Konaklama Ekle",addTravelToBooking:"Ulaşım Ekle",
-  bookingAccommodation:"Konaklama",bookingTravel:"Ulaşım",
+  addAccomToBooking:"Konaklama Ekle",addTravelToBooking:"Transfer Ekle",
+  bookingAccommodation:"Konaklama",bookingTravel:"Transfer",
   reports:"Raporlar",
   users:"Kullanıcılar",addUser:"+ Kullanıcı",newUser:"Yeni Kullanıcı",editUser:"Kullanıcı Düzenle",
   roleAdmin:"Yönetici",roleSales:"Satış Temsilcisi",roleReader:"Okuyucu",
@@ -442,14 +442,14 @@ en:{
   statusTurnedUp:"Turned Up",statusDidNotCome:"Did Not Turn Up",statusScheduled:"Scheduled",statusCancelled:"Cancelled",statusNoAnswer:"No Answer",
   treatments:"Treatments",addTreatment:"+ Treatment",newTreatment:"New Treatment",editTreatment:"Edit Treatment",
   tname:"Treatment Name",tdesc:"Description",tcategory:"Category",tclinicCost:"Clinic Cost ",tsalePrice:"Sale Price ",tactive:"Active",tmargin:"Margin",
-  catTreatment:"Dental Treatments",catAccommodation:"Accommodation",catTravel:"Travel",
+  catTreatment:"Dental Treatments",catAccommodation:"Accommodation",catTravel:"Transfer",
   addAccommodation:"+ Accommodation",newAccommodation:"New Accommodation",editAccommodation:"Edit Accommodation",
   aname:"Property Name",acity:"City",atype:"Type",apricePerNight:"Price Per Night ",
-  addTravel:"+ Travel",newTravel:"New Travel",editTravel:"Edit Travel",
-  trvName:"Service / Provider Name",trvRoute:"Route / Description",trvType:"Type",trvPrice:"Price Per Person ",
+  addTravel:"+ Transfer",newTravel:"New Transfer",editTravel:"Edit Transfer",
+  trvName:"Transfer Company",trvRoute:"Description / Route",trvType:"Type",trvPrice:"Price Per Person ",
   nights:"Nights",persons:"Persons",pricePerNight:"Per night",perPerson:"Per person",
-  addAccomToBooking:"Add Accommodation",addTravelToBooking:"Add Travel",
-  bookingAccommodation:"Accommodation",bookingTravel:"Travel",
+  addAccomToBooking:"Add Accommodation",addTravelToBooking:"Add Transfer",
+  bookingAccommodation:"Accommodation",bookingTravel:"Transfer",
   reports:"Reports",
   users:"Users",addUser:"+ Add User",newUser:"New User",editUser:"Edit User",
   roleAdmin:"Admin",roleSales:"Sales Rep",roleReader:"Reader",
@@ -497,12 +497,12 @@ const SEED_PATIENTS=[
   {id:2,name:"Mohammed Al-Rashid",email:"m.rashid@outlook.com",phone:"+971 50 234 5678",dob:"1978-07-22",country:"UAE",nationality:"Emirati",status:"pricing",eventId:1,assignee:"admin",createdAt:"2026-05-25",
    consultation:{dentalConcerns:"Full mouth restoration, old crowns need replacing",medicalHistory:"Hypertension",allergies:"None",medications:"Amlodipine",smoking:false,pregnant:false,notes:"High budget, wants best quality"},
    assessment:{currentCondition:{16:"crown",17:"crown",26:"crown",27:"crown",36:"crown",46:"crown"},treatmentPlan:{16:"crown",17:"crown",26:"crown",27:"crown",36:"crown",46:"crown"},dentistNotes:"Replace all 6 crowns with full zirconia."},
-   booking:{treatments:[{treatmentId:3,name:"Zirkonyum Kron",qty:6,price:520}],accommodations:[{providerId:104,name:"Sheraton Grand",nights:5,pricePerNight:160}],travels:[{providerId:201,name:"Turkish Airlines",persons:2,price:280}],discount:0,deposit:1000,notes:""},
+   booking:{treatments:[{treatmentId:3,name:"Zirkonyum Kron",qty:6,price:520}],accommodations:[{providerId:104,name:"Sheraton Grand",nights:5,pricePerNight:160}],travels:[{providerId:204,name:"Havalimanı Transferi",persons:2,price:45}],discount:0,deposit:1000,notes:""},
    notes:[{id:1,date:"2026-05-25",text:"Referred by existing patient",by:"admin"}]},
   {id:3,name:"Elena Petrov",email:"elena.p@mail.ru",phone:"+7 916 345 6789",dob:"1992-11-08",country:"Russia",nationality:"Russian",status:"assessed",eventId:1,assignee:"admin",createdAt:"2026-05-28",
    consultation:{dentalConcerns:"Teeth whitening and 6 upper veneers",medicalHistory:"None",allergies:"None",medications:"None",smoking:false,pregnant:false,notes:""},
    assessment:{currentCondition:{13:"filling",12:"filling",11:"filling",21:"filling",22:"filling",23:"filling"},treatmentPlan:{13:"veneer",12:"veneer",11:"veneer",21:"veneer",22:"veneer",23:"veneer"},dentistNotes:"Good candidate for veneers. Whitening recommended first."},
-   booking:{treatments:[{treatmentId:2,name:"Porselen Kaplama",qty:6,price:400}],accommodations:[],travels:[{providerId:201,name:"Turkish Airlines",persons:1,price:280}],discount:100,deposit:0,notes:""},
+   booking:{treatments:[{treatmentId:2,name:"Porselen Kaplama",qty:6,price:400}],accommodations:[],travels:[],discount:100,deposit:0,notes:""},
    notes:[]},
   {id:4,name:"James O'Brien",email:"james.ob@icloud.com",phone:"+353 87 456 7890",dob:"1969-04-30",country:"Ireland",nationality:"Irish",status:"consultation",eventId:2,assignee:"admin",createdAt:"2026-06-01",
    consultation:{dentalConcerns:"2 missing teeth lower jaw, considering implants",medicalHistory:"None",allergies:"Latex",medications:"None",smoking:true,pregnant:false,notes:"Smoker — discussed healing risks"},
@@ -577,9 +577,6 @@ const SEED_TREATMENTS=[
   {id:103,name:"Holiday Inn Istanbul",description:"4 yıldızlı otel",category:"İstanbul",clinicCost:0,salePrice:110,active:true,type:"accommodation"},
   {id:104,name:"Sheraton Grand",description:"5 yıldızlı otel",category:"İstanbul",clinicCost:0,salePrice:160,active:true,type:"accommodation"},
   {id:105,name:"Ramada by Wyndham",description:"4 yıldızlı otel",category:"İstanbul",clinicCost:0,salePrice:90,active:true,type:"accommodation"},
-  {id:201,name:"Turkish Airlines",description:"Direkten İstanbul seferi",category:"Uçuş",clinicCost:0,salePrice:280,active:true,type:"travel"},
-  {id:202,name:"British Airways",description:"Londra → İstanbul",category:"Uçuş",clinicCost:0,salePrice:320,active:true,type:"travel"},
-  {id:203,name:"EasyJet",description:"Avrupa → İstanbul",category:"Uçuş",clinicCost:0,salePrice:180,active:true,type:"travel"},
   {id:204,name:"Havalimanı Transferi",description:"Özel araç - standart",category:"Transfer",clinicCost:0,salePrice:45,active:true,type:"travel"},
   {id:205,name:"VIP Transfer",description:"Lüks araç servisi",category:"Transfer",clinicCost:0,salePrice:120,active:true,type:"travel"},
   {id:206,name:"Araç Kiralama",description:"Günlük araç kiralama",category:"Kiralık Araç",clinicCost:0,salePrice:65,active:true,type:"travel"}
@@ -633,7 +630,7 @@ async function loadAll(){
   state.appointments=Array.isArray(a?.[0]?.data)?a[0].data:SEED_APPOINTMENTS;
   const loadedTr=Array.isArray(tr?.[0]?.data)?tr[0].data:null;
   // Migrate: replace if fewer entries OR if EUR prices are missing/zero (price list update)
-  const needsTrUpdate=!loadedTr||loadedTr.length<SEED_TREATMENTS.length||loadedTr.some(t=>t.type==='treatment'&&(!(t.salePriceEUR>0)||!(t.salePriceUSD>0)));
+  const needsTrUpdate=!loadedTr||loadedTr.length<SEED_TREATMENTS.length||loadedTr.some(t=>t.type==='treatment'&&(!(t.salePriceEUR>0)||!(t.salePriceUSD>0)))||loadedTr.some(t=>t.type==='travel'&&t.category==='Uçuş');
   state.treatments=needsTrUpdate?SEED_TREATMENTS:loadedTr;
   if(!p||!p[0])dbSet("customers",SEED_PATIENTS);
   if(!e||!e[0])dbSet("deals",SEED_EVENTS);
@@ -1529,7 +1526,7 @@ function renderAppointments(){
 function setupAptEventSelector(){const el=document.getElementById("apt-event-sel");if(el&&selectedEventId)el.value=selectedEventId;}
 
 function renderTreatments(){
-  const tabs=[["treatment",t.catTreatment,"🦷"],["accommodation",t.catAccommodation,"🏨"],["travel",t.catTravel,"✈️"]];
+  const tabs=[["treatment",t.catTreatment,"🦷"],["accommodation",t.catAccommodation,"🏨"],["travel",t.catTravel,"🚐"]];
   const filtered=state.treatments.filter(tr=>(tr.type||"treatment")===catalogTab&&matches([tr.name,tr.description,tr.category]));
   let tableHTML="";
   if(catalogTab==="treatment"){
@@ -1562,7 +1559,7 @@ function renderTreatments(){
     tableHTML=`<table class="data-table" style="min-width:600px">
       <thead><tr><th>${t.trvName}</th><th>${t.trvRoute}</th><th>${t.trvType}</th><th>${t.trvPrice}</th><th>${t.tactive}</th><th></th></tr></thead>
       <tbody>${filtered.map(tr=>`<tr>
-        <td style="font-weight:700">✈️ ${tr.name}</td>
+        <td style="font-weight:700">🚐 ${tr.name}</td>
         <td style="font-size:12px;color:#4a607d">${tr.description||""}</td>
         <td><span class="badge" style="background:#f9731622;color:#f97316;font-size:10px">${tr.category||""}</span></td>
         <td style="font-weight:700;color:#34d399">${currSym()}${(tr.salePrice||0).toLocaleString()}<span style="font-size:10px;color:#3d5270">/kişi</span></td>
@@ -1826,9 +1823,9 @@ function openTreatmentModal(editId,forcedType){
       <input type="hidden" id="trm-clinicCost" value="0"/>`;
   } else {
     body=`
-      <div class="field"><label>${t.trvName}</label><input id="trm-name" value="${tr?.name||""}" placeholder="Turkish Airlines, Transfer Firması..."/></div>
-      <div class="field"><label>${t.trvRoute}</label><input id="trm-desc" value="${tr?.description||""}" placeholder="Londra → İstanbul, Havalimanı transferi..."/></div>
-      <div class="field"><label>${t.trvType}</label><input id="trm-cat" value="${tr?.category||""}" placeholder="Uçuş, Transfer, Kiralık Araç..."/></div>
+      <div class="field"><label>${t.trvName}</label><input id="trm-name" value="${tr?.name||""}" placeholder="Firma adı..."/></div>
+      <div class="field"><label>${t.trvRoute}</label><input id="trm-desc" value="${tr?.description||""}" placeholder="Havalimanı transferi, VIP servis..."/></div>
+      <div class="field"><label>${t.trvType}</label><input id="trm-cat" value="${tr?.category||""}" placeholder="Transfer, VIP Transfer, Kiralık Araç..."/></div>
       <div class="field"><label>${t.trvPrice}</label><input type="number" id="trm-salePrice" value="${tr?.salePrice||0}"/></div>
       <input type="hidden" id="trm-clinicCost" value="0"/>`;
   }
