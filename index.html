@@ -300,6 +300,8 @@ const UPPER_R=[18,17,16,15,14,13,12,11];
 const UPPER_L=[21,22,23,24,25,26,27,28];
 const LOWER_R=[48,47,46,45,44,43,42,41];
 const LOWER_L=[31,32,33,34,35,36,37,38];
+const SHOW_TOOTH_NUM_KEYWORDS=['bleaching','composite','e-max','emax','fiber post','impacted','implant','multilayer','removal of implant','root canal','root scaling','sinus lift','extraction','zirconium','laminate','zygoma'];
+function showToothNums(name){const n=(name||'').toLowerCase();return SHOW_TOOTH_NUM_KEYWORDS.some(k=>n.includes(k));}
 
 // SVG tooth shapes: gY=28. Upper: roots top(y<28) crown down(y>28). Lower: crown top(y<28) roots down(y>28).
 // Each tooth has crown, rx (roots), crownHi (highlight path), rxHi (root highlight paths)
@@ -1128,7 +1130,7 @@ function renderPtAssessment(p){
             <td><button class="sm-btn danger" onclick="removeJawTx('${r.jaw}')" title="Kaldır">✕</button></td>
           </tr>`).join('')}
           ${groupedRows.map(r=>`<tr>
-            <td style="font-weight:600;line-height:1.4">${r.tx.name}<br/><span style="font-size:9px;color:#22c55e;font-weight:400;letter-spacing:0.2px">${[...r.toothNums].sort((a,b)=>a-b).join(', ')}</span></td>
+            <td style="font-weight:600;line-height:1.4">${r.tx.name}${showToothNums(r.tx.name)?`<br/><span style="font-size:9px;color:#22c55e;font-weight:400;letter-spacing:0.2px">${[...r.toothNums].sort((a,b)=>a-b).join(', ')}</span>`:''}</td>
             <td style="font-weight:700;color:#f97316;text-align:center">${r.count}</td>
             <td style="font-size:12px">${currSym()}${getEffectivePrice(r.tx).toLocaleString()}</td>
             <td style="font-weight:700;color:#34d399">${currSym()}${(r.count*getEffectivePrice(r.tx)).toLocaleString()}</td>
