@@ -474,6 +474,7 @@ let currentTab="dashboard",searchQuery="",charts={};
 let currentPatientId=null,currentPtTab="consultation";
 let selectedEventId=null;
 let currentEventDetailId=null;
+let eventDetailViewMode="grid";
 let chartMode="treatmentPlan";
 let activePlan="treatmentPlan";
 let activeCurrency='GBP';
@@ -1609,7 +1610,6 @@ function renderEvents(){
     if(!e){currentEventDetailId=null;return renderEvents();}
     const pats=state.patients.filter(p=>p.eventId==e.id);
     const booked=pats.filter(p=>p.status==="booked").length;
-    const statuses=["walkin","consultation","assessed","pricing","booked","cancelled"];
     return`<div>
       <div style="display:flex;align-items:center;gap:12px;margin-bottom:18px;flex-wrap:wrap">
         <button onclick="currentEventDetailId=null;render()" style="padding:6px 14px;border-radius:20px;border:1px solid #1a2236;background:#1a2236;color:#dde4ef;font-size:12px;cursor:pointer;font-family:'DM Sans',sans-serif">← Etkinlikler</button>
@@ -1617,25 +1617,42 @@ function renderEvents(){
           <div style="font-weight:800;font-size:16px">${e.name}</div>
           <div style="font-size:12px;color:#4a607d">📍 ${e.city} · ${e.venue} &nbsp;·&nbsp; ${(d=>d.main?`<span style="color:#22c55e;font-weight:700">${d.main} ${d.year}</span>`:"")(formatEventDateDisplay(e))}</div>
         </div>
-        <div style="margin-left:auto;display:flex;gap:12px">
+        <div style="margin-left:auto;display:flex;align-items:center;gap:10px">
           <span style="color:#60a5fa;font-size:13px;font-weight:700">${pats.length} hasta</span>
           <span style="color:#34d399;font-size:13px;font-weight:700">${booked} rezerve</span>
+          <button onclick="eventDetailViewMode=eventDetailViewMode==='grid'?'list':'grid';render()" style="padding:6px 10px;border-radius:8px;border:1px solid #1a2236;background:#1a2236;color:#dde4ef;font-size:15px;cursor:pointer;line-height:1" title="${eventDetailViewMode==='grid'?'Liste görünümü':'Grid görünümü'}">${eventDetailViewMode==='grid'?'≡':'⊞'}</button>
         </div>
       </div>
-      ${pats.length===0?`<div class="empty">Bu etkinliğe kayıtlı hasta yok</div>`:`
-      <div class="grid3">${pats.map(p=>{
-        const sc=STATUS_COLORS[p.status]||"#4a607d";
-        return`<div class="card" style="cursor:pointer;transition:border-color .15s;border-color:#1a2236" onclick="openPatient(${p.id})" onmouseover="this.style.borderColor='#f97316'" onmouseout="this.style.borderColor='#1a2236'">
-          <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px">
-            <div style="width:40px;height:40px;border-radius:50%;background:${sc}22;display:flex;align-items:center;justify-content:center;font-size:17px;font-weight:800;color:${sc};border:2px solid ${sc}44;flex-shrink:0">${p.name[0]}</div>
-            ${statusBadge(p.status)}
-          </div>
-          <div style="font-weight:700;font-size:14px;margin-bottom:2px">${p.name}</div>
-          <div style="font-size:13px;color:#4a607d;margin-bottom:4px">${flag(p.country||"")} ${p.country||""}</div>
-          <div style="font-size:12px;color:#3d5270">${p.phone||""}</div>
-          ${p.consultation?.dentalConcerns?`<div style="font-size:11px;color:#4a607d;margin-top:7px;border-top:1px solid #1a2236;padding-top:7px;line-height:1.4;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical">${p.consultation.dentalConcerns}</div>`:""}
-        </div>`;
-      }).join("")}</div>`}
+      ${pats.length===0?`<div class="empty">Bu etkinliğe kayıtlı hasta yok</div>`:
+        eventDetailViewMode==='list'?`
+        <table class="data-table" style="width:100%">
+          <thead><tr><th>Hasta</th><th>Ülke</th><th>Durum</th><th>Teklif</th><th></th></tr></thead>
+          <tbody>${pats.map(p=>{
+            const quote=bookingTotal(p);
+            return`<tr style="cursor:pointer" onclick="openPatient(${p.id})">
+              <td><div style="font-weight:700;font-size:13px">${p.name}</div><div style="font-size:11px;color:#4a607d">${p.phone||""}</div></td>
+              <td style="font-size:12px">${flag(p.country||"")} ${p.country||""}</td>
+              <td>${statusBadge(p.status)}</td>
+              <td style="font-weight:700;color:${quote>0?'#34d399':'#3d5270'}">${quote>0?currSym()+quote.toLocaleString():"—"}</td>
+              <td><button class="sm-btn" onclick="event.stopPropagation();openPatient(${p.id})">→</button></td>
+            </tr>`;
+          }).join("")}</tbody>
+        </table>`:`
+        <div class="grid3">${pats.map(p=>{
+          const sc=STATUS_COLORS[p.status]||"#4a607d";
+          const quote=bookingTotal(p);
+          return`<div class="card" style="cursor:pointer;transition:border-color .15s;border-color:#1a2236" onclick="openPatient(${p.id})" onmouseover="this.style.borderColor='#f97316'" onmouseout="this.style.borderColor='#1a2236'">
+            <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px">
+              <div style="width:40px;height:40px;border-radius:50%;background:${sc}22;display:flex;align-items:center;justify-content:center;font-size:17px;font-weight:800;color:${sc};border:2px solid ${sc}44;flex-shrink:0">${p.name[0]}</div>
+              ${statusBadge(p.status)}
+            </div>
+            <div style="font-weight:700;font-size:14px;margin-bottom:2px">${p.name}</div>
+            <div style="font-size:13px;color:#4a607d;margin-bottom:4px">${flag(p.country||"")} ${p.country||""}</div>
+            <div style="font-size:12px;color:#3d5270">${p.phone||""}</div>
+            ${quote>0?`<div style="font-size:12px;color:#34d399;font-weight:700;margin-top:6px">${currSym()}${quote.toLocaleString()}</div>`:""}
+            ${p.consultation?.dentalConcerns?`<div style="font-size:11px;color:#4a607d;margin-top:7px;border-top:1px solid #1a2236;padding-top:7px;line-height:1.4;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical">${p.consultation.dentalConcerns}</div>`:""}
+          </div>`;
+        }).join("")}</div>`}
     </div>`;
   }
   const filtered=state.events.filter(e=>matches([e.name,e.city,e.venue]));
