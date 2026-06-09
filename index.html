@@ -1073,7 +1073,7 @@ function renderPtAssessment(p){
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:8px">
         <div style="display:flex;align-items:center;gap:10px">
           <div class="section-title" style="margin-bottom:0">${t.treatmentPlan}</div>
-          ${['treatmentPlan','plan2','plan3'].map((pl,i)=>`<button onclick="setActivePlan('${pl}')" style="padding:4px 12px;border-radius:20px;border:1px solid ${activePlan===pl?'#f97316':'#1a2236'};background:${activePlan===pl?'#f9731622':'#131b2a'};color:${activePlan===pl?'#f97316':'#4a607d'};font-size:11px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif">${i+1}. Plan</button>`).join('')}
+          ${['treatmentPlan','plan2','plan3'].map((pl,i)=>`<div style="display:flex;flex-direction:column;align-items:center;gap:2px"><button onclick="setActivePlan('${pl}')" style="padding:4px 12px;border-radius:20px;border:1px solid ${activePlan===pl?'#f97316':'#1a2236'};background:${activePlan===pl?'#f9731622':'#131b2a'};color:${activePlan===pl?'#f97316':'#4a607d'};font-size:11px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif">${i+1}. Plan</button>${p.assessment?.activePlan===pl?'<span style="font-size:9px;color:#22c55e;font-weight:800;letter-spacing:0.5px">● AKTİF</span>':''}</div>`).join('')}
         </div>
         <button onclick="resetActivePlan()" style="padding:4px 14px;border-radius:20px;border:1px solid #ef444444;background:#2b0f0f;color:#ef4444;font-size:11px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif">✕ Hepsini Sıfırla</button>
       </div>
@@ -1220,7 +1220,11 @@ function renderPtAssessment(p){
       </div>
       <div class="field" style="margin-top:12px"><label>${t.bookingNotes}</label><textarea id="pb-notes" rows="2">${b.notes||""}</textarea></div>
     </div>
-    <div style="display:flex;gap:10px">
+    <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+      ${p.assessment?.activePlan===activePlan
+        ?`<span style="display:flex;align-items:center;gap:6px;color:#22c55e;font-weight:700;font-size:13px">✓ Bu Plan Aktif</span><button onclick="setPatientActivePlan(null)" style="padding:4px 12px;border-radius:20px;border:1px solid #22c55e44;background:#0a2a1a;color:#22c55e88;font-size:11px;cursor:pointer;font-family:'DM Sans',sans-serif">Aktifi Kaldır</button>`
+        :`<button onclick="setPatientActivePlan('${activePlan}')" style="padding:6px 18px;border-radius:20px;border:1px solid #22c55e;background:#0a2a1a;color:#22c55e;font-size:12px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif">✓ Bu Planı Aktif Yap</button>`
+      }
       <button class="btn sec" onclick="downloadQuotePDF(${p.id})">📄 ${t.downloadPDF}</button>
     </div>
     <div class="card">
@@ -1331,6 +1335,7 @@ function removeTxGroup(txId){
   persist("customers");renderPtBody();
 }
 function setActivePlan(pl){activePlan=pl;renderPtBody();}
+function setPatientActivePlan(pl){const p=getPatient(currentPatientId);if(!p)return;if(!p.assessment)p.assessment={};p.assessment.activePlan=pl||null;persist("customers");renderPtBody();}
 function setTxOverride(plan,num,cond,txId){
   const p=getPatient(currentPatientId);if(!p)return;
   if(!p.assessment)p.assessment={};
