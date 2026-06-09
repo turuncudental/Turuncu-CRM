@@ -758,11 +758,11 @@ function renderDashboard(){
   const booked=state.patients.filter(p=>p.status==="booked").length;
   const conv=total?Math.round(booked/total*100):0;
   const today=new Date().toISOString().slice(0,10);
-  const upcomingEvts=state.events.filter(e=>e.active&&e.date>=today).length;
+  const upcomingEvts=state.events.filter(e=>e.active&&(e.dateEnd||e.dateStart||e.date||"")>=today).length;
   const totalRev=state.patients.filter(p=>p.status==="booked").reduce((s,p)=>s+bookingTotal(p),0);
 
   // find next upcoming event for live stats
-  const nextEvt=state.events.filter(e=>e.active&&e.date>=today).sort((a,b)=>a.date.localeCompare(b.date))[0]||state.events[0];
+  const nextEvt=state.events.filter(e=>e.active&&(e.dateEnd||e.dateStart||e.date||"")>=today).sort((a,b)=>(a.dateStart||a.date||"").localeCompare(b.dateStart||b.date||""))[0]||state.events[0];
   const evtPats=nextEvt?state.patients.filter(p=>p.eventId==nextEvt.id):[];
   const liveStats=nextEvt?[
     {label:t.registered,val:evtPats.length,color:"#60a5fa"},
@@ -786,7 +786,7 @@ function renderDashboard(){
     ${nextEvt?`<div class="card">
       <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px">
         <div style="font-size:13px;font-weight:800;color:#dde4ef">📅 ${nextEvt.name}</div>
-        <span style="font-size:11px;color:#3d5270">${nextEvt.city} · ${nextEvt.venue} · ${nextEvt.date}</span>
+        <span style="font-size:11px;color:#3d5270">${nextEvt.city} · ${nextEvt.venue} · ${eventDateLabel(nextEvt)}</span>
       </div>
       <div class="grid7">${liveStats.map(s=>`<div style="background:#131b2a;border:1px solid #1a2236;border-radius:10px;padding:12px 8px;text-align:center"><div class="kpi-val" style="color:${s.color};font-size:18px">${s.val}</div><div style="font-size:10px;color:#4a607d;margin-top:3px;font-weight:600;line-height:1.3">${s.label}</div></div>`).join("")}</div>
     </div>`:""}
@@ -1600,7 +1600,7 @@ function renderEvents(){
         <button onclick="currentEventDetailId=null;render()" style="padding:6px 14px;border-radius:20px;border:1px solid #1a2236;background:#1a2236;color:#dde4ef;font-size:12px;cursor:pointer;font-family:'DM Sans',sans-serif">← Etkinlikler</button>
         <div>
           <div style="font-weight:800;font-size:16px">${e.name}</div>
-          <div style="font-size:12px;color:#4a607d">📍 ${e.city} · ${e.venue} &nbsp;·&nbsp; 📆 ${e.date}</div>
+          <div style="font-size:12px;color:#4a607d">📍 ${e.city} · ${e.venue} &nbsp;·&nbsp; 📆 ${eventDateLabel(e)}</div>
         </div>
         <div style="margin-left:auto;display:flex;gap:12px">
           <span style="color:#60a5fa;font-size:13px;font-weight:700">${pats.length} hasta</span>
@@ -1635,7 +1635,7 @@ function renderEvents(){
       </div>
       <div style="font-weight:800;font-size:14px;margin-bottom:4px">${e.name}</div>
       <div style="font-size:12px;color:#4a607d;margin-bottom:2px">📍 ${e.city} · ${e.venue}</div>
-      <div style="font-size:12px;color:#4a607d;margin-bottom:10px">📆 ${e.date}</div>
+      <div style="font-size:12px;color:#4a607d;margin-bottom:10px">📆 ${eventDateLabel(e)}</div>
       <div style="display:flex;gap:10px;padding-top:10px;border-top:1px solid #1a2236;font-size:12px">
         <span style="color:#60a5fa">${pats.length} hasta</span>
         <span style="color:#34d399">${booked} rezerve</span>
@@ -1915,19 +1915,31 @@ async function deletePatientNote(noteId){
 }
 
 // ── EVENTS
+function eventDateLabel(e){
+  if(e.dateStart&&e.dateEnd&&e.dateStart!==e.dateEnd)return`${e.dateStart} – ${e.dateEnd}`;
+  if(e.dateStart)return e.dateStart;
+  return e.date||"";
+}
 function openEventModal(editId){
   const e=editId?getEvent(editId):null;
+  const ds=e?.dateStart||e?.date||"";
+  const de=e?.dateEnd||e?.date||"";
   const body=`
     <div class="field"><label>${t.ename}</label><input id="em-name" value="${e?.name||""}"/></div>
     <div class="field-row"><div class="field"><label>${t.ecity}</label><input id="em-city" value="${e?.city||""}"/></div><div class="field"><label>${t.evenue}</label><input id="em-venue" value="${e?.venue||""}"/></div></div>
-    <div class="field"><label>${t.edate}</label><input type="date" id="em-date" value="${e?.date||""}"/></div>
+    <div class="field-row">
+      <div class="field"><label>Başlangıç Tarihi</label><input type="date" id="em-date-start" value="${ds}"/></div>
+      <div class="field"><label>Bitiş Tarihi</label><input type="date" id="em-date-end" value="${de}"/></div>
+    </div>
     <div style="display:flex;align-items:center;gap:8px"><input type="checkbox" id="em-active" ${e?.active!==false?"checked":""} style="accent-color:#f97316;width:15px;height:15px"/><label style="font-size:13px;cursor:pointer">${t.eactive}</label></div>`;
   makeModal(editId?t.editEvent:t.newEvent,body,`saveEvent(${editId||0})`);
 }
 async function saveEvent(editId){
   const name=document.getElementById("em-name")?.value?.trim();if(!name)return;
   if(!await confirmDialog(editId?"Etkinlik bilgilerini kaydetmek istiyor musunuz?":"Yeni etkinlik eklemek istiyor musunuz?"))return;
-  const item={name,city:document.getElementById("em-city").value,venue:document.getElementById("em-venue").value,date:document.getElementById("em-date").value,active:document.getElementById("em-active").checked};
+  const dateStart=document.getElementById("em-date-start").value;
+  const dateEnd=document.getElementById("em-date-end").value||dateStart;
+  const item={name,city:document.getElementById("em-city").value,venue:document.getElementById("em-venue").value,dateStart,dateEnd,date:dateStart,active:document.getElementById("em-active").checked};
   if(editId){state.events=state.events.map(e=>e.id==editId?{...e,...item}:e);}
   else{state.events.push({...item,id:Date.now()});}
   await persist("deals");toast("✅ "+t.saved);closeModal();render();
