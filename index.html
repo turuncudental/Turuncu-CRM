@@ -1047,7 +1047,7 @@ function renderPtAssessment(p){
     txGroupsMap[k].toothNums.push(+num);
   });
   const groupedRows=Object.values(txGroupsMap).map(g=>({...g,tx:allTxCatalog.find(t=>t.id===g.txId)})).filter(g=>g.tx);
-  const extraRows=((a.planExtras||{})[activePlan]||[]).map((e,i)=>({...e,idx:i,tx:allTxCatalog.find(tx=>tx.id===e.txId)})).filter(e=>e.tx);
+  const extraRows=((a.planExtras||{})[activePlan]||[]).map((e,i)=>e.customName?{...e,idx:i,tx:{name:e.customName,salePrice:e.price||0}}:{...e,idx:i,tx:allTxCatalog.find(tx=>tx.id===e.txId)}).filter(e=>e.tx);
   const jawTxMap=(a.jawTx||{})[activePlan]||{};
   const jawRows=Object.entries(jawTxMap).map(([jaw,txId])=>({jaw,txId:+txId,tx:allTxCatalog.find(t=>t.id===+txId)})).filter(r=>r.tx);
   const b=p.booking||{};
@@ -1134,21 +1134,26 @@ function renderPtAssessment(p){
             <td style="font-weight:700;color:#34d399">${currSym()}${(r.count*getEffectivePrice(r.tx)).toLocaleString()}</td>
             <td><button class="sm-btn danger" onclick="removeTxGroup(${r.txId})" title="Tümünü Kaldır">✕</button></td>
           </tr>`).join('')}
-          ${extraRows.map(r=>`<tr>
-            <td style="font-weight:600">${r.tx.name} <span style="color:#4a607d;font-size:10px">ekstra</span></td>
+          ${extraRows.map(r=>{const uPrice=r.price||getEffectivePrice(r.tx);return`<tr>
+            <td style="font-weight:600">${r.tx.name} <span style="color:#4a607d;font-size:10px">${r.customName?'manuel':'ekstra'}</span></td>
             <td><input type="number" min="1" value="${r.qty||1}" onchange="updateExtraTxQty(${r.idx},+this.value)" style="${inStyle};text-align:center"/></td>
-            <td style="font-size:12px">${currSym()}${getEffectivePrice(r.tx).toLocaleString()}</td>
-            <td style="font-weight:700;color:#34d399">${currSym()}${((r.qty||1)*getEffectivePrice(r.tx)).toLocaleString()}</td>
+            <td style="font-size:12px">${currSym()}${uPrice.toLocaleString()}</td>
+            <td style="font-weight:700;color:#34d399">${currSym()}${((r.qty||1)*uPrice).toLocaleString()}</td>
             <td><button class="sm-btn danger" onclick="removeExtraTreatment(${r.idx})">✕</button></td>
-          </tr>`).join('')}
+          </tr>`;}).join('')}
         </tbody>
       </table>`:`<div style="font-size:12px;color:#3d5270;padding:6px 0">Yukarıdan tedavi seçip dişe tıklayın</div>`}
       <div style="display:flex;gap:8px;align-items:center;margin-top:8px;flex-wrap:wrap">
-        <select id="pa-extra-tx" style="background:#131b2a;border:1px solid #1a2236;border-radius:8px;padding:6px 10px;color:#dde4ef;font-size:12px;outline:none;flex:1;min-width:180px">
+        <select id="pa-extra-tx" onchange="toggleManualExtraFields()" style="background:#131b2a;border:1px solid #1a2236;border-radius:8px;padding:6px 10px;color:#dde4ef;font-size:12px;outline:none;flex:1;min-width:180px">
           <option value="">— Ekstra Tedavi Ekle —</option>
+          <option value="__manual__">✏️ Manuel Ekle...</option>
           ${allTxCatalog.map(tx=>`<option value="${tx.id}">${tx.name} — ${currSym()}${getEffectivePrice(tx)}</option>`).join('')}
         </select>
         <button class="sm-btn success" onclick="addExtraTreatment()">+ Ekle</button>
+      </div>
+      <div id="pa-manual-fields" style="display:none;gap:8px;align-items:center;margin-top:6px;flex-wrap:wrap">
+        <input id="pa-manual-name" placeholder="Tedavi adı" style="background:#131b2a;border:1px solid #1a2236;border-radius:8px;padding:6px 10px;color:#dde4ef;font-size:12px;outline:none;flex:1;min-width:150px"/>
+        <input id="pa-manual-price" type="number" min="0" placeholder="Fiyat" style="background:#131b2a;border:1px solid #1a2236;border-radius:8px;padding:6px 10px;color:#dde4ef;font-size:12px;outline:none;width:100px"/>
       </div>
     </div>
     <div class="card">
@@ -1348,15 +1353,27 @@ function setTxOverride(plan,num,cond,txId){
   else delete p.assessment.txOverrides[key];
   persist("customers");renderPtBody();
 }
+function toggleManualExtraFields(){
+  const sel=document.getElementById('pa-extra-tx');
+  const fields=document.getElementById('pa-manual-fields');
+  if(fields)fields.style.display=sel?.value==='__manual__'?'flex':'none';
+}
 function addExtraTreatment(){
   const sel=document.getElementById('pa-extra-tx');if(!sel||!sel.value)return;
-  const txId=+sel.value;
   const p=getPatient(currentPatientId);if(!p)return;
-  const tr=getTreatment(txId);if(!tr)return;
   if(!p.assessment)p.assessment={};
   if(!p.assessment.planExtras)p.assessment.planExtras={};
   if(!p.assessment.planExtras[activePlan])p.assessment.planExtras[activePlan]=[];
-  p.assessment.planExtras[activePlan].push({txId,qty:1,price:getEffectivePrice(tr)});
+  if(sel.value==='__manual__'){
+    const name=(document.getElementById('pa-manual-name')?.value||'').trim();
+    const price=+(document.getElementById('pa-manual-price')?.value)||0;
+    if(!name)return;
+    p.assessment.planExtras[activePlan].push({customName:name,price,qty:1});
+  } else {
+    const txId=+sel.value;
+    const tr=getTreatment(txId);if(!tr)return;
+    p.assessment.planExtras[activePlan].push({txId,qty:1,price:getEffectivePrice(tr)});
+  }
   persist("customers");renderPtBody();
 }
 function removeExtraTreatment(idx){
