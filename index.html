@@ -383,7 +383,7 @@ tr:{
   statusAll:"Tümü",statusWalkin:"Walk-in",statusConsultation:"Konsültasyon",statusAssessed:"Değerlendirildi",statusPricing:"Fiyat Verildi",statusBooked:"Rezerve",statusCancelled:"İptal",
   tabConsultation:"Konsültasyon",tabAssessment:"Değerlendirme",tabBooking:"Rezervasyon",tabNotes:"Notlar",
   fname:"Ad Soyad *",femail:"E-posta",fphone:"Telefon",fdob:"Doğum Tarihi",fcountry:"Ülke",fnationality:"Uyruk",fstatus:"Durum",fevent:"Etkinlik",fassignee:"Sorumlu",
-  dentalConcerns:"Diş Şikayetleri",medicalHistory:"Tıbbi Geçmiş",allergies:"Alerjiler",medications:"İlaçlar",smoking:"Sigara Kullanıyor",pregnant:"Hamile",consultNotes:"Notlar",
+  dentalConcerns:"Diş Şikayetleri",medicalHistory:"Tıbbi Geçmiş",allergies:"Alerjiler",medications:"İlaçlar",smoking:"Sigara Kullanıyor",pregnant:"Hamile",bisphosphonate:"Bifosfonat",heartDisease:"Kalp Hastalığı",diabetes:"Diyabet",consultNotes:"Notlar",
   currentCondition:"Mevcut Durum",treatmentPlan:"Tedavi Planı",dentistNotes:"Diş Hekimi Notları",
   selectTreatments:"Tedavi Seç",bookingTreatments:"Seçilen Tedaviler",travelType:"Transfer",accommodation:"Konaklama",discount:"İndirim ",deposit:"Deposit ",bookingNotes:"Notlar",
   subtotal:"Ara Toplam",totalCost:"Toplam",balanceDue:"Kalan Ödeme",
@@ -430,7 +430,7 @@ en:{
   statusAll:"All",statusWalkin:"Walk-in",statusConsultation:"Consultation",statusAssessed:"Assessed",statusPricing:"Pricing Given",statusBooked:"Booked",statusCancelled:"Cancelled",
   tabConsultation:"Consultation",tabAssessment:"Assessment",tabBooking:"Booking",tabNotes:"Notes",
   fname:"Full Name *",femail:"Email",fphone:"Phone",fdob:"Date of Birth",fcountry:"Country",fnationality:"Nationality",fstatus:"Status",fevent:"Event",fassignee:"Assigned To",
-  dentalConcerns:"Dental Concerns",medicalHistory:"Medical History",allergies:"Allergies",medications:"Medications",smoking:"Smoker",pregnant:"Pregnant",consultNotes:"Notes",
+  dentalConcerns:"Dental Concerns",medicalHistory:"Medical History",allergies:"Allergies",medications:"Medications",smoking:"Smoker",pregnant:"Pregnant",bisphosphonate:"Bisphosphonate",heartDisease:"Heart Disease",diabetes:"Diabetes",consultNotes:"Notes",
   currentCondition:"Current Condition",treatmentPlan:"Treatment Plan",dentistNotes:"Dentist Notes",
   selectTreatments:"Select Treatments",bookingTreatments:"Selected Treatments",travelType:"Travel",accommodation:"Accommodation",discount:"Discount ",deposit:"Deposit ",bookingNotes:"Notes",
   subtotal:"Subtotal",totalCost:"Total",balanceDue:"Balance Due",
@@ -896,9 +896,12 @@ function renderPtConsultation(p){
         <div class="field"><label>${t.allergies}</label><input id="pc-allergies" value="${c.allergies||""}"/></div>
         <div class="field"><label>${t.medications}</label><input id="pc-medications" value="${c.medications||""}"/></div>
       </div>
-      <div style="display:flex;gap:20px;margin-bottom:12px">
+      <div style="display:flex;flex-wrap:wrap;gap:16px;margin-bottom:12px">
         <label style="display:flex;align-items:center;gap:7px;cursor:pointer;font-size:13px"><input type="checkbox" id="pc-smoking" ${c.smoking?"checked":""} style="accent-color:#f97316;width:15px;height:15px"/> ${t.smoking}</label>
         <label style="display:flex;align-items:center;gap:7px;cursor:pointer;font-size:13px"><input type="checkbox" id="pc-pregnant" ${c.pregnant?"checked":""} style="accent-color:#f97316;width:15px;height:15px"/> ${t.pregnant}</label>
+        <label style="display:flex;align-items:center;gap:7px;cursor:pointer;font-size:13px"><input type="checkbox" id="pc-bisphosphonate" ${c.bisphosphonate?"checked":""} style="accent-color:#f97316;width:15px;height:15px"/> ${t.bisphosphonate}</label>
+        <label style="display:flex;align-items:center;gap:7px;cursor:pointer;font-size:13px"><input type="checkbox" id="pc-heartDisease" ${c.heartDisease?"checked":""} style="accent-color:#f97316;width:15px;height:15px"/> ${t.heartDisease}</label>
+        <label style="display:flex;align-items:center;gap:7px;cursor:pointer;font-size:13px"><input type="checkbox" id="pc-diabetes" ${c.diabetes?"checked":""} style="accent-color:#f97316;width:15px;height:15px"/> ${t.diabetes}</label>
       </div>
       <div class="field"><label>${t.consultNotes}</label><textarea id="pc-notes" rows="2">${c.notes||""}</textarea></div>
     </div>
@@ -1752,7 +1755,7 @@ async function savePatientModal(editId){
   const _nat=document.getElementById("pm-nationality").value;
   const item={name,phone:document.getElementById("pm-phone").value,email:document.getElementById("pm-email").value,country:_nat,nationality:_nat,status:document.getElementById("pm-status").value,eventId:+document.getElementById("pm-eventId").value||null};
   if(editId){state.patients=state.patients.map(p=>p.id==editId?{...p,...item}:p);toast("✅ "+t.updated);}
-  else{state.patients.push({...item,id:Date.now(),assignee:currentUser.username,createdAt:new Date().toISOString().slice(0,10),consultation:{dentalConcerns:"",medicalHistory:"",allergies:"",medications:"",smoking:false,pregnant:false,notes:""},assessment:{currentCondition:{},treatmentPlan:{},dentistNotes:""},booking:{treatments:[],accommodations:[],travels:[],discount:0,deposit:0,notes:""},notes:[]});toast("✅ "+t.added);}
+  else{state.patients.push({...item,id:Date.now(),assignee:currentUser.username,createdAt:new Date().toISOString().slice(0,10),consultation:{dentalConcerns:"",medicalHistory:"",allergies:"",medications:"",smoking:false,pregnant:false,bisphosphonate:false,heartDisease:false,diabetes:false,notes:""},assessment:{currentCondition:{},treatmentPlan:{},dentistNotes:""},booking:{treatments:[],accommodations:[],travels:[],discount:0,deposit:0,notes:""},notes:[]});toast("✅ "+t.added);}
   await persist("customers");closeModal();render();
 }
 
@@ -1776,6 +1779,9 @@ async function saveCurrentPatient(){
     p.consultation.medications=document.getElementById("pc-medications")?.value||"";
     p.consultation.smoking=document.getElementById("pc-smoking")?.checked||false;
     p.consultation.pregnant=document.getElementById("pc-pregnant")?.checked||false;
+    p.consultation.bisphosphonate=document.getElementById("pc-bisphosphonate")?.checked||false;
+    p.consultation.heartDisease=document.getElementById("pc-heartDisease")?.checked||false;
+    p.consultation.diabetes=document.getElementById("pc-diabetes")?.checked||false;
     p.consultation.notes=document.getElementById("pc-notes")?.value||"";
   } else if(currentPtTab==="assessment"){
     if(!p.assessment)p.assessment={currentCondition:{},treatmentPlan:{},dentistNotes:""};
