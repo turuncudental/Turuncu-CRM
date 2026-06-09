@@ -1635,7 +1635,7 @@ function renderEvents(){
   if(currentEventDetailId){
     const e=state.events.find(ev=>ev.id===currentEventDetailId);
     if(!e){currentEventDetailId=null;return renderEvents();}
-    const pats=state.patients.filter(p=>p.eventId==e.id);
+    const pats=[...state.patients].reverse().filter(p=>p.eventId==e.id);
     const booked=pats.filter(p=>p.status==="booked").length;
     return`<div>
       <div style="display:flex;align-items:center;gap:12px;margin-bottom:18px;flex-wrap:wrap">
