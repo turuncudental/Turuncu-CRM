@@ -616,6 +616,30 @@ function bookingTotal(p){
   const trSub=(p.booking?.travels||[]).reduce((s,tr)=>s+(tr.persons||1)*(tr.price||0),0);
   return txSub+acSub+trSub-(p.booking?.discount||0);
 }
+function patientActivePlanTotal(p){
+  const a=p.assessment||{};
+  const planKey=a.activePlan||'treatmentPlan';
+  const allTx=state.treatments.filter(tx=>tx.type==='treatment'&&tx.active);
+  const jawTxMap=(a.jawTx||{})[planKey]||{};
+  const jawSub=Object.values(jawTxMap).reduce((s,txId)=>{const tx=allTx.find(t=>t.id===+txId);return s+getEffectivePrice(tx);},0);
+  const toothTxMap=(a.toothTx||{})[planKey]||{};
+  const txGroups={};
+  Object.values(toothTxMap).forEach(txId=>{const k=+txId;if(!txGroups[k])txGroups[k]=0;txGroups[k]++;});
+  const autoSub=Object.entries(txGroups).reduce((s,[txId,cnt])=>{const tx=allTx.find(t=>t.id===+txId);return s+cnt*getEffectivePrice(tx);},0);
+  const extras=(a.planExtras||{})[planKey]||[];
+  const extrasSub=extras.reduce((s,e)=>e.customName?s+(e.qty||1)*(e.price||0):s+(e.qty||1)*getEffectivePrice(allTx.find(t=>t.id===e.txId)),0);
+  const txSub=jawSub+autoSub+extrasSub;
+  const b=p.booking||{};
+  const acSub=(b.accommodations||[]).reduce((s,ac)=>s+(ac.nights||1)*(ac.pricePerNight||0),0);
+  const trSub=(b.travels||[]).reduce((s,tr)=>s+(tr.persons||1)*(tr.price||0),0);
+  const sub=txSub+acSub+trSub;
+  const discountRate=b.discountRate||0;
+  const discountAmt=discountRate>0?Math.round(sub*discountRate/100):(b.discount||0);
+  return sub-discountAmt;
+}
+function hasPlanData(a,planKey){return Object.keys((a.toothTx||{})[planKey]||{}).length>0||Object.keys((a.jawTx||{})[planKey]||{}).length>0||((a.planExtras||{})[planKey]||[]).length>0;}
+function getCreatedPlans(p){const a=p.assessment||{};if(a.createdPlans)return a.createdPlans;const plans=['treatmentPlan'];if(hasPlanData(a,'plan2'))plans.push('plan2');if(hasPlanData(a,'plan3'))plans.push('plan3');return plans;}
+function addTreatmentPlan(){const p=getPatient(currentPatientId);if(!p)return;if(!p.assessment)p.assessment={};const current=getCreatedPlans(p);const all=['treatmentPlan','plan2','plan3'];const next=all.find(pl=>!current.includes(pl));if(!next)return;p.assessment.createdPlans=[...current,next];activePlan=next;persist("customers");renderPtBody();}
 function getCatalogByType(type){return state.treatments.filter(tr=>(tr.type||"treatment")===type&&tr.active);}
 function condLabel(k){return{healthy:t.condHealthy,cavity:t.condCavity,crown:t.condCrown,zircrown:"Zirkon/E-Max",missing:t.condMissing,implant:t.condImplant,root_canal:t.condRootCanal,veneer:t.condVeneer,filling:t.condFilling,bridge:t.condBridge,extraction:t.condExtraction,root:t.condRoot}[k]||k;}
 function updateFooter(){if(!currentUser)return;document.getElementById("sidebar-footer").textContent=`${state.patients.length} ${t.footerPatients} · ${state.patients.filter(p=>p.status==="booked").length} ${t.footerBooked}`;}
@@ -814,7 +838,7 @@ let patientSortKey=null;
 let patientSortDir=1;
 function renderPatients(){
   const statuses=["all","walkin","consultation","assessed","pricing","booked","cancelled"];
-  const filtered=state.patients.filter(p=>{
+  const filtered=[...state.patients].reverse().filter(p=>{
     const matchStatus=filterStatus==="all"||p.status===filterStatus;
     const matchSearch=matches([p.name,p.email,p.phone,p.country,p.nationality]);
     return matchStatus&&matchSearch;
@@ -1121,12 +1145,14 @@ function renderPtAssessment(p){
   const isJawTxBrush=activeTxBrush&&!!JAW_PLAN_MAP[activeTxBrush];
   const txBrushHint=activeTxBrush==='__manual__'?'':(activeBrushTx?(isJawTxBrush?`<div class="paint-hint">🦷 <strong>${activeBrushTx.name}</strong> aktif — çenedeki herhangi bir dişe tıkla (tüm çene otomatik ayarlanır), tekrar tıkla iptal</div>`:`<div class="paint-hint">🖌 <strong>${activeBrushTx.name}</strong> aktif — dişe tıkla, aynı dişe tekrar tıkla iptal</div>`):'');
   const paintHint=paintBrush&&paintBrush!=="healthy"?`<div class="paint-hint">${TOOTH_ICONS[paintBrush]||"○"} <strong>${condLabel(paintBrush)}</strong> fırçası aktif — dişlere tıkla, iptal için tekrar tıkla</div>`:paintBrush==="healthy"?`<div class="paint-hint">✕ <strong>Temizle</strong> fırçası aktif — tıklanan dişi sıfırlar</div>`:"";
+  const createdPlans=getCreatedPlans(p);
   return`<div style="max-width:800px;display:flex;flex-direction:column;gap:14px">
     <div class="card">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:8px">
         <div style="display:flex;align-items:center;gap:10px">
           <div class="section-title" style="margin-bottom:0">${t.treatmentPlan}</div>
-          ${['treatmentPlan','plan2','plan3'].map((pl,i)=>`<div style="display:flex;flex-direction:column;align-items:center;gap:2px"><button onclick="setActivePlan('${pl}')" style="padding:4px 12px;border-radius:20px;border:1px solid ${activePlan===pl?'#f97316':'#1a2236'};background:${activePlan===pl?'#f9731622':'#131b2a'};color:${activePlan===pl?'#f97316':'#4a607d'};font-size:11px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif">${i+1}. Plan</button>${p.assessment?.activePlan===pl?'<span style="font-size:9px;color:#22c55e;font-weight:800;letter-spacing:0.5px">● AKTİF</span>':''}</div>`).join('')}
+          ${createdPlans.map((pl,i)=>`<div style="display:flex;flex-direction:column;align-items:center;gap:2px"><button onclick="setActivePlan('${pl}')" style="padding:4px 12px;border-radius:20px;border:1px solid ${activePlan===pl?'#f97316':'#1a2236'};background:${activePlan===pl?'#f9731622':'#131b2a'};color:${activePlan===pl?'#f97316':'#4a607d'};font-size:11px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif">${i+1}. Plan</button>${p.assessment?.activePlan===pl?'<span style="font-size:9px;color:#22c55e;font-weight:800;letter-spacing:0.5px">● AKTİF</span>':''}</div>`).join('')}
+          ${createdPlans.length<3?`<button onclick="addTreatmentPlan()" style="padding:4px 12px;border-radius:20px;border:1px dashed #2a3a54;background:transparent;color:#3d5270;font-size:11px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif">+ Plan</button>`:''}
         </div>
         <button onclick="resetActivePlan()" style="padding:4px 14px;border-radius:20px;border:1px solid #ef444444;background:#2b0f0f;color:#ef4444;font-size:11px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif">✕ Hepsini Sıfırla</button>
       </div>
@@ -1628,7 +1654,7 @@ function renderEvents(){
         <table class="data-table" style="width:100%">
           <thead><tr><th>Hasta</th><th>Ülke</th><th>Durum</th><th>Teklif</th><th></th></tr></thead>
           <tbody>${pats.map(p=>{
-            const quote=bookingTotal(p);
+            const quote=patientActivePlanTotal(p);
             return`<tr style="cursor:pointer" onclick="openPatient(${p.id})">
               <td><div style="font-weight:700;font-size:13px">${p.name}</div><div style="font-size:11px;color:#4a607d">${p.phone||""}</div></td>
               <td style="font-size:12px">${flag(p.country||"")} ${p.country||""}</td>
@@ -1660,6 +1686,9 @@ function renderEvents(){
   return`<div class="grid3">${filtered.map(e=>{
     const pats=state.patients.filter(p=>p.eventId==e.id);
     const booked=pats.filter(p=>p.status==="booked").length;
+    const totalQuote=pats.reduce((s,p)=>s+patientActivePlanTotal(p),0);
+    const totalDeposit=pats.reduce((s,p)=>s+(p.booking?.deposit||0),0);
+    const earned=pats.filter(p=>p.status==="booked").reduce((s,p)=>s+patientActivePlanTotal(p),0);
     return`<div class="card" style="cursor:pointer;transition:border-color .15s;border-color:#1a2236" onclick="currentEventDetailId=${e.id};render()" onmouseover="this.style.borderColor='#f97316'" onmouseout="this.style.borderColor='#1a2236'">
       <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px">
         <div>
@@ -1669,9 +1698,14 @@ function renderEvents(){
       </div>
       <div style="font-weight:800;font-size:14px;margin-bottom:4px">${e.name}</div>
       <div style="font-size:12px;color:#4a607d;margin-bottom:10px">📍 ${e.city} · ${e.venue}</div>
-      <div style="display:flex;gap:10px;padding-top:10px;border-top:1px solid #1a2236;font-size:12px">
+      <div style="display:flex;gap:10px;padding-top:10px;border-top:1px solid #1a2236;font-size:12px;margin-bottom:8px">
         <span style="color:#60a5fa">${pats.length} hasta</span>
         <span style="color:#34d399">${booked} rezerve</span>
+      </div>
+      <div style="border-top:1px solid #1a2236;padding-top:8px;display:flex;flex-direction:column;gap:4px">
+        <div style="display:flex;justify-content:space-between;font-size:11px"><span style="color:#4a607d">Toplam Teklif</span><span style="color:#dde4ef;font-weight:700">${totalQuote>0?currSym()+totalQuote.toLocaleString():"—"}</span></div>
+        <div style="display:flex;justify-content:space-between;font-size:11px"><span style="color:#4a607d">Alınan Deposit</span><span style="color:#60a5fa;font-weight:700">${totalDeposit>0?currSym()+totalDeposit.toLocaleString():"—"}</span></div>
+        <div style="display:flex;justify-content:space-between;font-size:11px"><span style="color:#4a607d">Kazanılan</span><span style="color:#34d399;font-weight:700">${earned>0?currSym()+earned.toLocaleString():"—"}</span></div>
       </div>
       ${canEdit()?`<div style="display:flex;gap:6px;margin-top:9px" onclick="event.stopPropagation()"><button class="sm-btn" onclick="openEventModal(${e.id})">✎ Düzenle</button><button class="sm-btn danger" onclick="deleteEvent(${e.id})">✕</button></div>`:""}
     </div>`;
@@ -1855,7 +1889,7 @@ async function savePatientModal(editId){
   const _nat=document.getElementById("pm-nationality").value;
   const item={name,phone:document.getElementById("pm-phone").value,email:document.getElementById("pm-email").value,country:_nat,nationality:_nat,status:document.getElementById("pm-status").value,eventId:+document.getElementById("pm-eventId").value||null};
   if(editId){state.patients=state.patients.map(p=>p.id==editId?{...p,...item}:p);toast("✅ "+t.updated);}
-  else{state.patients.push({...item,id:Date.now(),assignee:currentUser.username,createdAt:new Date().toISOString().slice(0,10),consultation:{dentalConcerns:"",medicalHistory:"",allergies:"",medications:"",smoking:false,pregnant:false,bisphosphonate:false,heartDisease:false,diabetes:false,notes:""},assessment:{currentCondition:{},treatmentPlan:{},dentistNotes:""},booking:{treatments:[],accommodations:[],travels:[],discount:0,deposit:0,notes:""},notes:[]});toast("✅ "+t.added);}
+  else{state.patients.push({...item,id:Date.now(),assignee:currentUser.username,createdAt:new Date().toISOString(),consultation:{dentalConcerns:"",medicalHistory:"",allergies:"",medications:"",smoking:false,pregnant:false,bisphosphonate:false,heartDisease:false,diabetes:false,notes:""},assessment:{currentCondition:{},treatmentPlan:{},dentistNotes:""},booking:{treatments:[],accommodations:[],travels:[],discount:0,deposit:0,notes:""},notes:[]});toast("✅ "+t.added);}
   await persist("customers");closeModal();render();
 }
 
