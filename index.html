@@ -634,7 +634,7 @@ function patientActivePlanTotal(p){
   const trSub=(b.travels||[]).reduce((s,tr)=>s+(tr.persons||1)*(tr.price||0),0);
   const sub=txSub+acSub+trSub;
   const discountRate=b.discountRate||0;
-  const discountAmt=discountRate>0?Math.round(sub*discountRate/100):(b.discount||0);
+  const discountAmt=b.discount||0;
   return sub-discountAmt;
 }
 function hasPlanData(a,planKey){return Object.keys((a.toothTx||{})[planKey]||{}).length>0||Object.keys((a.jawTx||{})[planKey]||{}).length>0||((a.planExtras||{})[planKey]||[]).length>0;}
@@ -1135,7 +1135,7 @@ function renderPtAssessment(p){
   const trSub=(b.travels||[]).reduce((s,tr)=>s+(tr.persons||1)*(tr.price||0),0);
   const sub=txSub+acSub+trSub;
   const discountRate=b.discountRate||0;
-  const discountAmt=discountRate>0?Math.round(sub*discountRate/100):(b.discount||0);
+  const discountAmt=b.discount||0;
   const total=sub-discountAmt;
   const balance=total-(b.deposit||0);
   const cardBalance=Math.round(balance*1.02);
