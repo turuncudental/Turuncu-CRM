@@ -476,7 +476,7 @@ let activePlan="treatmentPlan";
 let activeCurrency='GBP';
 const CURR_SYM={GBP:'£',EUR:'€',USD:'$'};
 function currSym(){return CURR_SYM[activeCurrency]||'£';}
-function setCurrency(c){activeCurrency=c;render();}
+function setCurrency(c){activeCurrency=c;render();if(currentPatientId)renderPtBody();}
 function getEffectivePrice(item){
   if(!item)return 0;
   if(activeCurrency==='EUR'&&(item.salePriceEUR||0)>0)return item.salePriceEUR;
@@ -633,7 +633,7 @@ async function loadAll(){
   state.appointments=Array.isArray(a?.[0]?.data)?a[0].data:SEED_APPOINTMENTS;
   const loadedTr=Array.isArray(tr?.[0]?.data)?tr[0].data:null;
   // Migrate: replace if fewer entries OR if EUR prices are missing/zero (price list update)
-  const needsTrUpdate=!loadedTr||loadedTr.length<SEED_TREATMENTS.length||loadedTr.some(t=>t.type==='treatment'&&!(t.salePriceEUR>0));
+  const needsTrUpdate=!loadedTr||loadedTr.length<SEED_TREATMENTS.length||loadedTr.some(t=>t.type==='treatment'&&(!(t.salePriceEUR>0)||!(t.salePriceUSD>0)));
   state.treatments=needsTrUpdate?SEED_TREATMENTS:loadedTr;
   if(!p||!p[0])dbSet("customers",SEED_PATIENTS);
   if(!e||!e[0])dbSet("deals",SEED_EVENTS);
@@ -1541,7 +1541,7 @@ function renderTreatments(){
         <td style="font-size:12px;color:#4a607d">${tr.description||""}</td>
         <td><span class="badge" style="background:#a78bfa22;color:#a78bfa;font-size:10px">${tr.category||""}</span></td>
         <td>${currSym()}${(tr.clinicCost||0).toLocaleString()}</td>
-        <td style="font-weight:700;color:#34d399">${currSym()}${(tr.salePrice||0).toLocaleString()}</td>
+        <td style="font-weight:700;color:#34d399">${currSym()}${getEffectivePrice(tr).toLocaleString()}</td>
         <td><span style="color:${mg>=50?"#34d399":mg>=30?"#f59e0b":"#f87171"};font-weight:700">%${mg}</span></td>
         <td><span class="badge" style="background:${tr.active?"#34d39922":"#f8717122"};color:${tr.active?"#34d399":"#f87171"}">${tr.active?"Aktif":"Pasif"}</span></td>
         <td>${canEdit()?`<div style="display:flex;gap:5px"><button class="sm-btn" onclick="openTreatmentModal(${tr.id},'treatment')">✎</button><button class="sm-btn danger" onclick="deleteTreatment(${tr.id})">✕</button></div>`:""}</td>
