@@ -1128,7 +1128,7 @@ function renderPtAssessment(p){
             <td><button class="sm-btn danger" onclick="removeJawTx('${r.jaw}')" title="Kaldır">✕</button></td>
           </tr>`).join('')}
           ${groupedRows.map(r=>`<tr>
-            <td style="font-weight:600">${r.tx.name}</td>
+            <td style="font-weight:600;line-height:1.4">${r.tx.name}<br/><span style="font-size:9px;color:#22c55e;font-weight:400;letter-spacing:0.2px">${[...r.toothNums].sort((a,b)=>a-b).join(', ')}</span></td>
             <td style="font-weight:700;color:#f97316;text-align:center">${r.count}</td>
             <td style="font-size:12px">${currSym()}${getEffectivePrice(r.tx).toLocaleString()}</td>
             <td style="font-weight:700;color:#34d399">${currSym()}${(r.count*getEffectivePrice(r.tx)).toLocaleString()}</td>
