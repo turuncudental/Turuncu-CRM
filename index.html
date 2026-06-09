@@ -1269,8 +1269,8 @@ function applyTxToTooth(num,txId){
       plan.all.forEach(n=>{delete p.assessment[activePlan][n];delete p.assessment.toothTx[activePlan][n];});
     } else {
       p.assessment.jawTx[activePlan][jaw]=txId;
-      // Clear all jaw teeth, then only mark implant positions
-      plan.all.forEach(n=>{delete p.assessment[activePlan][n];delete p.assessment.toothTx[activePlan][n];});
+      // Set all jaw teeth to 'missing' (empty space), then override implant positions
+      plan.all.forEach(n=>{delete p.assessment.toothTx[activePlan][n];p.assessment[activePlan][n]='missing';});
       plan.implant.forEach(n=>{p.assessment[activePlan][n]='implant';});
     }
     persist("customers");renderPtBody();return;
