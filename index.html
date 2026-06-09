@@ -582,6 +582,13 @@ const SEED_TREATMENTS=[
   {id:206,name:"Araç Kiralama",description:"Günlük araç kiralama",category:"Kiralık Araç",clinicCost:0,salePrice:65,active:true,type:"travel"}
 ];
 const COND_TX_MAP={implant:23,crown:43,root_canal:33,filling:9,extraction:41,cavity:9};
+const JAW_PLAN_MAP={
+  1:{upper:{implant:[12,14,22,24],crown:[11,13,15,16,21,23,25,26],extraction:[17,18,27,28]},
+     lower:{implant:[32,34,42,44],crown:[31,33,35,36,41,43,45,46],extraction:[37,38,47,48]}},
+  2:{upper:{implant:[12,14,16,22,24,26],crown:[11,13,15,21,23,25],extraction:[17,18,27,28]},
+     lower:{implant:[32,34,36,42,44,46],crown:[31,33,35,41,43,45],extraction:[37,38,47,48]}}
+};
+function getJaw(num){return(num>=11&&num<=28)?'upper':(num>=31&&num<=48)?'lower':null;}
 // ==CORE==
 // ── HELPERS
 function flag(c){const m={"United Kingdom":"🇬🇧","UK":"🇬🇧","UAE":"🇦🇪","United Arab Emirates":"🇦🇪","Russia":"🇷🇺","Ireland":"🇮🇪","Spain":"🇪🇸","Germany":"🇩🇪","France":"🇫🇷","USA":"🇺🇸","United States":"🇺🇸","Australia":"🇦🇺","Turkey":"🇹🇷","Türkiye":"🇹🇷","Netherlands":"🇳🇱","Belgium":"🇧🇪","Sweden":"🇸🇪","Norway":"🇳🇴","Denmark":"🇩🇰","Italy":"🇮🇹","Poland":"🇵🇱","Canada":"🇨🇦","Kuwait":"🇰🇼","Saudi Arabia":"🇸🇦","Qatar":"🇶🇦","Bahrain":"🇧🇭","Jordan":"🇯🇴","Romania":"🇷🇴","Bulgaria":"🇧🇬","Ukraine":"🇺🇦","Israel":"🇮🇱"};return m[c]||"🌍";}
@@ -1032,12 +1039,15 @@ function renderPtAssessment(p){
   });
   const groupedRows=Object.values(txGroupsMap).map(g=>({...g,tx:allTxCatalog.find(t=>t.id===g.txId)})).filter(g=>g.tx);
   const extraRows=((a.planExtras||{})[activePlan]||[]).map((e,i)=>({...e,idx:i,tx:allTxCatalog.find(tx=>tx.id===e.txId)})).filter(e=>e.tx);
+  const jawTxMap=(a.jawTx||{})[activePlan]||{};
+  const jawRows=Object.entries(jawTxMap).map(([jaw,txId])=>({jaw,txId:+txId,tx:allTxCatalog.find(t=>t.id===+txId)})).filter(r=>r.tx);
   const b=p.booking||{};
   const activeAc=getCatalogByType("accommodation");
   const activeTrv=getCatalogByType("travel");
+  const jawSub=jawRows.reduce((s,r)=>s+getEffectivePrice(r.tx),0);
   const autoSub=groupedRows.reduce((s,r)=>s+r.count*getEffectivePrice(r.tx),0);
   const extrasSub=extraRows.reduce((s,r)=>s+(r.qty||1)*(r.price||getEffectivePrice(r.tx)),0);
-  const txSub=autoSub+extrasSub;
+  const txSub=jawSub+autoSub+extrasSub;
   const acSub=(b.accommodations||[]).reduce((s,ac)=>s+(ac.nights||1)*(ac.pricePerNight||0),0);
   const trSub=(b.travels||[]).reduce((s,tr)=>s+(tr.persons||1)*(tr.price||0),0);
   const sub=txSub+acSub+trSub;
@@ -1046,7 +1056,8 @@ function renderPtAssessment(p){
   const inStyle="width:60px;background:#131b2a;border:1px solid #1a2236;border-radius:6px;padding:3px 6px;color:#dde4ef;font-size:12px;text-align:center";
   const currBtn=['GBP','EUR','USD'].map(c=>`<button onclick="setCurrency('${c}')" style="padding:3px 10px;border-radius:14px;border:1px solid ${activeCurrency===c?'#f97316':'#1a2236'};background:${activeCurrency===c?'#f9731622':'#131b2a'};color:${activeCurrency===c?'#f97316':'#4a607d'};font-size:11px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif">${c==='GBP'?'£ GBP':c==='EUR'?'€ EUR':'$ USD'}</button>`).join('');
   const activeBrushTx=activeTxBrush?allTxCatalog.find(t=>t.id===activeTxBrush):null;
-  const txBrushHint=activeBrushTx?`<div class="paint-hint">🖌 <strong>${activeBrushTx.name}</strong> aktif — dişe tıkla, aynı dişe tekrar tıkla iptal</div>`:'';
+  const isJawTxBrush=activeTxBrush&&!!JAW_PLAN_MAP[activeTxBrush];
+  const txBrushHint=activeBrushTx?(isJawTxBrush?`<div class="paint-hint">🦷 <strong>${activeBrushTx.name}</strong> aktif — çenedeki herhangi bir dişe tıkla (tüm çene otomatik ayarlanır), tekrar tıkla iptal</div>`:`<div class="paint-hint">🖌 <strong>${activeBrushTx.name}</strong> aktif — dişe tıkla, aynı dişe tekrar tıkla iptal</div>`):'';
   const paintHint=paintBrush&&paintBrush!=="healthy"?`<div class="paint-hint">${TOOTH_ICONS[paintBrush]||"○"} <strong>${condLabel(paintBrush)}</strong> fırçası aktif — dişlere tıkla, iptal için tekrar tıkla</div>`:paintBrush==="healthy"?`<div class="paint-hint">✕ <strong>Temizle</strong> fırçası aktif — tıklanan dişi sıfırlar</div>`:"";
   return`<div style="max-width:800px;display:flex;flex-direction:column;gap:14px">
     <div class="card">
@@ -1094,9 +1105,16 @@ function renderPtAssessment(p){
         <div class="section-title" style="margin-bottom:0">🦷 Tedavi Listesi</div>
         <div style="display:flex;gap:5px">${currBtn}</div>
       </div>
-      ${groupedRows.length||extraRows.length?`<table class="data-table" style="width:100%;margin-bottom:10px">
+      ${jawRows.length||groupedRows.length||extraRows.length?`<table class="data-table" style="width:100%;margin-bottom:10px">
         <thead><tr><th>Tedavi</th><th>Adet</th><th>Birim</th><th>Toplam</th><th></th></tr></thead>
         <tbody>
+          ${jawRows.map(r=>`<tr>
+            <td style="font-weight:600">🦷 ${r.tx.name} <span style="font-size:11px;color:#4a607d">(${r.jaw==='upper'?'Üst Çene':'Alt Çene'})</span></td>
+            <td style="font-weight:700;color:#f97316;text-align:center">1</td>
+            <td style="font-size:12px">${currSym()}${getEffectivePrice(r.tx).toLocaleString()}</td>
+            <td style="font-weight:700;color:#34d399">${currSym()}${getEffectivePrice(r.tx).toLocaleString()}</td>
+            <td><button class="sm-btn danger" onclick="removeJawTx('${r.jaw}')" title="Kaldır">✕</button></td>
+          </tr>`).join('')}
           ${groupedRows.map(r=>`<tr>
             <td style="font-weight:600">${r.tx.name}</td>
             <td style="font-weight:700;color:#f97316;text-align:center">${r.count}</td>
@@ -1146,7 +1164,7 @@ function renderPtAssessment(p){
       </table>`:""}
     </div>
     <div class="card">
-      <div class="section-title">✈️ ${t.bookingTravel}</div>
+      <div class="section-title">🚐 ${t.bookingTravel}</div>
       <div style="display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap">
         <select id="pb-travel-sel" style="background:#131b2a;border:1px solid #1a2236;border-radius:8px;padding:6px 10px;color:#dde4ef;font-size:12px;outline:none;flex:1;min-width:180px">
           <option value="">— Ulaşım Seçin —</option>
@@ -1239,6 +1257,26 @@ function applyTxToTooth(num,txId){
   if(!p.assessment[activePlan])p.assessment[activePlan]={};
   if(!p.assessment.toothTx)p.assessment.toothTx={};
   if(!p.assessment.toothTx[activePlan])p.assessment.toothTx[activePlan]={};
+  // Jaw-level treatments (All on 4, All on 6): apply to entire jaw
+  if(JAW_PLAN_MAP[txId]){
+    const jaw=getJaw(num);if(!jaw)return;
+    if(!p.assessment.jawTx)p.assessment.jawTx={};
+    if(!p.assessment.jawTx[activePlan])p.assessment.jawTx[activePlan]={};
+    const plan=JAW_PLAN_MAP[txId][jaw];
+    const allTeeth=[...plan.implant,...plan.crown,...plan.extraction];
+    if(p.assessment.jawTx[activePlan][jaw]===txId){
+      // Toggle off: clear jaw
+      delete p.assessment.jawTx[activePlan][jaw];
+      allTeeth.forEach(n=>{delete p.assessment[activePlan][n];delete p.assessment.toothTx[activePlan][n];});
+    } else {
+      p.assessment.jawTx[activePlan][jaw]=txId;
+      allTeeth.forEach(n=>{delete p.assessment[activePlan][n];delete p.assessment.toothTx[activePlan][n];});
+      plan.extraction.forEach(n=>{p.assessment[activePlan][n]='extraction';});
+      plan.crown.forEach(n=>{p.assessment[activePlan][n]='crown';});
+      plan.implant.forEach(n=>{p.assessment[activePlan][n]='implant';});
+    }
+    persist("customers");renderPtBody();return;
+  }
   const tx=getTreatment(txId);if(!tx)return;
   if(p.assessment.toothTx[activePlan][num]===txId){
     delete p.assessment.toothTx[activePlan][num];
@@ -1249,6 +1287,21 @@ function applyTxToTooth(num,txId){
     if(cond)p.assessment[activePlan][num]=cond;
     else delete p.assessment[activePlan][num];
   }
+  persist("customers");renderPtBody();
+}
+function removeJawTx(jaw){
+  const p=getPatient(currentPatientId);if(!p)return;
+  const jawTxPlan=p.assessment?.jawTx?.[activePlan];if(!jawTxPlan)return;
+  const txId=jawTxPlan[jaw];if(!txId)return;
+  const plan=JAW_PLAN_MAP[txId]?.[jaw];
+  if(plan){
+    const allTeeth=[...plan.implant,...plan.crown,...plan.extraction];
+    allTeeth.forEach(n=>{
+      if(p.assessment[activePlan])delete p.assessment[activePlan][n];
+      if(p.assessment.toothTx?.[activePlan])delete p.assessment.toothTx[activePlan][n];
+    });
+  }
+  delete jawTxPlan[jaw];
   persist("customers");renderPtBody();
 }
 function removeTxGroup(txId){
@@ -1393,7 +1446,7 @@ function renderPtBooking(p){
     </div>
 
     <div class="card">
-      <div class="section-title">✈️ ${t.bookingTravel}</div>
+      <div class="section-title">🚐 ${t.bookingTravel}</div>
       <div style="display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap">
         <select id="pb-travel-sel" style="background:#131b2a;border:1px solid #1a2236;border-radius:8px;padding:6px 10px;color:#dde4ef;font-size:12px;outline:none;flex:1;min-width:180px">
           <option value="">— Ulaşım Seçin —</option>
