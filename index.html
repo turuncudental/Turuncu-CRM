@@ -1051,8 +1051,11 @@ function renderPtAssessment(p){
   const acSub=(b.accommodations||[]).reduce((s,ac)=>s+(ac.nights||1)*(ac.pricePerNight||0),0);
   const trSub=(b.travels||[]).reduce((s,tr)=>s+(tr.persons||1)*(tr.price||0),0);
   const sub=txSub+acSub+trSub;
-  const total=sub-(b.discount||0);
+  const discountRate=b.discountRate||0;
+  const discountAmt=discountRate>0?Math.round(sub*discountRate/100):(b.discount||0);
+  const total=sub-discountAmt;
   const balance=total-(b.deposit||0);
+  const cardBalance=Math.round(balance*1.02);
   const inStyle="width:60px;background:#131b2a;border:1px solid #1a2236;border-radius:6px;padding:3px 6px;color:#dde4ef;font-size:12px;text-align:center";
   const currBtn=['GBP','EUR','USD'].map(c=>`<button onclick="setCurrency('${c}')" style="padding:3px 10px;border-radius:14px;border:1px solid ${activeCurrency===c?'#f97316':'#1a2236'};background:${activeCurrency===c?'#f9731622':'#131b2a'};color:${activeCurrency===c?'#f97316':'#4a607d'};font-size:11px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif">${c==='GBP'?'£ GBP':c==='EUR'?'€ EUR':'$ USD'}</button>`).join('');
   const activeBrushTx=activeTxBrush?allTxCatalog.find(t=>t.id===activeTxBrush):null;
@@ -1469,15 +1472,26 @@ function renderPtBooking(p){
 
     <div class="card">
       <div class="section-title">Finansal Özet</div>
-      <div style="max-width:340px">
+      <div style="max-width:380px">
         ${txSub?`<div class="stat-row"><span>🦷 Tedaviler</span><span>${currSym()}${txSub.toLocaleString()}</span></div>`:""}
         ${acSub?`<div class="stat-row"><span>🏨 Konaklama</span><span>${currSym()}${acSub.toLocaleString()}</span></div>`:""}
-        ${trSub?`<div class="stat-row"><span>✈️ Ulaşım</span><span>${currSym()}${trSub.toLocaleString()}</span></div>`:""}
+        ${trSub?`<div class="stat-row"><span>🚐 Transfer</span><span>${currSym()}${trSub.toLocaleString()}</span></div>`:""}
         <div class="stat-row"><span>${t.subtotal}</span><span style="font-weight:700">${currSym()}${sub.toLocaleString()}</span></div>
-        <div class="stat-row"><span>${t.discount}</span><span><input type="number" min="0" value="${b.discount||0}" onchange="updateBookingDiscount(+this.value)" style="width:80px;background:#131b2a;border:1px solid #1a2236;border-radius:6px;padding:3px 6px;color:#dde4ef;font-size:12px;text-align:right"/></span></div>
+        <div class="stat-row" style="align-items:center">
+          <span>İndirim</span>
+          <span style="display:flex;align-items:center;gap:6px">
+            <input type="number" min="0" max="100" step="0.5" value="${discountRate||''}" placeholder="%" onchange="updateBookingDiscountRate(+this.value,${sub})" style="width:54px;background:#131b2a;border:1px solid #1a2236;border-radius:6px;padding:3px 6px;color:#fbbf24;font-size:12px;text-align:right"/>
+            <span style="font-size:11px;color:#4a607d">%</span>
+            <span style="font-size:11px;color:#4a607d">veya</span>
+            <input type="number" min="0" value="${discountAmt||''}" placeholder="${currSym()}" onchange="updateBookingDiscountAmt(+this.value,${sub})" style="width:72px;background:#131b2a;border:1px solid #1a2236;border-radius:6px;padding:3px 6px;color:#fbbf24;font-size:12px;text-align:right"/>
+          </span>
+        </div>
+        ${discountAmt>0?`<div class="stat-row"><span style="font-size:11px;color:#4a607d">Uygulanan İndirim</span><span style="color:#fbbf24;font-weight:700">−${currSym()}${discountAmt.toLocaleString()}${discountRate>0?` (%${discountRate})`:"" }</span></div>`:""}
         <div class="stat-row"><span style="font-weight:700;color:#dde4ef">${t.totalCost}</span><span style="font-weight:800;color:#34d399;font-size:15px">${currSym()}${total.toLocaleString()}</span></div>
-        <div class="stat-row"><span>${t.deposit}</span><span><input type="number" min="0" value="${b.deposit||0}" onchange="updateBookingDeposit(+this.value)" style="width:80px;background:#131b2a;border:1px solid #1a2236;border-radius:6px;padding:3px 6px;color:#dde4ef;font-size:12px;text-align:right"/></span></div>
-        <div class="stat-row"><span style="font-weight:700;color:#dde4ef">${t.balanceDue}</span><span style="font-weight:800;color:#f97316;font-size:15px">${currSym()}${balance.toLocaleString()}</span></div>
+        <div class="stat-row"><span>${t.deposit}</span><span><input type="number" min="0" value="${b.deposit||''}" placeholder="0" onchange="updateBookingDeposit(+this.value)" style="width:80px;background:#131b2a;border:1px solid #1a2236;border-radius:6px;padding:3px 6px;color:#dde4ef;font-size:12px;text-align:right"/></span></div>
+        <div style="border-top:2px solid #f97316;margin:8px 0"></div>
+        <div class="stat-row"><span style="font-weight:700;color:#dde4ef">💵 Nakit Ödeme Toplamı</span><span style="font-weight:800;color:#f97316;font-size:16px">${currSym()}${balance.toLocaleString()}</span></div>
+        <div class="stat-row"><span style="font-size:12px;color:#60a5fa">💳 Kart ile Ödeme (+%2)</span><span style="font-weight:700;color:#60a5fa;font-size:14px">${currSym()}${cardBalance.toLocaleString()}</span></div>
       </div>
       <div class="field" style="margin-top:12px"><label>${t.bookingNotes}</label><textarea id="pb-notes" rows="2">${b.notes||""}</textarea></div>
     </div>
@@ -1785,8 +1799,10 @@ function updateBookingQty(arr,idx,val,field="qty"){
   const p=getPatient(currentPatientId);if(!p?.booking?.[arr]?.[idx])return;
   p.booking[arr][idx][field]=Math.max(1,val||1);renderPtBody();
 }
-function updateBookingDiscount(val){const p=getPatient(currentPatientId);if(!p?.booking)return;p.booking.discount=val||0;renderPtBody();}
+function updateBookingDiscount(val){const p=getPatient(currentPatientId);if(!p?.booking)return;p.booking.discount=val||0;p.booking.discountRate=0;renderPtBody();}
 function updateBookingDeposit(val){const p=getPatient(currentPatientId);if(!p?.booking)return;p.booking.deposit=val||0;renderPtBody();}
+function updateBookingDiscountRate(rate,sub){const p=getPatient(currentPatientId);if(!p?.booking)return;p.booking.discountRate=rate||0;p.booking.discount=rate>0?Math.round(sub*rate/100):0;renderPtBody();}
+function updateBookingDiscountAmt(amt,sub){const p=getPatient(currentPatientId);if(!p?.booking)return;p.booking.discount=amt||0;p.booking.discountRate=sub>0?+((amt/sub)*100).toFixed(1):0;renderPtBody();}
 
 // ── NOTES
 async function addPatientNote(){
