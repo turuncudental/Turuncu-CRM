@@ -913,6 +913,7 @@ function setFilterStatus(s){filterStatus=s;render();}
 // ── PATIENT DETAIL OVERLAY
 function openPatient(id){
   currentPatientId=id;currentPtTab="consultation";
+  const _op=getPatient(id);activePlan=_op?.assessment?.activePlan||'treatmentPlan';
   const overlay=document.getElementById("patient-overlay");
   overlay.style.display="flex";
   renderPatientOverlay();
@@ -1666,7 +1667,7 @@ function renderEvents(){
         </table>`:`
         <div class="grid3">${pats.map(p=>{
           const sc=STATUS_COLORS[p.status]||"#4a607d";
-          const quote=bookingTotal(p);
+          const quote=patientActivePlanTotal(p);
           return`<div class="card" style="cursor:pointer;transition:border-color .15s;border-color:#1a2236" onclick="openPatient(${p.id})" onmouseover="this.style.borderColor='#f97316'" onmouseout="this.style.borderColor='#1a2236'">
             <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px">
               <div style="width:40px;height:40px;border-radius:50%;background:${sc}22;display:flex;align-items:center;justify-content:center;font-size:17px;font-weight:800;color:${sc};border:2px solid ${sc}44;flex-shrink:0">${p.name[0]}</div>
