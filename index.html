@@ -1945,7 +1945,7 @@ function addBookingAccommodation(){
   const prov=getTreatment(id);if(!prov)return;
   ensureBooking(p);
   p.booking.accommodations.push({providerId:prov.id,name:prov.name,nights,pricePerNight:getEffectivePrice(prov)});
-  renderPtBody();
+  persist("customers");renderPtBody();
 }
 function addBookingTravel(){
   const p=getPatient(currentPatientId);if(!p)return;
@@ -1954,12 +1954,12 @@ function addBookingTravel(){
   const prov=getTreatment(id);if(!prov)return;
   ensureBooking(p);
   p.booking.travels.push({providerId:prov.id,name:prov.name,persons,price:getEffectivePrice(prov)});
-  renderPtBody();
+  persist("customers");renderPtBody();
 }
-function removeBookingItem(arr,idx){const p=getPatient(currentPatientId);if(!p?.booking)return;p.booking[arr].splice(idx,1);renderPtBody();}
+function removeBookingItem(arr,idx){const p=getPatient(currentPatientId);if(!p?.booking)return;p.booking[arr].splice(idx,1);persist("customers");renderPtBody();}
 function updateBookingQty(arr,idx,val,field="qty"){
   const p=getPatient(currentPatientId);if(!p?.booking?.[arr]?.[idx])return;
-  p.booking[arr][idx][field]=Math.max(1,val||1);renderPtBody();
+  p.booking[arr][idx][field]=Math.max(1,val||1);persist("customers");renderPtBody();
 }
 function updateBookingDiscount(val){const p=getPatient(currentPatientId);if(!p?.booking)return;p.booking.discount=val||0;p.booking.discountRate=0;renderPtBody();}
 function updateBookingDeposit(val){const p=getPatient(currentPatientId);if(!p?.booking)return;p.booking.deposit=val||0;renderPtBody();}
