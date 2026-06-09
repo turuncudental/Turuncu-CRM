@@ -385,7 +385,7 @@ tr:{
   fname:"Ad Soyad *",femail:"E-posta",fphone:"Telefon",fdob:"Doğum Tarihi",fcountry:"Ülke",fnationality:"Uyruk",fstatus:"Durum",fevent:"Etkinlik",fassignee:"Sorumlu",
   dentalConcerns:"Diş Şikayetleri",medicalHistory:"Tıbbi Geçmiş",allergies:"Alerjiler",medications:"İlaçlar",smoking:"Sigara Kullanıyor",pregnant:"Hamile",consultNotes:"Notlar",
   currentCondition:"Mevcut Durum",treatmentPlan:"Tedavi Planı",dentistNotes:"Diş Hekimi Notları",
-  selectTreatments:"Tedavi Seç",bookingTreatments:"Seçilen Tedaviler",travelType:"Transfer",accommodation:"Konaklama",discount:"İndirim ",deposit:"Ön Ödeme ",bookingNotes:"Notlar",
+  selectTreatments:"Tedavi Seç",bookingTreatments:"Seçilen Tedaviler",travelType:"Transfer",accommodation:"Konaklama",discount:"İndirim ",deposit:"Deposit ",bookingNotes:"Notlar",
   subtotal:"Ara Toplam",totalCost:"Toplam",balanceDue:"Kalan Ödeme",
   addNote:"Not Ekle",noNotes:"Henüz not eklenmedi",
   events:"Etkinlikler",addEvent:"+ Etkinlik",newEvent:"Yeni Etkinlik",editEvent:"Etkinlik Düzenle",
@@ -1192,15 +1192,25 @@ function renderPtAssessment(p){
     </div>
     <div class="card">
       <div class="section-title">Finansal Özet</div>
-      <div style="max-width:340px">
+      <div style="max-width:400px">
         ${txSub?`<div class="stat-row"><span>🦷 Tedaviler</span><span>${currSym()}${txSub.toLocaleString()}</span></div>`:""}
         ${acSub?`<div class="stat-row"><span>🏨 Konaklama</span><span>${currSym()}${acSub.toLocaleString()}</span></div>`:""}
-        ${trSub?`<div class="stat-row"><span>✈️ Ulaşım</span><span>${currSym()}${trSub.toLocaleString()}</span></div>`:""}
+        ${trSub?`<div class="stat-row"><span>🚐 Transfer</span><span>${currSym()}${trSub.toLocaleString()}</span></div>`:""}
         <div class="stat-row"><span>${t.subtotal}</span><span style="font-weight:700">${currSym()}${sub.toLocaleString()}</span></div>
-        <div class="stat-row"><span>${t.discount}</span><span><input type="number" min="0" value="${b.discount||0}" onchange="updateBookingDiscount(+this.value)" style="width:80px;background:#131b2a;border:1px solid #1a2236;border-radius:6px;padding:3px 6px;color:#dde4ef;font-size:12px;text-align:right"/></span></div>
+        <div class="stat-row" style="align-items:center">
+          <span>İndirim</span>
+          <span style="display:flex;align-items:center;gap:5px">
+            <input type="number" min="0" max="100" step="0.5" value="${discountRate||''}" placeholder="%" onchange="updateBookingDiscountRate(+this.value,${sub})" style="width:52px;background:#131b2a;border:1px solid #1a2236;border-radius:6px;padding:3px 5px;color:#fbbf24;font-size:12px;text-align:right"/>
+            <span style="font-size:11px;color:#4a607d">%  veya</span>
+            <input type="number" min="0" value="${discountAmt||''}" placeholder="${currSym()}" onchange="updateBookingDiscountAmt(+this.value,${sub})" style="width:72px;background:#131b2a;border:1px solid #1a2236;border-radius:6px;padding:3px 5px;color:#fbbf24;font-size:12px;text-align:right"/>
+          </span>
+        </div>
+        ${discountAmt>0?`<div class="stat-row"><span style="font-size:11px;color:#4a607d">Uygulanan İndirim</span><span style="color:#fbbf24;font-weight:700">−${currSym()}${discountAmt.toLocaleString()}${discountRate>0?` (%${discountRate})`:"" }</span></div>`:""}
         <div class="stat-row"><span style="font-weight:700;color:#dde4ef">${t.totalCost}</span><span style="font-weight:800;color:#34d399;font-size:15px">${currSym()}${total.toLocaleString()}</span></div>
-        <div class="stat-row"><span>${t.deposit}</span><span><input type="number" min="0" value="${b.deposit||0}" onchange="updateBookingDeposit(+this.value)" style="width:80px;background:#131b2a;border:1px solid #1a2236;border-radius:6px;padding:3px 6px;color:#dde4ef;font-size:12px;text-align:right"/></span></div>
-        <div class="stat-row"><span style="font-weight:700;color:#dde4ef">${t.balanceDue}</span><span style="font-weight:800;color:#f97316;font-size:15px">${currSym()}${balance.toLocaleString()}</span></div>
+        <div class="stat-row"><span>Deposit</span><span><input type="number" min="0" value="${b.deposit||''}" placeholder="0" onchange="updateBookingDeposit(+this.value)" style="width:80px;background:#131b2a;border:1px solid #1a2236;border-radius:6px;padding:3px 6px;color:#dde4ef;font-size:12px;text-align:right"/></span></div>
+        <div style="border-top:2px solid #1a2236;margin:6px 0"></div>
+        <div class="stat-row"><span style="font-weight:700;color:#dde4ef">💵 Nakit Ödeme Toplamı</span><span style="font-weight:800;color:#f97316;font-size:16px">${currSym()}${balance.toLocaleString()}</span></div>
+        <div class="stat-row"><span style="font-size:12px;color:#60a5fa">💳 Kart ile Ödeme (+%2)</span><span style="font-weight:700;color:#60a5fa;font-size:14px">${currSym()}${cardBalance.toLocaleString()}</span></div>
       </div>
       <div class="field" style="margin-top:12px"><label>${t.bookingNotes}</label><textarea id="pb-notes" rows="2">${b.notes||""}</textarea></div>
     </div>
