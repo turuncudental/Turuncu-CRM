@@ -740,7 +740,7 @@ function render(){
 }
 function renderTopbarActions(){
   const el=document.getElementById("topbar-actions");let html="";
-  if(canEdit()&&currentTab==="patients")html=`<button class="btn" onclick="openPatientModal(0)">${t.addPatient}</button>`;
+  if(canEdit()&&currentTab==="patients")html=`<div style="display:flex;gap:6px;align-items:center"><button onclick="patientViewMode=patientViewMode==='grid'?'list':'grid';render()" style="padding:6px 10px;border-radius:8px;border:1px solid #1a2236;background:#1a2236;color:#dde4ef;font-size:15px;cursor:pointer;line-height:1" title="${patientViewMode==='grid'?'Liste görünümü':'Grid görünümü'}">${patientViewMode==='grid'?'≡':'⊞'}</button><button class="btn" onclick="openPatientModal(0)">${t.addPatient}</button></div>`;
   else if(canEdit()&&currentTab==="events")html=`<button class="btn" onclick="openEventModal(0)">${t.addEvent}</button>`;
   else if(canEdit()&&currentTab==="appointments")html=`<button class="btn" onclick="openAppointmentModal()">${t.addAppointment}</button>`;
   else if(canEdit()&&currentTab==="treatments"){
@@ -808,6 +808,7 @@ function renderDashboard(){
 }
 // ==RENDER_PATIENTS==
 let filterStatus="all";
+let patientViewMode="grid";
 function renderPatients(){
   const statuses=["all","walkin","consultation","assessed","pricing","booked","cancelled"];
   const filtered=state.patients.filter(p=>{
@@ -822,11 +823,36 @@ function renderPatients(){
     <div class="status-tabs">${statuses.map(s=>`<button class="status-tab${filterStatus===s?" active":""}" onclick="setFilterStatus('${s}')">${s==="all"?"Tümü":statusLabel(s)} <span style="font-size:10px;opacity:.7">${counts[s]}</span></button>`).join("")}</div>
     <div class="empty">${t.noPatients}</div></div>`;
 
+  const statusBar=`<div class="status-tabs">${statuses.map(s=>`<button class="status-tab${filterStatus===s?" active":""}" onclick="setFilterStatus('${s}')">${s==="all"?"Tümü":statusLabel(s)} <span style="font-size:10px;opacity:.7">${counts[s]}</span></button>`).join("")}</div>`;
+  if(patientViewMode==='list'){
+    return`<div>
+      ${statusBar}
+      <table class="data-table" style="width:100%">
+        <thead><tr><th>Hasta</th><th>Ülke</th><th>Etkinlik</th><th>Durum</th><th>Teklif</th><th></th></tr></thead>
+        <tbody>${filtered.map(p=>{
+          const evt=getEvent(p.eventId);
+          const quote=bookingTotal(p);
+          return`<tr style="cursor:pointer" onclick="openPatient(${p.id})">
+            <td>
+              <div style="font-weight:700;font-size:13px">${p.name}</div>
+              <div style="font-size:11px;color:#4a607d">${p.phone||""}</div>
+            </td>
+            <td style="font-size:12px">${flag(p.country||"")} ${p.country||""}</td>
+            <td style="font-size:12px;color:#3d5270">${evt?evt.name:"—"}</td>
+            <td>${statusBadge(p.status)}</td>
+            <td style="font-weight:700;color:${quote>0?'#34d399':'#3d5270'}">${quote>0?currSym()+quote.toLocaleString():"—"}</td>
+            <td><button class="sm-btn" onclick="event.stopPropagation();openPatient(${p.id})">→</button></td>
+          </tr>`;
+        }).join("")}</tbody>
+      </table>
+    </div>`;
+  }
   return`<div>
-    <div class="status-tabs">${statuses.map(s=>`<button class="status-tab${filterStatus===s?" active":""}" onclick="setFilterStatus('${s}')">${s==="all"?"Tümü":statusLabel(s)} <span style="font-size:10px;opacity:.7">${counts[s]}</span></button>`).join("")}</div>
+    ${statusBar}
     <div class="grid3">${filtered.map(p=>{
       const sc=STATUS_COLORS[p.status]||"#4a607d";
       const evt=getEvent(p.eventId);
+      const quote=bookingTotal(p);
       return`<div class="card" style="cursor:pointer;transition:border-color .15s;border-color:#1a2236" onclick="openPatient(${p.id})" onmouseover="this.style.borderColor='#f97316'" onmouseout="this.style.borderColor='#1a2236'">
         <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px">
           <div style="width:42px;height:42px;border-radius:50%;background:${sc}22;display:flex;align-items:center;justify-content:center;font-size:17px;font-weight:800;color:${sc};border:2px solid ${sc}44;flex-shrink:0">${p.name[0]}</div>
@@ -836,6 +862,7 @@ function renderPatients(){
         <div style="font-size:13px;color:#4a607d;margin-bottom:6px">${flag(p.country)} ${p.country||""}</div>
         ${evt?`<div style="font-size:11px;color:#3d5270;margin-bottom:4px">📅 ${evt.name}</div>`:""}
         <div style="font-size:12px;color:#3d5270">${p.phone||""}</div>
+        ${quote>0?`<div style="font-size:12px;color:#34d399;font-weight:700;margin-top:6px">${currSym()}${quote.toLocaleString()}</div>`:""}
         ${p.consultation?.dentalConcerns?`<div style="font-size:11px;color:#4a607d;margin-top:7px;border-top:1px solid #1a2236;padding-top:7px;line-height:1.4;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical">${p.consultation.dentalConcerns}</div>`:""}
       </div>`;
     }).join("")}</div>
