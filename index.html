@@ -1073,9 +1073,9 @@ function renderPtAssessment(p){
   const cardBalance=Math.round(balance*1.02);
   const inStyle="width:60px;background:#131b2a;border:1px solid #1a2236;border-radius:6px;padding:3px 6px;color:#dde4ef;font-size:12px;text-align:center";
   const currBtn=['GBP','EUR','USD'].map(c=>`<button onclick="setCurrency('${c}')" style="padding:3px 10px;border-radius:14px;border:1px solid ${activeCurrency===c?'#f97316':'#1a2236'};background:${activeCurrency===c?'#f9731622':'#131b2a'};color:${activeCurrency===c?'#f97316':'#4a607d'};font-size:11px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif">${c==='GBP'?'£ GBP':c==='EUR'?'€ EUR':'$ USD'}</button>`).join('');
-  const activeBrushTx=activeTxBrush?allTxCatalog.find(t=>t.id===activeTxBrush):null;
+  const activeBrushTx=activeTxBrush&&activeTxBrush!=='__manual__'?allTxCatalog.find(t=>t.id===activeTxBrush):null;
   const isJawTxBrush=activeTxBrush&&!!JAW_PLAN_MAP[activeTxBrush];
-  const txBrushHint=activeBrushTx?(isJawTxBrush?`<div class="paint-hint">🦷 <strong>${activeBrushTx.name}</strong> aktif — çenedeki herhangi bir dişe tıkla (tüm çene otomatik ayarlanır), tekrar tıkla iptal</div>`:`<div class="paint-hint">🖌 <strong>${activeBrushTx.name}</strong> aktif — dişe tıkla, aynı dişe tekrar tıkla iptal</div>`):'';
+  const txBrushHint=activeTxBrush==='__manual__'?'':(activeBrushTx?(isJawTxBrush?`<div class="paint-hint">🦷 <strong>${activeBrushTx.name}</strong> aktif — çenedeki herhangi bir dişe tıkla (tüm çene otomatik ayarlanır), tekrar tıkla iptal</div>`:`<div class="paint-hint">🖌 <strong>${activeBrushTx.name}</strong> aktif — dişe tıkla, aynı dişe tekrar tıkla iptal</div>`):'');
   const paintHint=paintBrush&&paintBrush!=="healthy"?`<div class="paint-hint">${TOOTH_ICONS[paintBrush]||"○"} <strong>${condLabel(paintBrush)}</strong> fırçası aktif — dişlere tıkla, iptal için tekrar tıkla</div>`:paintBrush==="healthy"?`<div class="paint-hint">✕ <strong>Temizle</strong> fırçası aktif — tıklanan dişi sıfırlar</div>`:"";
   return`<div style="max-width:800px;display:flex;flex-direction:column;gap:14px">
     <div class="card">
@@ -1111,12 +1111,18 @@ function renderPtAssessment(p){
         <div class="tooth-chart-wrap">${lowerRow}</div>
       </div>
       <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:4px">
-        <select id="tx-brush-main" onchange="setTxBrush(+this.value||null)" style="background:#131b2a;border:1px solid ${activeTxBrush?'#f97316':'#1a2236'};border-radius:8px;padding:6px 10px;color:${activeTxBrush?'#f97316':'#dde4ef'};font-size:12px;outline:none;flex:1;min-width:200px">
+        <select id="tx-brush-main" onchange="setTxBrush(this.value)" style="background:#131b2a;border:1px solid ${activeTxBrush?'#f97316':'#1a2236'};border-radius:8px;padding:6px 10px;color:${activeTxBrush?'#f97316':'#dde4ef'};font-size:12px;outline:none;flex:1;min-width:200px">
           <option value="">— Tedavi Seçip Dişe Tıkla —</option>
+          <option value="__manual__"${activeTxBrush==='__manual__'?' selected':''}>✏️ Manuel Ekle...</option>
           ${allTxCatalog.map(tx=>`<option value="${tx.id}"${activeTxBrush===tx.id?' selected':''}>${tx.name} — ${currSym()}${getEffectivePrice(tx)}</option>`).join('')}
         </select>
         ${activeTxBrush?`<button onclick="setTxBrush(null)" style="padding:5px 12px;border-radius:8px;border:1px solid #ef444444;background:#2b0f0f;color:#ef4444;font-size:11px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif">✕ İptal</button>`:''}
       </div>
+      ${activeTxBrush==='__manual__'?`<div style="display:flex;gap:8px;align-items:center;margin-top:6px;flex-wrap:wrap">
+        <input id="pa-manual-name" placeholder="Tedavi adı" style="background:#131b2a;border:1px solid #1a2236;border-radius:8px;padding:6px 10px;color:#dde4ef;font-size:12px;outline:none;flex:1;min-width:150px"/>
+        <input id="pa-manual-price" type="number" min="0" placeholder="Fiyat" style="background:#131b2a;border:1px solid #1a2236;border-radius:8px;padding:6px 10px;color:#dde4ef;font-size:12px;outline:none;width:100px"/>
+        <button class="sm-btn success" onclick="addManualTreatment()">+ Ekle</button>
+      </div>`:''}
     </div>
     <div class="card">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;flex-wrap:wrap;gap:8px">
@@ -1149,18 +1155,6 @@ function renderPtAssessment(p){
           </tr>`;}).join('')}
         </tbody>
       </table>`:`<div style="font-size:12px;color:#3d5270;padding:6px 0">Yukarıdan tedavi seçip dişe tıklayın</div>`}
-      <div style="display:flex;gap:8px;align-items:center;margin-top:8px;flex-wrap:wrap">
-        <select id="pa-extra-tx" onchange="toggleManualExtraFields()" style="background:#131b2a;border:1px solid #1a2236;border-radius:8px;padding:6px 10px;color:#dde4ef;font-size:12px;outline:none;flex:1;min-width:180px">
-          <option value="">— Ekstra Tedavi Ekle —</option>
-          <option value="__manual__">✏️ Manuel Ekle...</option>
-          ${allTxCatalog.map(tx=>`<option value="${tx.id}">${tx.name} — ${currSym()}${getEffectivePrice(tx)}</option>`).join('')}
-        </select>
-        <button class="sm-btn success" onclick="addExtraTreatment()">+ Ekle</button>
-      </div>
-      <div id="pa-manual-fields" style="display:none;gap:8px;align-items:center;margin-top:6px;flex-wrap:wrap">
-        <input id="pa-manual-name" placeholder="Tedavi adı" style="background:#131b2a;border:1px solid #1a2236;border-radius:8px;padding:6px 10px;color:#dde4ef;font-size:12px;outline:none;flex:1;min-width:150px"/>
-        <input id="pa-manual-price" type="number" min="0" placeholder="Fiyat" style="background:#131b2a;border:1px solid #1a2236;border-radius:8px;padding:6px 10px;color:#dde4ef;font-size:12px;outline:none;width:100px"/>
-      </div>
     </div>
     <div class="card">
       <div class="section-title">🏨 ${t.bookingAccommodation}</div>
@@ -1250,7 +1244,7 @@ function renderPtAssessment(p){
 
 function toothClick(e,num){
   e.stopPropagation();
-  if(activeTxBrush!==null){applyTxToTooth(num,activeTxBrush);return;}
+  if(activeTxBrush!==null&&activeTxBrush!=='__manual__'){applyTxToTooth(num,activeTxBrush);return;}
   if(paintBrush!==null){setToothCond(num,paintBrush);return;}
   document.querySelectorAll(".tooth-popup").forEach(p=>p.remove());
   const p=getPatient(currentPatientId);if(!p)return;
@@ -1287,7 +1281,18 @@ function txToCondition(tx){
   if(cat==='Restorasyon'||cat==='Estetik'||name.includes('crown')||name.includes('veneer')||name.includes('laminate'))return'crown';
   return null;
 }
-function setTxBrush(txId){activeTxBrush=txId||null;paintBrush=null;renderPtBody();}
+function setTxBrush(txId){activeTxBrush=(txId==='__manual__')?'__manual__':(+txId||null);paintBrush=null;renderPtBody();}
+function addManualTreatment(){
+  const name=(document.getElementById('pa-manual-name')?.value||'').trim();
+  const price=+(document.getElementById('pa-manual-price')?.value)||0;
+  if(!name)return;
+  const p=getPatient(currentPatientId);if(!p)return;
+  if(!p.assessment)p.assessment={};
+  if(!p.assessment.planExtras)p.assessment.planExtras={};
+  if(!p.assessment.planExtras[activePlan])p.assessment.planExtras[activePlan]=[];
+  p.assessment.planExtras[activePlan].push({customName:name,price,qty:1});
+  persist("customers");renderPtBody();
+}
 function applyTxToTooth(num,txId){
   document.querySelectorAll(".tooth-popup").forEach(p=>p.remove());
   const p=getPatient(currentPatientId);if(!p)return;
@@ -1357,29 +1362,6 @@ function setTxOverride(plan,num,cond,txId){
   const key=`${plan}_${num}_${cond}`;
   if(+txId)p.assessment.txOverrides[key]=+txId;
   else delete p.assessment.txOverrides[key];
-  persist("customers");renderPtBody();
-}
-function toggleManualExtraFields(){
-  const sel=document.getElementById('pa-extra-tx');
-  const fields=document.getElementById('pa-manual-fields');
-  if(fields)fields.style.display=sel?.value==='__manual__'?'flex':'none';
-}
-function addExtraTreatment(){
-  const sel=document.getElementById('pa-extra-tx');if(!sel||!sel.value)return;
-  const p=getPatient(currentPatientId);if(!p)return;
-  if(!p.assessment)p.assessment={};
-  if(!p.assessment.planExtras)p.assessment.planExtras={};
-  if(!p.assessment.planExtras[activePlan])p.assessment.planExtras[activePlan]=[];
-  if(sel.value==='__manual__'){
-    const name=(document.getElementById('pa-manual-name')?.value||'').trim();
-    const price=+(document.getElementById('pa-manual-price')?.value)||0;
-    if(!name)return;
-    p.assessment.planExtras[activePlan].push({customName:name,price,qty:1});
-  } else {
-    const txId=+sel.value;
-    const tr=getTreatment(txId);if(!tr)return;
-    p.assessment.planExtras[activePlan].push({txId,qty:1,price:getEffectivePrice(tr)});
-  }
   persist("customers");renderPtBody();
 }
 function removeExtraTreatment(idx){
