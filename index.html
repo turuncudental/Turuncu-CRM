@@ -2325,23 +2325,23 @@ async function downloadQuotePDF(patientId){
       <thead><tr style="background:#f97316">
         <th style="padding:9px 12px;text-align:left;font-size:10px;font-weight:700;color:#fff">TEDAVİ</th>
         <th style="padding:9px 12px;text-align:center;font-size:10px;font-weight:700;color:#fff;width:60px">ADET</th>
-        <th style="padding:9px 12px;text-align:right;font-size:10px;font-weight:700;color:#fff;width:120px">BİRİM FİYAT</th>
-        <th style="padding:9px 12px;text-align:right;font-size:10px;font-weight:700;color:#fff;width:120px">TOPLAM</th>
+        <th class="qp-price" style="padding:9px 12px;text-align:right;font-size:10px;font-weight:700;color:#fff;width:120px">BİRİM FİYAT</th>
+        <th class="qp-price" style="padding:9px 12px;text-align:right;font-size:10px;font-weight:700;color:#fff;width:120px">TOPLAM</th>
       </tr></thead>
       <tbody>${rows.length?rows.map((r,i)=>`<tr style="background:${i%2?"#fff8f0":"#fff"}">
         <td style="padding:9px 12px;font-size:12px">${r.name}</td>
         <td style="padding:9px 12px;text-align:center;font-size:12px;color:#555">${r.qty}</td>
-        <td style="padding:9px 12px;text-align:right;font-size:12px;color:#555">${currSym()}${(r.price||0).toLocaleString()}</td>
-        <td style="padding:9px 12px;text-align:right;font-size:12px;font-weight:700">${currSym()}${(r.qty*r.price).toLocaleString()}</td>
+        <td class="qp-price" style="padding:9px 12px;text-align:right;font-size:12px;color:#555">${currSym()}${(r.price||0).toLocaleString()}</td>
+        <td class="qp-price" style="padding:9px 12px;text-align:right;font-size:12px;font-weight:700">${currSym()}${(r.qty*r.price).toLocaleString()}</td>
       </tr>`).join(""):`<tr><td colspan="4" style="padding:16px;text-align:center;color:#888;font-size:12px">Tedavi seçilmemiş</td></tr>`}</tbody>
     </table>
     <div style="display:flex;justify-content:flex-end;margin-bottom:20px">
       <div style="min-width:220px">
-        <div style="display:flex;justify-content:space-between;padding:7px 12px;background:#f8f9fa;border:1px solid #e9ecef;border-bottom:none;border-radius:4px 4px 0 0"><span style="font-size:11px;color:#777">Ara Toplam</span><span style="font-size:12px;font-weight:600">${currSym()}${sub.toLocaleString()}</span></div>
-        ${b.discount?`<div style="display:flex;justify-content:space-between;padding:7px 12px;background:#f8f9fa;border:1px solid #e9ecef;border-bottom:none"><span style="font-size:11px;color:#777">İndirim</span><span style="font-size:12px;font-weight:600;color:#e55">-${currSym()}${(b.discount).toLocaleString()}</span></div>`:""}
-        <div style="display:flex;justify-content:space-between;padding:8px 12px;background:#f97316;border-radius:0 0 4px 4px"><span style="font-size:12px;font-weight:700;color:#fff">TOPLAM</span><span style="font-size:14px;font-weight:900;color:#fff">${currSym()}${total.toLocaleString()}</span></div>
-        ${b.deposit?`<div style="display:flex;justify-content:space-between;padding:7px 12px;background:#f0fff4;border:1px solid #c6f6d5;border-top:none;border-radius:0 0 4px 4px"><span style="font-size:11px;color:#777">Alınan Ön Ödeme</span><span style="font-size:12px;font-weight:600;color:#22863a">${currSym()}${(b.deposit).toLocaleString()}</span></div>
-        <div style="display:flex;justify-content:space-between;padding:7px 12px;background:#fff8f0;border:1px solid #fed7aa;border-top:none;border-radius:0 0 4px 4px"><span style="font-size:11px;color:#777">Kalan Ödeme</span><span style="font-size:12px;font-weight:600;color:#c2410c">${currSym()}${balance.toLocaleString()}</span></div>`:""}
+        <div class="qp-price" style="display:flex;justify-content:space-between;padding:7px 12px;background:#f8f9fa;border:1px solid #e9ecef;border-bottom:none;border-radius:4px 4px 0 0"><span style="font-size:11px;color:#777">Ara Toplam</span><span style="font-size:12px;font-weight:600">${currSym()}${sub.toLocaleString()}</span></div>
+        ${b.discount?`<div class="qp-price" style="display:flex;justify-content:space-between;padding:7px 12px;background:#f8f9fa;border:1px solid #e9ecef;border-bottom:none"><span style="font-size:11px;color:#777">İndirim</span><span style="font-size:12px;font-weight:600;color:#e55">-${currSym()}${(b.discount).toLocaleString()}</span></div>`:""}
+        <div style="display:flex;justify-content:space-between;padding:8px 12px;background:#f97316;border-radius:4px"><span style="font-size:12px;font-weight:700;color:#fff">TOPLAM</span><span style="font-size:14px;font-weight:900;color:#fff">${currSym()}${total.toLocaleString()}</span></div>
+        ${b.deposit?`<div class="qp-price" style="display:flex;justify-content:space-between;padding:7px 12px;background:#f0fff4;border:1px solid #c6f6d5;border-top:none;border-radius:0 0 4px 4px"><span style="font-size:11px;color:#777">Alınan Ön Ödeme</span><span style="font-size:12px;font-weight:600;color:#22863a">${currSym()}${(b.deposit).toLocaleString()}</span></div>
+        <div class="qp-price" style="display:flex;justify-content:space-between;padding:7px 12px;background:#fff8f0;border:1px solid #fed7aa;border-top:none;border-radius:0 0 4px 4px"><span style="font-size:11px;color:#777">Kalan Ödeme</span><span style="font-size:12px;font-weight:600;color:#c2410c">${currSym()}${balance.toLocaleString()}</span></div>`:""}
       </div>
     </div>
     ${(b.accommodations||[]).length||(b.travels||[]).length?`<div style="background:#f8f9fa;border-left:3px solid #f97316;padding:12px 16px;border-radius:0 6px 6px 0;margin-bottom:16px">
@@ -2352,14 +2352,20 @@ async function downloadQuotePDF(patientId){
     <div style="margin-top:24px;padding-top:12px;border-top:1px solid #e9ecef;text-align:center;font-size:9px;color:#aaa">
       Hazırlayan: ${currentUser.display_name||currentUser.username} · Tarih: ${dateStr} · Turuncu Dental CRM
     </div>`;
-  // Show preview overlay with Close and Print buttons
+  // Inject hide-prices style (default: hidden)
+  const priceStyle=document.createElement('style');
+  priceStyle.id='quote-price-style';
+  priceStyle.textContent='.qp-price{display:none!important}';
+  el.prepend(priceStyle);
+
   const ov=document.createElement('div');
   ov.id='quote-overlay';
   ov.style.cssText='position:fixed;inset:0;background:#000000bb;z-index:5000;display:flex;flex-direction:column;overflow-y:auto;padding:16px;box-sizing:border-box';
   const btnBar=document.createElement('div');
   btnBar.id='quote-print-btns';
-  btnBar.style.cssText='display:flex;gap:10px;justify-content:flex-end;margin-bottom:12px;flex-shrink:0';
+  btnBar.style.cssText='display:flex;gap:10px;justify-content:flex-end;flex-wrap:wrap;margin-bottom:12px;flex-shrink:0';
   btnBar.innerHTML=`
+    <button id="quote-toggle-prices" onclick="(function(){const s=document.getElementById('quote-price-style');const hidden=s.textContent.includes('none');s.textContent=hidden?'':'.qp-price{display:none!important}';document.getElementById('quote-toggle-prices').textContent=hidden?'🙈 Fiyatları Gizle':'👁 Fiyatları Göster';})()" style="padding:9px 20px;border-radius:8px;border:1px solid #60a5fa44;background:#0a1a2e;color:#60a5fa;font-size:13px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif">👁 Fiyatları Göster</button>
     <button onclick="document.getElementById('quote-overlay').remove()" style="padding:9px 20px;border-radius:8px;border:1px solid #dde4ef44;background:#1a2236;color:#dde4ef;font-size:13px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif">✕ Kapat</button>
     <button onclick="window.print()" style="padding:9px 20px;border-radius:8px;border:none;background:#f97316;color:#fff;font-size:13px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif">🖨 Yazdır / PDF</button>`;
   el.style.cssText='background:#fff;font-family:Arial,Helvetica,sans-serif;padding:48px;color:#1a1a2e;box-sizing:border-box;max-width:794px;width:100%;margin:0 auto;border-radius:8px;';
