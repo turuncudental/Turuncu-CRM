@@ -492,6 +492,8 @@ let currentEventDetailId=null;
 let eventDetailViewMode="grid";
 let chartMode="treatmentPlan";
 let activePlan="treatmentPlan";
+let ptVisitTab=0;
+function setVisitTab(n){ptVisitTab=n;renderPtBody();}
 let activeCurrency='GBP';
 const CURR_SYM={GBP:'£',EUR:'€',USD:'$'};
 function currSym(){return CURR_SYM[activeCurrency]||'£';}
@@ -1587,27 +1589,30 @@ function renderPtBooking(p){
 
     <div class="card">
       <div class="section-title">🏨 ${t.bookingAccommodation}</div>
+      ${isImplant?`<div style="display:flex;gap:6px;margin-bottom:12px">
+        ${[0,1].map(i=>{const vn=(b.visits||[])[i]?.nights;return`<button onclick="setVisitTab(${i})" style="flex:1;padding:8px 12px;border-radius:8px;border:1px solid ${ptVisitTab===i?'#f97316':'#1a2236'};background:${ptVisitTab===i?'#f9731622':'#131b2a'};color:${ptVisitTab===i?'#f97316':'#4a607d'};font-size:12px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif">${i+1}. Visit${vn?` — ${vn} gece`:''}</button>`;}).join('')}
+      </div>`:''}
       <div style="display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap">
         <select id="pb-accom-sel" style="background:#131b2a;border:1px solid #1a2236;border-radius:8px;padding:6px 10px;color:#dde4ef;font-size:12px;outline:none;flex:1;min-width:180px">
           <option value="">— Tesis Seçin —</option>
           ${activeAc.map(a=>`<option value="${a.id}">${a.name} (${a.category}) — ${currSym()}${a.salePrice}/gece</option>`).join("")}
         </select>
         <div style="display:flex;align-items:center;gap:6px">
-          <input type="number" id="pb-accom-nights" min="1" value="3" style="${inStyle};width:54px"/>
+          <input type="number" id="pb-accom-nights" min="1" value="${isImplant?((b.visits||[])[ptVisitTab]?.nights||3):3}" style="${inStyle};width:54px"/>
           <span style="font-size:12px;color:#4a607d">${t.nights}</span>
         </div>
         <button class="sm-btn success" onclick="addBookingAccommodation()">+ Ekle</button>
       </div>
-      ${(b.accommodations||[]).length?`<table class="data-table" style="width:100%">
+      ${(()=>{const list=(b.accommodations||[]).filter((a,i)=>!isImplant||(a.visit??0)===ptVisitTab);const allIdxs=(b.accommodations||[]).map((_,i)=>i).filter(i=>!isImplant||((b.accommodations[i].visit??0)===ptVisitTab));return list.length?`<table class="data-table" style="width:100%">
         <thead><tr><th>${t.aname}</th><th>${t.nights}</th><th>${t.pricePerNight}</th><th>Toplam</th><th></th></tr></thead>
-        <tbody>${(b.accommodations||[]).map((a,i)=>`<tr>
+        <tbody>${list.map((a,li)=>`<tr>
           <td style="font-weight:600">🏨 ${a.name}</td>
-          <td><input type="number" min="1" value="${a.nights||1}" onchange="updateBookingQty('accommodations',${i},+this.value,'nights')" style="${inStyle}"/></td>
+          <td><input type="number" min="1" value="${a.nights||1}" onchange="updateBookingQty('accommodations',${allIdxs[li]},+this.value,'nights')" style="${inStyle}"/></td>
           <td>${currSym()}${(a.pricePerNight||0).toLocaleString()}</td>
           <td style="font-weight:700;color:#60a5fa">${currSym()}${((a.nights||1)*(a.pricePerNight||0)).toLocaleString()}</td>
-          <td><button class="sm-btn danger" onclick="removeBookingItem('accommodations',${i})">✕</button></td>
+          <td><button class="sm-btn danger" onclick="removeBookingItem('accommodations',${allIdxs[li]})">✕</button></td>
         </tr>`).join("")}</tbody>
-      </table>`:""}
+      </table>`:'';})()}
     </div>
 
     <div class="card">
@@ -2132,7 +2137,8 @@ function addBookingAccommodation(){
   const nights=+document.getElementById("pb-accom-nights")?.value||1;
   const prov=getTreatment(id);if(!prov)return;
   ensureBooking(p);
-  p.booking.accommodations.push({providerId:prov.id,name:prov.name,nights,pricePerNight:getEffectivePrice(prov)});
+  const visitTag=hasImplantInPlan(p)?ptVisitTab:undefined;
+  p.booking.accommodations.push({providerId:prov.id,name:prov.name,nights,pricePerNight:getEffectivePrice(prov),...(visitTag!=null?{visit:visitTag}:{})});
   persist("customers");renderPtBody();
 }
 function addBookingTravel(){
@@ -2318,6 +2324,14 @@ async function deleteUser(id){
 async function downloadQuotePDF(patientId){
   const p=getPatient(patientId);if(!p)return;
   const a=p.assessment||{};const b=p.booking||{};
+  // Warn if accommodation or transfer is missing before generating PDF
+  const _pdfWarnings=[];
+  if(!(b.accommodations||[]).length) _pdfWarnings.push('🏨 Konaklama seçilmedi');
+  if(!(b.travels||[]).length) _pdfWarnings.push('✈️ Transfer seçilmedi');
+  if(_pdfWarnings.length){
+    const _warnMsg='⚠️ Eksik bilgi:<br><br>• '+_pdfWarnings.join('<br>• ')+'<br><br>Yine de teklif oluşturulsun mu?';
+    if(!await confirmDialog(_warnMsg))return;
+  }
   const planKey=a.activePlan||'treatmentPlan';
   const allTx=state.treatments.filter(tx=>tx.type==='treatment'&&tx.active);
 
