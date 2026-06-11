@@ -644,15 +644,15 @@ function getCatalogByType(type){return state.treatments.filter(tr=>(tr.type||"tr
 function condLabel(k){return{healthy:t.condHealthy,cavity:t.condCavity,crown:t.condCrown,zircrown:"Zirkon/E-Max",missing:t.condMissing,implant:t.condImplant,root_canal:t.condRootCanal,veneer:t.condVeneer,filling:t.condFilling,bridge:t.condBridge,extraction:t.condExtraction,root:t.condRoot}[k]||k;}
 function updateFooter(){if(!currentUser)return;document.getElementById("sidebar-footer").textContent=`${state.patients.length} ${t.footerPatients} · ${state.patients.filter(p=>p.status==="booked").length} ${t.footerBooked}`;}
 
-// ── SUPABASE CRUD  (localStorage = primary; Supabase = initial seed only)
+// ── SUPABASE CRUD  (Supabase = primary; localStorage = offline fallback)
 async function dbGet(table){
-  // localStorage is always the source of truth once it has data
-  try{const local=localStorage.getItem("crm_"+table);if(local)return JSON.parse(local);}catch{}
-  // First use: pull from Supabase to seed localStorage
+  // Always fetch fresh data from Supabase
   try{
     const r=await fetch(`${SUPA_URL}/rest/v1/${table}?select=*`,{headers:H});
     if(r.ok){const rows=await r.json();if(rows&&rows.length>0){localStorage.setItem("crm_"+table,JSON.stringify(rows));return rows;}}
   }catch{}
+  // Offline fallback: use localStorage cache
+  try{const local=localStorage.getItem("crm_"+table);if(local)return JSON.parse(local);}catch{}
   return null;
 }
 async function dbSet(table,data){
@@ -720,6 +720,14 @@ async function showApp(){
   await loadAll();
   if(canManageUsers()){document.getElementById("nav-users").style.display="";await loadUsers();}
   render();
+  // Arka planda her 90 saniyede veriyi Supabase'den yenile
+  if(window._syncInterval)clearInterval(window._syncInterval);
+  window._syncInterval=setInterval(async()=>{
+    if(document.hidden)return;
+    const before=JSON.stringify({p:state.patients,e:state.events,a:state.appointments});
+    await loadAll();
+    if(JSON.stringify({p:state.patients,e:state.events,a:state.appointments})!==before)render();
+  },90000);
 }
 
 // ── LANG
