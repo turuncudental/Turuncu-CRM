@@ -2272,9 +2272,36 @@ async function deleteUser(id){
 // ── PDF QUOTE
 async function downloadQuotePDF(patientId){
   const p=getPatient(patientId);if(!p)return;
-  const b=p.booking||{};const treatments=b.treatments||[];
-  const txSub=treatments.reduce((s,tr)=>s+(tr.qty||1)*(tr.price||0),0);
-  const acSub=(b.accommodations||[]).reduce((s,a)=>s+(a.nights||1)*(a.pricePerNight||0),0);
+  const a=p.assessment||{};const b=p.booking||{};
+  const planKey=a.activePlan||'treatmentPlan';
+  const allTx=state.treatments.filter(tx=>tx.type==='treatment'&&tx.active);
+
+  // Build treatment rows from active plan
+  const rows=[];
+  // Jaw-level treatments
+  const jawTxMap=(a.jawTx||{})[planKey]||{};
+  Object.entries(jawTxMap).forEach(([jaw,txId])=>{
+    const tx=allTx.find(t=>t.id===+txId);if(!tx)return;
+    const jawLabel=jaw==='upper'?'Üst Çene':'Alt Çene';
+    rows.push({name:`${tx.name} (${jawLabel})`,qty:1,price:getEffectivePrice(tx)});
+  });
+  // Per-tooth treatments (grouped by tx)
+  const toothTxMap=(a.toothTx||{})[planKey]||{};
+  const txGroups={};
+  Object.values(toothTxMap).forEach(txId=>{const k=+txId;txGroups[k]=(txGroups[k]||0)+1;});
+  Object.entries(txGroups).forEach(([txId,cnt])=>{
+    const tx=allTx.find(t=>t.id===+txId);if(!tx)return;
+    rows.push({name:tx.name,qty:cnt,price:getEffectivePrice(tx)});
+  });
+  // Extras
+  const extras=(a.planExtras||{})[planKey]||[];
+  extras.forEach(e=>{
+    if(e.customName){rows.push({name:e.customName,qty:e.qty||1,price:e.price||0});}
+    else{const tx=allTx.find(t=>t.id===e.txId);if(tx)rows.push({name:tx.name,qty:e.qty||1,price:getEffectivePrice(tx)});}
+  });
+
+  const txSub=rows.reduce((s,r)=>s+r.qty*r.price,0);
+  const acSub=(b.accommodations||[]).reduce((s,ac)=>s+(ac.nights||1)*(ac.pricePerNight||0),0);
   const trSub=(b.travels||[]).reduce((s,tr)=>s+(tr.persons||1)*(tr.price||0),0);
   const sub=txSub+acSub+trSub;
   const total=sub-(b.discount||0);const balance=total-(b.deposit||0);
@@ -2300,11 +2327,11 @@ async function downloadQuotePDF(patientId){
         <th style="padding:9px 12px;text-align:right;font-size:10px;font-weight:700;color:#fff;width:120px">BİRİM FİYAT</th>
         <th style="padding:9px 12px;text-align:right;font-size:10px;font-weight:700;color:#fff;width:120px">TOPLAM</th>
       </tr></thead>
-      <tbody>${treatments.length?treatments.map((tr,i)=>`<tr style="background:${i%2?"#fff8f0":"#fff"}">
-        <td style="padding:9px 12px;font-size:12px">${tr.name}</td>
-        <td style="padding:9px 12px;text-align:center;font-size:12px;color:#555">${tr.qty||1}</td>
-        <td style="padding:9px 12px;text-align:right;font-size:12px;color:#555">${currSym()}${(tr.price||0).toLocaleString()}</td>
-        <td style="padding:9px 12px;text-align:right;font-size:12px;font-weight:700">${currSym()}${((tr.qty||1)*(tr.price||0)).toLocaleString()}</td>
+      <tbody>${rows.length?rows.map((r,i)=>`<tr style="background:${i%2?"#fff8f0":"#fff"}">
+        <td style="padding:9px 12px;font-size:12px">${r.name}</td>
+        <td style="padding:9px 12px;text-align:center;font-size:12px;color:#555">${r.qty}</td>
+        <td style="padding:9px 12px;text-align:right;font-size:12px;color:#555">${currSym()}${(r.price||0).toLocaleString()}</td>
+        <td style="padding:9px 12px;text-align:right;font-size:12px;font-weight:700">${currSym()}${(r.qty*r.price).toLocaleString()}</td>
       </tr>`).join(""):`<tr><td colspan="4" style="padding:16px;text-align:center;color:#888;font-size:12px">Tedavi seçilmemiş</td></tr>`}</tbody>
     </table>
     <div style="display:flex;justify-content:flex-end;margin-bottom:20px">
@@ -2318,7 +2345,7 @@ async function downloadQuotePDF(patientId){
     </div>
     ${(b.accommodations||[]).length||(b.travels||[]).length?`<div style="background:#f8f9fa;border-left:3px solid #f97316;padding:12px 16px;border-radius:0 6px 6px 0;margin-bottom:16px">
       <div style="font-size:9px;font-weight:700;color:#f97316;letter-spacing:1px;margin-bottom:8px">SEYAHAT & KONAKLAMA</div>
-      ${(b.accommodations||[]).map(a=>`<div style="font-size:12px;color:#555;margin-bottom:3px">🏨 ${a.name} — ${a.nights} gece × ${currSym()}${a.pricePerNight} = <strong>${currSym()}${((a.nights||1)*(a.pricePerNight||0)).toLocaleString()}</strong></div>`).join("")}
+      ${(b.accommodations||[]).map(ac=>`<div style="font-size:12px;color:#555;margin-bottom:3px">🏨 ${ac.name} — ${ac.nights} gece × ${currSym()}${ac.pricePerNight} = <strong>${currSym()}${((ac.nights||1)*(ac.pricePerNight||0)).toLocaleString()}</strong></div>`).join("")}
       ${(b.travels||[]).map(tr=>`<div style="font-size:12px;color:#555;margin-bottom:3px">✈️ ${tr.name} — ${tr.persons} kişi × ${currSym()}${tr.price} = <strong>${currSym()}${((tr.persons||1)*(tr.price||0)).toLocaleString()}</strong></div>`).join("")}
     </div>`:""}
     <div style="margin-top:24px;padding-top:12px;border-top:1px solid #e9ecef;text-align:center;font-size:9px;color:#aaa">
