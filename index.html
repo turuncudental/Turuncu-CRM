@@ -1515,14 +1515,34 @@ function setPaintBrush(k){
   renderPtBody();
 }
 
+function hasImplantInPlan(p){
+  const a=p.assessment||{};const planKey=a.activePlan||'treatmentPlan';
+  const allTx=state.treatments.filter(tx=>tx.type==='treatment'&&tx.active);
+  const toothMap=(a.toothTx||{})[planKey]||{};const jawMap=(a.jawTx||{})[planKey]||{};
+  return Object.values(toothMap).some(id=>{const tx=allTx.find(t=>t.id===+id);return tx?.category==='İmplant';})
+      ||Object.values(jawMap).some(id=>{const tx=allTx.find(t=>t.id===+id);return tx?.category==='İmplant';})
+      ||Object.values((a[planKey])||{}).includes('implant');
+}
+function setVisitNights(visitIdx,val){
+  const p=getPatient(currentPatientId);if(!p)return;
+  if(!p.booking)p.booking={};
+  if(!p.booking.visits)p.booking.visits=[{nights:null},{nights:null}];
+  p.booking.visits[visitIdx]={nights:val===''||val===null?null:+val};
+  persist("customers");renderPtBody();
+}
 function renderPtBooking(p){
   const b=p.booking||{treatments:[],accommodations:[],travels:[],discount:0,deposit:0,notes:""};
   const txSub=(b.treatments||[]).reduce((s,tr)=>s+(tr.qty||1)*(tr.price||0),0);
   const acSub=(b.accommodations||[]).reduce((s,a)=>s+(a.nights||1)*(a.pricePerNight||0),0);
   const trSub=(b.travels||[]).reduce((s,tr)=>s+(tr.persons||1)*(tr.price||0),0);
   const sub=txSub+acSub+trSub;
-  const total=sub-(b.discount||0);
+  const discountAmt=b.discount||0;const discountRate=b.discountRate||0;
+  const total=sub-discountAmt;
   const balance=total-(b.deposit||0);
+  const cardBalance=Math.round(balance*1.02);
+  const isImplant=hasImplantInPlan(p);
+  const visits=b.visits||(isImplant?[{nights:null},{nights:null}]:[]);
+  const visitWarning=isImplant&&visits.some(v=>!v||!v.nights);
   const activeTx=getCatalogByType("treatment");
   const activeAc=getCatalogByType("accommodation");
   const activeTr=getCatalogByType("travel");
@@ -1547,6 +1567,23 @@ function renderPtBooking(p){
         </tr>`).join("")}</tbody>
       </table>`:`<div style="font-size:12px;color:#3d5270;padding:4px 0">${t.noTreatmentSelected}</div>`}
     </div>
+
+    ${(isImplant||visits.length>0)?`<div class="card" style="${visitWarning?'border-color:#ef444466;':''}">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;flex-wrap:wrap">
+        <div class="section-title" style="margin-bottom:0">🏥 Visit Planlaması</div>
+        ${isImplant?'<span style="font-size:10px;background:#60a5fa22;border:1px solid #60a5fa44;color:#60a5fa;padding:2px 8px;border-radius:20px;font-weight:700">İmplant → 2 Visit</span>':''}
+        ${visitWarning?'<span style="font-size:10px;background:#ef444422;border:1px solid #ef444444;color:#ef4444;padding:2px 8px;border-radius:20px;font-weight:700">⚠ Gece sayısı girilmedi!</span>':''}
+      </div>
+      ${(isImplant?[0,1]:[0]).map(i=>{const v=(b.visits||[])[i]||{nights:null};return`<div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;padding:10px 12px;background:${v.nights?'#0a2a1a':'#131b2a'};border:1px solid ${v.nights?'#22c55e44':'#1a2236'};border-radius:8px;flex-wrap:wrap">
+        <div style="font-size:12px;font-weight:800;color:#dde4ef;min-width:65px">${i+1}. Visit</div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center">
+          ${[3,4,5,6,7,10].map(n=>`<button onclick="setVisitNights(${i},${n})" style="padding:4px 11px;border-radius:16px;border:1px solid ${v.nights===n?'#22c55e':'#1a2236'};background:${v.nights===n?'#22c55e22':'#0d1320'};color:${v.nights===n?'#22c55e':'#4a607d'};font-size:11px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif">${n} gece</button>`).join('')}
+          <input type="number" min="1" value="${v.nights||''}" placeholder="?" onchange="setVisitNights(${i},this.value)" style="width:54px;background:#0d1320;border:1px solid #1a2236;border-radius:6px;padding:4px 6px;color:#dde4ef;font-size:12px;text-align:center"/>
+        </div>
+        <div style="margin-left:auto;font-size:11px;font-weight:700;color:${v.nights?'#22c55e':'#ef4444'}">${v.nights?v.nights+' gece ✓':'Girilmedi ✕'}</div>
+      </div>`;}).join('')}
+      ${visitWarning?`<div style="background:#2b0f0f;border:1px solid #ef444444;border-radius:8px;padding:10px 12px;font-size:12px;color:#ef4444;font-weight:600;margin-top:4px">⚠️ İmplant tedavisi olan hastalar en az 2 visit gelmeli. Her iki visit için konaklama gece sayısını seçin!</div>`:''}
+    </div>`:''}
 
     <div class="card">
       <div class="section-title">🏨 ${t.bookingAccommodation}</div>
@@ -1620,6 +1657,13 @@ function renderPtBooking(p){
         <div style="border-top:2px solid #f97316;margin:8px 0"></div>
         <div class="stat-row"><span style="font-weight:700;color:#dde4ef">💵 Nakit Ödeme Toplamı</span><span style="font-weight:800;color:#f97316;font-size:16px">${currSym()}${balance.toLocaleString()}</span></div>
         <div class="stat-row"><span style="font-size:12px;color:#60a5fa">💳 Kart ile Ödeme (+%2)</span><span style="font-weight:700;color:#60a5fa;font-size:14px">${currSym()}${cardBalance.toLocaleString()}</span></div>
+        ${isImplant?`<div style="border-top:1px solid #1a2236;margin:10px 0 6px"></div>
+        <div style="font-size:10px;color:#4a607d;font-weight:700;margin-bottom:6px;letter-spacing:.5px">2 VİSİT ÖDEME PLANI</div>
+        <div class="stat-row" style="background:#0d2b1a;border-radius:6px;padding:6px 10px;margin-bottom:4px"><span style="font-size:12px;font-weight:700;color:#34d399">1. Visit (%60) — Nakit</span><span style="font-weight:800;color:#34d399">${currSym()}${Math.round(balance*0.6).toLocaleString()}</span></div>
+        <div class="stat-row" style="background:#0a1a2e;border-radius:6px;padding:6px 10px;margin-bottom:4px"><span style="font-size:11px;color:#60a5fa">1. Visit (%60) — Kart</span><span style="font-weight:700;color:#60a5fa">${currSym()}${Math.round(balance*0.6*1.02).toLocaleString()}</span></div>
+        <div class="stat-row" style="background:#0d2b1a;border-radius:6px;padding:6px 10px;margin-bottom:4px"><span style="font-size:12px;font-weight:700;color:#34d399">2. Visit (%40) — Nakit</span><span style="font-weight:800;color:#34d399">${currSym()}${Math.round(balance*0.4).toLocaleString()}</span></div>
+        <div class="stat-row" style="background:#0a1a2e;border-radius:6px;padding:6px 10px"><span style="font-size:11px;color:#60a5fa">2. Visit (%40) — Kart</span><span style="font-weight:700;color:#60a5fa">${currSym()}${Math.round(balance*0.4*1.02).toLocaleString()}</span></div>`:''}
+
       </div>
       <div class="field" style="margin-top:12px"><label>${t.bookingNotes}</label><textarea id="pb-notes" rows="2">${b.notes||""}</textarea></div>
     </div>
@@ -2345,7 +2389,14 @@ async function downloadQuotePDF(patientId){
         <div style="display:flex;justify-content:space-between;padding:8px 12px;background:#f97316;border-radius:4px;margin-top:2px"><span style="font-size:12px;font-weight:700;color:#fff">💵 Nakit Ödeme</span><span style="font-size:14px;font-weight:900;color:#fff">${currSym()}${total.toLocaleString()}</span></div>
         <div style="display:flex;justify-content:space-between;padding:7px 12px;background:#e8f0fe;border:1px solid #c7d7f9;border-top:none;border-radius:0 0 4px 4px;margin-bottom:6px"><span style="font-size:11px;color:#3b5bdb;font-weight:600">💳 Kart ile Ödeme (+%2)</span><span style="font-size:12px;font-weight:700;color:#3b5bdb">${currSym()}${Math.round(total*1.02).toLocaleString()}</span></div>
         ${b.deposit?`<div style="display:flex;justify-content:space-between;padding:7px 12px;background:#f0fff4;border:1px solid #c6f6d5;border-radius:4px 4px 0 0"><span style="font-size:11px;color:#777">Alınan Ön Ödeme (Deposit)</span><span style="font-size:12px;font-weight:600;color:#22863a">${currSym()}${(b.deposit).toLocaleString()}</span></div>
-        <div style="display:flex;justify-content:space-between;padding:7px 12px;background:#fff8f0;border:1px solid #fed7aa;border-top:none;border-radius:0 0 4px 4px"><span style="font-size:11px;color:#777;font-weight:600">Kalan Nakit Ödeme</span><span style="font-size:13px;font-weight:800;color:#c2410c">${currSym()}${balance.toLocaleString()}</span></div>`:""}
+        <div style="display:flex;justify-content:space-between;padding:7px 12px;background:#fff8f0;border:1px solid #fed7aa;border-top:none;border-radius:0 0 4px 4px;margin-bottom:6px"><span style="font-size:11px;color:#777;font-weight:600">Kalan Nakit Ödeme</span><span style="font-size:13px;font-weight:800;color:#c2410c">${currSym()}${balance.toLocaleString()}</span></div>`:""}
+        ${hasImplantInPlan(p)?`<div style="border-top:2px solid #e9ecef;margin:8px 0 6px"></div>
+        <div style="font-size:9px;font-weight:700;color:#f97316;letter-spacing:1px;margin-bottom:6px">2 VİSİT ÖDEME PLANI</div>
+        <div style="display:flex;justify-content:space-between;padding:7px 12px;background:#f0fff4;border:1px solid #c6f6d5;border-radius:4px 4px 0 0"><span style="font-size:11px;color:#333;font-weight:700">1. Visit — %60 Nakit</span><span style="font-size:12px;font-weight:800;color:#166534">${currSym()}${Math.round(balance*0.6).toLocaleString()}</span></div>
+        <div style="display:flex;justify-content:space-between;padding:6px 12px;background:#eff6ff;border:1px solid #bfdbfe;border-top:none"><span style="font-size:10px;color:#1d4ed8">1. Visit — %60 Kart</span><span style="font-size:11px;font-weight:700;color:#1d4ed8">${currSym()}${Math.round(balance*0.6*1.02).toLocaleString()}</span></div>
+        <div style="display:flex;justify-content:space-between;padding:7px 12px;background:#f0fff4;border:1px solid #c6f6d5;border-top:none"><span style="font-size:11px;color:#333;font-weight:700">2. Visit — %40 Nakit</span><span style="font-size:12px;font-weight:800;color:#166534">${currSym()}${Math.round(balance*0.4).toLocaleString()}</span></div>
+        <div style="display:flex;justify-content:space-between;padding:6px 12px;background:#eff6ff;border:1px solid #bfdbfe;border-top:none;border-radius:0 0 4px 4px"><span style="font-size:10px;color:#1d4ed8">2. Visit — %40 Kart</span><span style="font-size:11px;font-weight:700;color:#1d4ed8">${currSym()}${Math.round(balance*0.4*1.02).toLocaleString()}</span></div>`:''}
+
       </div>
     </div>
     <div style="margin-top:24px;padding-top:12px;border-top:1px solid #e9ecef;text-align:center;font-size:9px;color:#aaa">
