@@ -1632,8 +1632,24 @@ function renderPtNotes(p){
   </div>`;
 }
 // ==FILES==
-function getPatientFiles(patientId){try{const d=localStorage.getItem('crm_pf_'+patientId);return d?JSON.parse(d):[];}catch{return[];}}
-function savePatientFiles(patientId,files){try{localStorage.setItem('crm_pf_'+patientId,JSON.stringify(files));return true;}catch(e){toast('Depolama alanı dolu, daha küçük dosya deneyin','error');return false;}}
+const PF_BUCKET='patient-files';
+async function uploadToStorage(file,patientId,compressedDataUrl){
+  const safeName=file.name.replace(/[^a-zA-Z0-9._-]/g,'_');
+  const path=`${patientId}/${Date.now()}_${safeName}`;
+  let body,ct;
+  if(compressedDataUrl){const res=await fetch(compressedDataUrl);body=await res.blob();ct='image/jpeg';}
+  else{body=file;ct=file.type||'application/octet-stream';}
+  const r=await fetch(`${SUPA_URL}/storage/v1/object/${PF_BUCKET}/${path}`,{
+    method:'POST',
+    headers:{'apikey':SUPA_KEY,'Authorization':'Bearer '+SUPA_KEY,'Content-Type':ct,'x-upsert':'true'},
+    body
+  });
+  if(!r.ok){const e=await r.json().catch(()=>({}));throw new Error(e.error||e.message||'Yükleme başarısız');}
+  return{path,url:`${SUPA_URL}/storage/v1/object/public/${PF_BUCKET}/${path}`};
+}
+async function deleteFromStorage(path){
+  try{await fetch(`${SUPA_URL}/storage/v1/object/${PF_BUCKET}`,{method:'DELETE',headers:{...H,'Content-Type':'application/json'},body:JSON.stringify({prefixes:[path]})});}catch{}
+}
 async function compressImage(file,maxDim=1400,quality=0.82){
   return new Promise(resolve=>{
     const img=new Image();const url=URL.createObjectURL(file);
@@ -1644,42 +1660,50 @@ async function compressImage(file,maxDim=1400,quality=0.82){
 async function addPatientFiles(input){
   const files=input.files;const cat=document.getElementById('file-cat-select')?.value||'Diğer';
   const p=getPatient(currentPatientId);if(!p||!files.length)return;
-  const existing=getPatientFiles(p.id);
+  if(!p.filesMeta)p.filesMeta=[];
   for(const file of files){
-    let data;
+    let compressed=null;
     if(file.type.startsWith('image/')){
-      data=await compressImage(file);
-      if(!data){toast('Resim okunamadı: '+file.name,'error');continue;}
-    }else{
-      if(file.size>8*1024*1024){toast(file.name+' çok büyük (maks 8MB)','error');continue;}
-      data=await new Promise(resolve=>{const r=new FileReader();r.onload=e=>resolve(e.target.result);r.onerror=()=>resolve(null);r.readAsDataURL(file);});
-      if(!data){toast('Dosya okunamadı: '+file.name,'error');continue;}
-    }
-    existing.push({id:Date.now()+Math.random(),name:file.name,type:file.type,category:cat,uploadedAt:new Date().toISOString(),data});
+      compressed=await compressImage(file);
+      if(!compressed){toast('Resim okunamadı: '+file.name,'error');continue;}
+    }else if(file.size>20*1024*1024){toast(file.name+' çok büyük (maks 20MB)','error');continue;}
+    try{
+      toast(file.name+' yükleniyor...');
+      const{path,url}=await uploadToStorage(file,p.id,compressed);
+      p.filesMeta.push({id:Date.now()+Math.random(),name:file.name,type:compressed?'image/jpeg':file.type,category:cat,uploadedAt:new Date().toISOString(),path,url});
+      toast(file.name+' yüklendi ✓');
+    }catch(e){toast('Yükleme başarısız: '+e.message,'error');}
   }
-  if(savePatientFiles(p.id,existing))renderPtBody();
-  input.value='';
+  persist("customers");renderPtBody();input.value='';
 }
-function deletePatientFile(idx){
-  const p=getPatient(currentPatientId);if(!p)return;
-  const files=getPatientFiles(p.id);files.splice(idx,1);
-  savePatientFiles(p.id,files);renderPtBody();
+async function deletePatientFile(idx){
+  const p=getPatient(currentPatientId);if(!p?.filesMeta)return;
+  const f=p.filesMeta[idx];
+  if(f?.path)await deleteFromStorage(f.path);
+  p.filesMeta.splice(idx,1);
+  persist("customers");renderPtBody();
 }
 function previewFile(idx){
   const p=getPatient(currentPatientId);if(!p)return;
-  const files=getPatientFiles(p.id);const f=files[idx];if(!f)return;
+  const f=(p.filesMeta||[])[idx];if(!f)return;
   const ov=document.createElement('div');
+  ov.setAttribute('data-pov','1');
   ov.style.cssText='position:fixed;inset:0;background:#000000bb;z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px;box-sizing:border-box;cursor:zoom-out';
   ov.onclick=e=>{if(e.target===ov)ov.remove();};
   ov.innerHTML=`<div onclick="event.stopPropagation()" style="max-width:90vw;max-height:90vh;display:flex;flex-direction:column;gap:10px">
-    <div style="display:flex;justify-content:space-between;align-items:center"><span style="color:#dde4ef;font-size:13px;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:60vw">${f.name}</span><div style="display:flex;gap:8px"><a href="${f.data}" download="${f.name}" style="padding:6px 14px;border-radius:8px;border:1px solid #60a5fa;color:#60a5fa;font-size:12px;font-weight:700;text-decoration:none">⬇ İndir</a><button onclick="this.closest('.preview-ov').remove()" style="padding:6px 12px;border-radius:8px;border:1px solid #1a2236;background:#1a2236;color:#dde4ef;font-size:14px;cursor:pointer;font-family:'DM Sans',sans-serif">✕</button></div></div>
-    <img src="${f.data}" style="max-width:88vw;max-height:80vh;border-radius:10px;object-fit:contain;display:block"/>
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:10px">
+      <span style="color:#dde4ef;font-size:13px;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:55vw">${f.name}</span>
+      <div style="display:flex;gap:8px;flex-shrink:0">
+        <a href="${f.url}" target="_blank" style="padding:6px 14px;border-radius:8px;border:1px solid #60a5fa;color:#60a5fa;font-size:12px;font-weight:700;text-decoration:none">⬇ İndir</a>
+        <button onclick="document.querySelector('[data-pov]').remove()" style="padding:6px 12px;border-radius:8px;border:1px solid #1a2236;background:#1a2236;color:#dde4ef;font-size:14px;cursor:pointer;font-family:'DM Sans',sans-serif">✕</button>
+      </div>
+    </div>
+    <img src="${f.url}" style="max-width:88vw;max-height:80vh;border-radius:10px;object-fit:contain;display:block"/>
   </div>`;
-  ov.classList.add('preview-ov');
   document.body.appendChild(ov);
 }
 function renderPtFiles(p){
-  const files=getPatientFiles(p.id);
+  const files=p.filesMeta||[];
   const cats=["Panoramik","Pasaport","Uçuş Bileti","Röntgen","Diğer"];
   const catIcons={"Panoramik":"🦷","Pasaport":"🛂","Uçuş Bileti":"✈️","Röntgen":"🔬","Diğer":"📎"};
   return`<div style="max-width:800px">
@@ -1707,14 +1731,14 @@ function renderPtFiles(p){
         const catIcon=catIcons[f.category]||'📎';
         return`<div style="background:#0d1320;border:1px solid #1a2236;border-radius:10px;overflow:hidden;display:flex;flex-direction:column">
           <div style="position:relative;height:110px;background:#131b2a;${isImg?'cursor:zoom-in':''};overflow:hidden" ${isImg?`onclick="previewFile(${i})"`:''}">
-            ${isImg?`<img src="${f.data}" style="width:100%;height:100%;object-fit:cover" loading="lazy"/>`:`<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:44px">${fileIcon}</div>`}
+            ${isImg?`<img src="${f.url}" style="width:100%;height:100%;object-fit:cover" loading="lazy" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'"/><div style="display:none;width:100%;height:100%;align-items:center;justify-content:center;font-size:36px">🖼️</div>`:`<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:44px">${fileIcon}</div>`}
             <span style="position:absolute;top:5px;left:5px;font-size:10px;background:#00000099;border-radius:10px;padding:2px 7px;color:#dde4ef">${catIcon} ${f.category||'Diğer'}</span>
           </div>
           <div style="padding:8px;display:flex;flex-direction:column;gap:4px;flex:1">
             <div style="font-size:10px;color:#dde4ef;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${f.name}">${f.name}</div>
             <div style="font-size:9px;color:#3d5270;flex:1">${new Date(f.uploadedAt).toLocaleDateString('tr-TR')}</div>
             <div style="display:flex;gap:5px;margin-top:4px">
-              <a href="${f.data}" download="${f.name}" style="flex:1;text-align:center;padding:4px 0;border-radius:6px;border:1px solid #1a2236;color:#60a5fa;font-size:10px;font-weight:700;text-decoration:none;display:block">⬇</a>
+              <a href="${f.url}" target="_blank" style="flex:1;text-align:center;padding:4px 0;border-radius:6px;border:1px solid #1a2236;color:#60a5fa;font-size:10px;font-weight:700;text-decoration:none;display:block">⬇</a>
               ${canEdit()?`<button onclick="deletePatientFile(${i})" style="padding:4px 8px;border-radius:6px;border:1px solid #ef444433;background:#2b0f0f;color:#ef4444;font-size:10px;cursor:pointer;font-family:'DM Sans',sans-serif">✕</button>`:''}
             </div>
           </div>
