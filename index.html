@@ -233,13 +233,13 @@ nav button:hover:not(.active){color:#94a3b8}
 </div>
 <div id="patient-overlay">
   <div class="pt-header">
-    <button class="sm-btn" onclick="closePatient()" style="padding:5px 10px;font-size:12px">← Geri</button>
+    <button id="btn-back" class="sm-btn" onclick="closePatient()" style="padding:5px 10px;font-size:12px">← Geri</button>
     <div style="flex:1;min-width:0">
       <div id="pt-name" style="font-size:15px;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis"></div>
       <div id="pt-meta" style="font-size:11px;color:#4a607d;margin-top:1px"></div>
     </div>
     <div id="pt-status-badge"></div>
-    <button class="btn" style="font-size:12px" onclick="saveCurrentPatient()">💾 Kaydet</button>
+    <button id="btn-save-patient" class="btn" style="font-size:12px" onclick="saveCurrentPatient()">💾 Kaydet</button>
   </div>
   <div class="pt-tabs" id="pt-tabs"></div>
   <div class="pt-body" id="pt-body"></div>
@@ -478,6 +478,10 @@ tr:{
   toothTxHint:"aktif — dişe tıkla, aynı dişe tekrar tıkla iptal",
   condBrushHint:"fırçası aktif — dişlere tıkla, iptal için tekrar tıkla",
   clearBrushHint:"✕ <strong>Temizle</strong> fırçası aktif — tıklanan dişi sıfırlar",
+  no:"Hayır",yes:"Evet",note:"Not",addBtn:"Ekle",backBtn:"← Geri",saveBtn:"💾 Kaydet",
+  chooseFile:"📁 Dosya Seç",takePhoto:"📷 Fotoğraf Çek",
+  noFilesYet:"Henüz dosya yüklenmedi",uploadFilesHint:"Pasaport, uçuş bileti, panoramik ve diğer belgeleri yükleyin",
+  fileCatPanoramic:"Panoramik",fileCatPassport:"Pasaport",fileCatFlight:"Uçuş Bileti",fileCatXray:"Röntgen",fileCatOther:"Diğer",
 },
 en:{
   navDashboard:"Dashboard",navPatients:"Patients",navEvents:"Events",navAppointments:"Appointments",
@@ -569,6 +573,10 @@ en:{
   toothTxHint:"active — click a tooth, click again to cancel",
   condBrushHint:"brush active — click teeth, click again to cancel",
   clearBrushHint:"✕ <strong>Clear</strong> brush active — resets clicked tooth",
+  no:"No",yes:"Yes",note:"Note",addBtn:"Add",backBtn:"← Back",saveBtn:"💾 Save",
+  chooseFile:"📁 Choose File",takePhoto:"📷 Take Photo",
+  noFilesYet:"No files uploaded yet",uploadFilesHint:"Upload passport, flight ticket, panoramic X-rays and other documents",
+  fileCatPanoramic:"Panoramic",fileCatPassport:"Passport",fileCatFlight:"Flight Ticket",fileCatXray:"X-Ray",fileCatOther:"Other",
 }};
 
 let lang="tr",t=T.tr;
@@ -708,7 +716,7 @@ function flag(c){const m={"United Kingdom":"🇬🇧","UK":"🇬🇧","UAE":"�
 function statusLabel(s){return{walkin:t.statusWalkin,consultation:t.statusConsultation,assessed:t.statusAssessed,pricing:t.statusPricing,booked:t.statusBooked,cancelled:t.statusCancelled}[s]||s;}
 function statusBadge(s){const c=STATUS_COLORS[s]||"#4a607d";return`<span class="badge" style="background:${c}22;color:${c}">${statusLabel(s)}</span>`;}
 function toast(msg,type="ok"){const el=document.createElement("div");el.className=`toast ${type}`;el.textContent=msg;document.getElementById("toast-container").appendChild(el);setTimeout(()=>el.remove(),3500);}
-function confirmDialog(msg,danger=false){return new Promise(resolve=>{const ov=document.createElement("div");ov.className="confirm-overlay";ov.innerHTML=`<div class="confirm-box"><div style="font-size:28px">${danger?"🗑️":"💾"}</div><div class="conf-msg">${msg}</div><div class="conf-btns"><button class="conf-no">Hayır</button><button class="conf-yes${danger?" danger":""}">Evet</button></div></div>`;document.body.appendChild(ov);ov.querySelector(".conf-yes").onclick=()=>{ov.remove();resolve(true);};ov.querySelector(".conf-no").onclick=()=>{ov.remove();resolve(false);};});}
+function confirmDialog(msg,danger=false){return new Promise(resolve=>{const ov=document.createElement("div");ov.className="confirm-overlay";ov.innerHTML=`<div class="confirm-box"><div style="font-size:28px">${danger?"🗑️":"💾"}</div><div class="conf-msg">${msg}</div><div class="conf-btns"><button class="conf-no">${t.no}</button><button class="conf-yes${danger?" danger":""}">${t.yes}</button></div></div>`;document.body.appendChild(ov);ov.querySelector(".conf-yes").onclick=()=>{ov.remove();resolve(true);};ov.querySelector(".conf-no").onclick=()=>{ov.remove();resolve(false);};});}
 function matches(fields){if(!searchQuery)return true;return fields.some(f=>f&&String(f).toLowerCase().includes(searchQuery.toLowerCase()));}
 function getPatient(id){return state.patients.find(p=>p.id==id);}
 function getEvent(id){return state.events.find(e=>e.id==id);}
@@ -827,6 +835,8 @@ async function showApp(){
   document.getElementById("user-role").textContent=currentUser.role;
   document.getElementById("user-role").style.color=color;
   await loadAll();
+  const _bb2=document.getElementById("btn-back");if(_bb2)_bb2.textContent=t.backBtn;
+  const _sb2=document.getElementById("btn-save-patient");if(_sb2)_sb2.textContent=t.saveBtn;
   document.getElementById("nav-treatments").style.display=canSeeCatalog()?"":"none";
   document.getElementById("nav-reports").style.display=canSeeReports()?"":"none";
   if(canManageUsers()){document.getElementById("nav-users").style.display="";await loadUsers();}
@@ -849,6 +859,8 @@ function setLang(l){
   document.querySelectorAll(".nav-lbl").forEach(el=>el.textContent=t[el.dataset.key]||el.dataset.key);
   document.getElementById("sync-label").textContent=t.live;
   document.getElementById("search-input").placeholder=t.search;
+  const _bb=document.getElementById("btn-back");if(_bb)_bb.textContent=t.backBtn;
+  const _sb=document.getElementById("btn-save-patient");if(_sb)_sb.textContent=t.saveBtn;
   if(currentUser){document.getElementById("page-title").textContent=t[currentTab]||currentTab;updateFooter();render();}
 }
 function setLoginLang(l){
@@ -1318,7 +1330,7 @@ function renderPtAssessment(p){
       ${activeTxBrush==='__manual__'?`<div style="display:flex;gap:8px;align-items:center;margin-top:6px;flex-wrap:wrap">
         <input id="pa-manual-name" placeholder="${t.txNamePlaceholder}" style="background:#131b2a;border:1px solid #1a2236;border-radius:8px;padding:6px 10px;color:#dde4ef;font-size:12px;outline:none;flex:1;min-width:150px"/>
         <input id="pa-manual-price" type="number" min="0" placeholder="${t.pricePlaceholder}" style="background:#131b2a;border:1px solid #1a2236;border-radius:8px;padding:6px 10px;color:#dde4ef;font-size:12px;outline:none;width:100px"/>
-        <button class="sm-btn success" onclick="addManualTreatment()">+ Ekle</button>
+        <button class="sm-btn success" onclick="addManualTreatment()">+ ${t.addBtn}</button>
       </div>`:''}
     </div>
     <div class="card">
@@ -1398,7 +1410,7 @@ function renderPtAssessment(p){
                 <input type="number" id="pb-accom-nights-${vi}" min="1" value="${vn||3}" style="${inStyle};width:54px"/>
                 <span style="font-size:12px;color:#4a607d">${t.nights}</span>
               </div>
-              <button class="sm-btn success" onclick="addBookingAccommodation(${vi})">+ Ekle</button>
+              <button class="sm-btn success" onclick="addBookingAccommodation(${vi})">+ ${t.addBtn}</button>
             </div>
             ${vEntries.length?`<table class="data-table" style="width:100%">
               <thead><tr><th>${t.aname}</th><th>${t.nights}</th><th>${t.pricePerNight}</th><th>${t.total}</th><th></th></tr></thead>
@@ -1415,7 +1427,7 @@ function renderPtAssessment(p){
         const totalNights=(b.accommodations||[]).reduce((s,a)=>s+(a.nights||1),0);
         return sections.join('')+`<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 14px;background:#0a1525;border-radius:8px;border:1px solid #1a3040;margin-top:4px">
           <span style="font-size:12px;font-weight:700;color:#dde4ef">${t.totalAccom}</span>
-          <span style="font-size:14px;font-weight:900;color:#f97316">${totalNights} Gece</span>
+          <span style="font-size:14px;font-weight:900;color:#f97316">${totalNights} ${t.nights}</span>
         </div>`;
       })():`<div style="display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap">
         <select id="pb-accom-sel" style="background:#131b2a;border:1px solid #1a2236;border-radius:8px;padding:6px 10px;color:#dde4ef;font-size:12px;outline:none;flex:1;min-width:180px">
@@ -1426,7 +1438,7 @@ function renderPtAssessment(p){
           <input type="number" id="pb-accom-nights" min="1" value="3" style="${inStyle};width:54px"/>
           <span style="font-size:12px;color:#4a607d">${t.nights}</span>
         </div>
-        <button class="sm-btn success" onclick="addBookingAccommodation()">+ Ekle</button>
+        <button class="sm-btn success" onclick="addBookingAccommodation()">+ ${t.addBtn}</button>
       </div>
       ${(b.accommodations||[]).length?`<table class="data-table" style="width:100%">
         <thead><tr><th>${t.aname}</th><th>${t.nights}</th><th>${t.pricePerNight}</th><th>${t.total}</th><th></th></tr></thead>
@@ -1450,7 +1462,7 @@ function renderPtAssessment(p){
           <input type="number" id="pb-travel-persons" min="1" value="1" style="${inStyle};width:54px"/>
           <span style="font-size:12px;color:#4a607d">${t.persons}</span>
         </div>
-        <button class="sm-btn success" onclick="addBookingTravel()">+ Ekle</button>
+        <button class="sm-btn success" onclick="addBookingTravel()">+ ${t.addBtn}</button>
       </div>
       ${(b.travels||[]).length?`<table class="data-table" style="width:100%">
         <thead><tr><th>${t.transportCompany}</th><th>${t.persons}</th><th>${t.perPerson}</th><th>${t.total}</th><th></th></tr></thead>
@@ -1805,7 +1817,7 @@ function renderPtBooking(p){
                 <input type="number" id="pb-accom-nights-${vi}" min="1" value="${vn||3}" style="${inStyle};width:54px"/>
                 <span style="font-size:12px;color:#4a607d">${t.nights}</span>
               </div>
-              <button class="sm-btn success" onclick="addBookingAccommodation(${vi})">+ Ekle</button>
+              <button class="sm-btn success" onclick="addBookingAccommodation(${vi})">+ ${t.addBtn}</button>
             </div>
             ${vEntries.length?`<table class="data-table" style="width:100%">
               <thead><tr><th>${t.aname}</th><th>${t.nights}</th><th>${t.pricePerNight}</th><th>${t.total}</th><th></th></tr></thead>
@@ -1822,7 +1834,7 @@ function renderPtBooking(p){
         const totalNights=(b.accommodations||[]).reduce((s,a)=>s+(a.nights||1),0);
         return sections.join('')+`<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 14px;background:#0a1525;border-radius:8px;border:1px solid #1a3040;margin-top:4px">
           <span style="font-size:12px;font-weight:700;color:#dde4ef">${t.totalAccom}</span>
-          <span style="font-size:14px;font-weight:900;color:#f97316">${totalNights} Gece</span>
+          <span style="font-size:14px;font-weight:900;color:#f97316">${totalNights} ${t.nights}</span>
         </div>`;
       })():`<div style="display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap">
         <select id="pb-accom-sel" style="background:#131b2a;border:1px solid #1a2236;border-radius:8px;padding:6px 10px;color:#dde4ef;font-size:12px;outline:none;flex:1;min-width:180px">
@@ -1833,7 +1845,7 @@ function renderPtBooking(p){
           <input type="number" id="pb-accom-nights" min="1" value="3" style="${inStyle};width:54px"/>
           <span style="font-size:12px;color:#4a607d">${t.nights}</span>
         </div>
-        <button class="sm-btn success" onclick="addBookingAccommodation()">+ Ekle</button>
+        <button class="sm-btn success" onclick="addBookingAccommodation()">+ ${t.addBtn}</button>
       </div>
       ${(b.accommodations||[]).length?`<table class="data-table" style="width:100%">
         <thead><tr><th>${t.aname}</th><th>${t.nights}</th><th>${t.pricePerNight}</th><th>${t.total}</th><th></th></tr></thead>
@@ -1858,7 +1870,7 @@ function renderPtBooking(p){
           <input type="number" id="pb-travel-persons" min="1" value="1" style="${inStyle};width:54px"/>
           <span style="font-size:12px;color:#4a607d">${t.persons}</span>
         </div>
-        <button class="sm-btn success" onclick="addBookingTravel()">+ Ekle</button>
+        <button class="sm-btn success" onclick="addBookingTravel()">+ ${t.addBtn}</button>
       </div>
       ${(b.travels||[]).length?`<table class="data-table" style="width:100%">
         <thead><tr><th>${t.transportCompany}</th><th>${t.persons}</th><th>${t.perPerson}</th><th>${t.total}</th><th></th></tr></thead>
@@ -1916,7 +1928,7 @@ function renderPtNotes(p){
     <div class="card" style="margin-bottom:14px">
       <div style="display:flex;gap:9px">
         <input id="new-note-text" placeholder="${t.addNote}..." style="flex:1;background:#131b2a;border:1px solid #1a2236;border-radius:8px;padding:8px 11px;color:#dde4ef;font-size:13px;outline:none"/>
-        <button class="btn" onclick="addPatientNote()">+ Not</button>
+        <button class="btn" onclick="addPatientNote()">+ ${t.note}</button>
       </div>
     </div>
     ${notes.length===0?`<div class="empty">${t.noNotes}</div>`:notes.map(n=>`
@@ -2012,24 +2024,25 @@ function previewFile(idx){
 function renderPtFiles(p){
   const files=p.filesMeta||[];
   const cats=["Panoramik","Pasaport","Uçuş Bileti","Röntgen","Diğer"];
+  const catLabels={"Panoramik":t.fileCatPanoramic,"Pasaport":t.fileCatPassport,"Uçuş Bileti":t.fileCatFlight,"Röntgen":t.fileCatXray,"Diğer":t.fileCatOther};
   const catIcons={"Panoramik":"🦷","Pasaport":"🛂","Uçuş Bileti":"✈️","Röntgen":"🔬","Diğer":"📎"};
   return`<div style="max-width:800px">
     <div class="card" style="margin-bottom:14px">
       <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
         <select id="file-cat-select" style="flex:1;min-width:130px;background:#131b2a;border:1px solid #1a2236;border-radius:8px;padding:8px 10px;color:#dde4ef;font-size:13px;outline:none">
-          ${cats.map(c=>`<option value="${c}">${catIcons[c]} ${c}</option>`).join('')}
+          ${cats.map(c=>`<option value="${c}">${catIcons[c]} ${catLabels[c]}</option>`).join('')}
         </select>
         <label style="display:inline-flex;align-items:center;gap:7px;padding:8px 18px;border-radius:8px;border:1px solid #f97316;background:#f9731622;color:#f97316;font-size:13px;font-weight:700;cursor:pointer;user-select:none">
-          📁 Dosya Seç
+          ${t.chooseFile}
           <input type="file" accept="*/*" multiple style="display:none" onchange="addPatientFiles(this)"/>
         </label>
         <label style="display:inline-flex;align-items:center;gap:7px;padding:8px 18px;border-radius:8px;border:1px solid #60a5fa;background:#60a5fa22;color:#60a5fa;font-size:13px;font-weight:700;cursor:pointer;user-select:none">
-          📷 Fotoğraf Çek
+          ${t.takePhoto}
           <input type="file" accept="image/*" capture="camera" style="display:none" onchange="addPatientFiles(this)"/>
         </label>
       </div>
     </div>
-    ${files.length===0?`<div class="empty" style="padding:48px 0;display:flex;flex-direction:column;align-items:center;gap:8px"><div style="font-size:44px">📂</div><div>Henüz dosya yüklenmedi</div><div style="font-size:12px;color:#3d5270">Pasaport, uçuş bileti, panoramik ve diğer belgeleri yükleyin</div></div>`:`
+    ${files.length===0?`<div class="empty" style="padding:48px 0;display:flex;flex-direction:column;align-items:center;gap:8px"><div style="font-size:44px">📂</div><div>${t.noFilesYet}</div><div style="font-size:12px;color:#3d5270">${t.uploadFilesHint}</div></div>`:`
     <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px">
       ${files.map((f,i)=>{
         const isImg=f.type?.startsWith('image/');
@@ -2039,7 +2052,7 @@ function renderPtFiles(p){
         return`<div style="background:#0d1320;border:1px solid #1a2236;border-radius:10px;overflow:hidden;display:flex;flex-direction:column">
           <div style="position:relative;height:110px;background:#131b2a;${isImg?'cursor:zoom-in':''};overflow:hidden" ${isImg?`onclick="previewFile(${i})"`:''}">
             ${isImg?`<img src="${f.url}" style="width:100%;height:100%;object-fit:cover" loading="lazy" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'"/><div style="display:none;width:100%;height:100%;align-items:center;justify-content:center;font-size:36px">🖼️</div>`:`<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:44px">${fileIcon}</div>`}
-            <span style="position:absolute;top:5px;left:5px;font-size:10px;background:#00000099;border-radius:10px;padding:2px 7px;color:#dde4ef">${catIcon} ${f.category||'Diğer'}</span>
+            <span style="position:absolute;top:5px;left:5px;font-size:10px;background:#00000099;border-radius:10px;padding:2px 7px;color:#dde4ef">${catIcon} ${catLabels[f.category]||f.category||t.fileCatOther}</span>
           </div>
           <div style="padding:8px;display:flex;flex-direction:column;gap:4px;flex:1">
             <div style="font-size:10px;color:#dde4ef;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${f.name}">${f.name}</div>
