@@ -491,6 +491,7 @@ tr:{
   appointmentCount:"randevu",noAppointments:"Bu etkinlik için randevu bulunamadı",
   noRecords:"Kayıt bulunamadı",accessDenied:"Erişim yetkiniz yok.",youLabel:"siz",
   startDate:"Başlangıç Tarihi",endDate:"Bitiş Tarihi",noEventsFound:"Etkinlik bulunamadı",
+  unsavedChangesWarning:"Hasta Kayıt formunda kaydedilmemiş değişiklikler var. Kaydetmeden devam etmek istiyor musunuz?",
 },
 en:{
   navDashboard:"Dashboard",navPatients:"Patients",navEvents:"Events",navAppointments:"Appointments",
@@ -595,12 +596,14 @@ en:{
   appointmentCount:"appointment",noAppointments:"No appointments for this event",
   noRecords:"No records found",accessDenied:"Access denied.",youLabel:"you",
   startDate:"Start Date",endDate:"End Date",noEventsFound:"No events found",
+  unsavedChangesWarning:"Patient Record has unsaved changes. Continue without saving?",
 }};
 
 let lang="tr",t=T.tr;
 let currentUser=null;
 let currentTab="dashboard",searchQuery="",charts={};
-let currentPatientId=null,currentPtTab="consultation";
+let currentPatientId=null,currentPtTab="consultation",ptFormDirty=false;
+function markPtDirty(){ptFormDirty=true;}
 let selectedEventId=null;
 let currentEventDetailId=null;
 let eventDetailViewMode="grid";
@@ -1070,7 +1073,7 @@ function setFilterStatus(s){filterStatus=s;render();}
 
 // ── PATIENT DETAIL OVERLAY
 function openPatient(id){
-  currentPatientId=id;currentPtTab="consultation";
+  currentPatientId=id;currentPtTab="consultation";ptFormDirty=false;
   const _op=getPatient(id);activePlan=_op?.assessment?.activePlan||'treatmentPlan';
   const overlay=document.getElementById("patient-overlay");
   overlay.style.display="flex";
@@ -1089,7 +1092,12 @@ function renderPatientOverlay(){
   document.getElementById("pt-tabs").innerHTML=tabs.map(tab=>`<button class="pt-tab${currentPtTab===tab?" active":""}" onclick="setPtTab('${tab}')">${t["tab"+tab.charAt(0).toUpperCase()+tab.slice(1)]}</button>`).join("");
   renderPtBody();
 }
-function setPtTab(tab){currentPtTab=tab;renderPatientOverlay();}
+async function setPtTab(tab){
+  if(currentPtTab==="consultation"&&ptFormDirty&&tab!=="consultation"){
+    if(!await confirmDialog(t.unsavedChangesWarning))return;
+  }
+  ptFormDirty=false;currentPtTab=tab;renderPatientOverlay();
+}
 function renderPtBody(){
   const p=getPatient(currentPatientId);if(!p)return;
   const body=document.getElementById("pt-body");
@@ -1103,7 +1111,7 @@ function renderPtConsultation(p){
   const c=p.consultation||{};
   const evtOpts=state.events.map(e=>`<option value="${e.id}"${p.eventId==e.id?" selected":""}>${e.name}</option>`).join("");
   const statusOpts=["walkin","consultation","assessed","pricing","booked","cancelled"].map(s=>`<option value="${s}"${p.status===s?" selected":""}>${statusLabel(s)}</option>`).join("");
-  return`<div style="max-width:700px;display:flex;flex-direction:column;gap:14px">
+  return`<div style="max-width:700px;display:flex;flex-direction:column;gap:14px" oninput="markPtDirty()" onchange="markPtDirty()">
     <div class="card">
       <div class="section-title">${t.patientInfo}</div>
       <div class="field-row">
@@ -2385,6 +2393,7 @@ async function saveCurrentPatient(){
     ensureBooking(p);
     p.booking.notes=document.getElementById("pb-notes")?.value||"";
   }
+  ptFormDirty=false;
   await persist("customers");toast("✅ "+t.saved);
   renderPatientOverlay();
 }
