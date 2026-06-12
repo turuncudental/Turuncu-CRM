@@ -213,7 +213,12 @@ nav button:hover:not(.active){color:#94a3b8}
       <button data-tab="treatments" id="nav-treatments" style="display:none" onclick="setTab('treatments')">🦷 &nbsp;<span class="nav-lbl" data-key="navTreatments">Tedaviler</span></button>
       <button data-tab="reports" id="nav-reports" style="display:none" onclick="setTab('reports')">↗ &nbsp;<span class="nav-lbl" data-key="navReports">Raporlar</span></button>
       <button data-tab="users" id="nav-users" style="display:none" onclick="setTab('users')">👤 &nbsp;<span class="nav-lbl" data-key="navUsers">Kullanıcılar</span></button>
+      <button data-tab="logs" id="nav-logs" style="display:none" onclick="setTab('logs')">📋 &nbsp;<span class="nav-lbl" data-key="navLogs">Aktivite Logu</span></button>
     </nav>
+    <div id="company-selector" style="display:none;padding:6px 14px 2px">
+      <div style="font-size:10px;color:#3d5270;font-weight:700;margin-bottom:4px;letter-spacing:.5px">FIRMA</div>
+      <select id="company-select" onchange="setCompany(this.value)" style="width:100%;background:#131b2a;border:1px solid #1a2236;border-radius:8px;padding:7px 10px;color:#dde4ef;font-size:12px;outline:none;cursor:pointer"></select>
+    </div>
     <div class="sidebar-footer" id="sidebar-footer">...</div>
   </div>
   <div id="main">
@@ -389,7 +394,7 @@ function getToothSVGKey(n){
 const T={
 tr:{
   navDashboard:"Panel",navPatients:"Hastalar",navEvents:"Etkinlikler",navAppointments:"Randevular",
-  navTreatments:"Tedaviler",navReports:"Raporlar",navUsers:"Kullanıcılar",
+  navTreatments:"Tedaviler",navReports:"Raporlar",navUsers:"Kullanıcılar",navLogs:"Aktivite Logu",
   live:"Canlı",search:"Ara...",
   totalPatients:"Toplam Hasta",upcomingEvents:"Yaklaşan Etkinlik",convRate:"Dönüşüm Oranı",totalRevenue:"Toplam Gelir",
   registered:"Kayıtlı",walkins:"Walk-in",consultations:"Konsültasyon",waitingDentist:"Diş Hekimi Bekliyor",
@@ -421,7 +426,11 @@ tr:{
   bookingAccommodation:"Konaklama",bookingTravel:"Transfer",
   reports:"Raporlar",
   users:"Kullanıcılar",addUser:"+ Kullanıcı",newUser:"Yeni Kullanıcı",editUser:"Kullanıcı Düzenle",
-  roleAdmin:"Yönetici",roleSales:"Satış Temsilcisi",roleReader:"Okuyucu",
+  roleAdmin:"Yönetici",roleSales:"Satış Temsilcisi",roleReader:"Okuyucu",roleSuper:"Süper Admin",
+  selectCompany:"— Firma Seç —",allCompanies:"Tüm Firmalar",
+  logTime:"Zaman",logCompany:"Firma",logUser:"Kullanıcı",logActionCol:"İşlem",logDetail:"Detay",logNoLogs:"Henüz aktivite yok",logLoadMore:"Daha Fazla Yükle",
+  actLogin:"Giriş yaptı",actLogout:"Çıkış yaptı",actPatientAdd:"Hasta ekledi",actPatientEdit:"Hasta düzenledi",actPatientSave:"Hasta kaydetti",actNoteAdd:"Not ekledi",actFileUpload:"Dosya yükledi",actQuoteDownload:"PDF indirdi",actStatusChange:"Durum değiştirdi",
+  fcompanyId:"Firma ID",fcompanyName:"Firma Adı",
   fdisplayName:"Ad Soyad",fpassword:"Şifre",fnewPass:"Yeni Şifre",fRole:"Yetki",fnewPassHint:"(boş bırakırsanız değişmez)",
   noUsers:"Kullanıcı bulunamadı",userAdded:"Kullanıcı eklendi",userUpdated:"Kullanıcı güncellendi",userDeleted:"Kullanıcı silindi",
   cantDeleteSelf:"Kendi hesabınızı silemezsiniz",usernameExists:"Bu kullanıcı adı kullanımda",passRequired:"Şifre zorunludur",usernameRequired:"Kullanıcı adı zorunludur",
@@ -494,7 +503,7 @@ tr:{
 },
 en:{
   navDashboard:"Dashboard",navPatients:"Patients",navEvents:"Events",navAppointments:"Appointments",
-  navTreatments:"Treatments",navReports:"Reports",navUsers:"Users",
+  navTreatments:"Treatments",navReports:"Reports",navUsers:"Users",navLogs:"Activity Log",
   live:"Live",search:"Search...",
   totalPatients:"Total Patients",upcomingEvents:"Upcoming Events",convRate:"Conversion Rate",totalRevenue:"Total Revenue",
   registered:"Registered",walkins:"Walk-ins",consultations:"Consultations",waitingDentist:"Waiting for Dentist",
@@ -526,7 +535,11 @@ en:{
   bookingAccommodation:"Accommodation",bookingTravel:"Transfer",
   reports:"Reports",
   users:"Users",addUser:"+ Add User",newUser:"New User",editUser:"Edit User",
-  roleAdmin:"Admin",roleSales:"Sales Rep",roleReader:"Reader",
+  roleAdmin:"Admin",roleSales:"Sales Rep",roleReader:"Reader",roleSuper:"Super Admin",
+  selectCompany:"— Select Company —",allCompanies:"All Companies",
+  logTime:"Time",logCompany:"Company",logUser:"User",logActionCol:"Action",logDetail:"Detail",logNoLogs:"No activity yet",logLoadMore:"Load More",
+  actLogin:"Logged in",actLogout:"Logged out",actPatientAdd:"Added patient",actPatientEdit:"Edited patient",actPatientSave:"Saved patient record",actNoteAdd:"Added note",actFileUpload:"Uploaded file",actQuoteDownload:"Downloaded PDF",actStatusChange:"Changed status",
+  fcompanyId:"Company ID",fcompanyName:"Company Name",
   fdisplayName:"Full Name",fpassword:"Password",fnewPass:"New Password",fRole:"Role",fnewPassHint:"(leave blank to keep)",
   noUsers:"No users found",userAdded:"User added",userUpdated:"User updated",userDeleted:"User deleted",
   cantDeleteSelf:"Cannot delete your own account",usernameExists:"Username already taken",passRequired:"Password required",usernameRequired:"Username required",
@@ -602,6 +615,7 @@ let lang="tr",t=T.tr;
 let currentUser=null;
 let currentTab="dashboard",searchQuery="",charts={};
 let currentPatientId=null,currentPtTab="consultation",ptFormDirty=false;
+let activeCompanyId=null;
 function markPtDirty(){ptFormDirty=true;}
 let selectedEventId=null;
 let currentEventDetailId=null;
@@ -623,7 +637,7 @@ function getEffectivePrice(item){
 let paintBrush=null;
 let activeTxBrush=null;
 let catalogTab="treatment";
-let state={patients:[],events:[],appointments:[],treatments:[],users:[]};
+let state={patients:[],events:[],appointments:[],treatments:[],users:[],logs:[],companies:[]};
 // ==SEED==
 const SEED_PATIENTS=[
   {id:1,name:"Sarah Johnson",email:"sarah.j@gmail.com",phone:"+44 7911 123456",dob:"1985-03-15",country:"United Kingdom",nationality:"British",status:"booked",eventId:1,assignee:"admin",createdAt:"2026-05-20",
@@ -741,12 +755,14 @@ function matches(fields){if(!searchQuery)return true;return fields.some(f=>f&&St
 function getPatient(id){return state.patients.find(p=>p.id==id);}
 function getEvent(id){return state.events.find(e=>e.id==id);}
 function getTreatment(id){return state.treatments.find(tr=>tr.id==id);}
+function isSuperAdmin(){return currentUser&&currentUser.role==="superadmin";}
 function canEdit(){return currentUser&&currentUser.role!=="okuyucu";}
-function canManageUsers(){return currentUser&&currentUser.role==="admin";}
-function canSeeCatalog(){return currentUser&&currentUser.role==="admin";}
-function canSeeReports(){return currentUser&&currentUser.role==="admin";}
+function canManageUsers(){return currentUser&&(currentUser.role==="admin"||isSuperAdmin());}
+function canSeeCatalog(){return currentUser&&(currentUser.role==="admin"||isSuperAdmin());}
+function canSeeReports(){return currentUser&&(currentUser.role==="admin"||isSuperAdmin());}
 function canSeeFinancials(){return currentUser&&currentUser.role!=="okuyucu";}
-function canEditCatalog(){return currentUser&&currentUser.role==="admin";}
+function canEditCatalog(){return currentUser&&(currentUser.role==="admin"||isSuperAdmin());}
+function canSeeLogs(){return isSuperAdmin();}
 function bookingTotal(p){
   const txSub=(p.booking?.treatments||[]).reduce((s,tr)=>s+(tr.qty||1)*(tr.price||0),0);
   const acSub=(p.booking?.accommodations||[]).reduce((s,a)=>s+(a.nights||1)*(a.pricePerNight||0),0);
@@ -785,7 +801,9 @@ function updateFooter(){if(!currentUser)return;document.getElementById("sidebar-
 async function dbGet(table){
   // Always fetch fresh data from Supabase
   try{
-    const r=await fetch(`${SUPA_URL}/rest/v1/${table}?select=*`,{headers:H});
+    const cid=activeCompanyId;
+    const filter=cid?`?id=eq.${cid}&select=*`:`?select=*`;
+    const r=await fetch(`${SUPA_URL}/rest/v1/${table}${filter}`,{headers:H});
     if(r.ok){const rows=await r.json();if(rows&&rows.length>0){localStorage.setItem("crm_"+table,JSON.stringify(rows));return rows;}}
   }catch{}
   // Offline fallback: use localStorage cache
@@ -793,33 +811,54 @@ async function dbGet(table){
   return null;
 }
 async function dbSet(table,data){
-  try{localStorage.setItem("crm_"+table,JSON.stringify([{id:1,data}]));}catch{}
-  try{await fetch(`${SUPA_URL}/rest/v1/${table}`,{method:"POST",headers:{...H,"Prefer":"resolution=merge-duplicates,return=minimal"},body:JSON.stringify({id:1,data})});}catch{}
+  const cid=activeCompanyId||1;
+  try{localStorage.setItem("crm_"+table,JSON.stringify([{id:cid,data}]));}catch{}
+  try{await fetch(`${SUPA_URL}/rest/v1/${table}`,{method:"POST",headers:{...H,"Prefer":"resolution=merge-duplicates,return=minimal"},body:JSON.stringify({id:cid,data})});}catch{}
 }
 const TABLE_STATE={customers:"patients",deals:"events",tasks:"appointments",history:"treatments"};
 async function persist(table){const sl=document.getElementById("syncing-label");sl.textContent=t.saving;sl.style.display="inline";await dbSet(table,state[TABLE_STATE[table]||table]);sl.style.display="none";updateFooter();}
 async function loadAll(){
   const [p,e,a,tr]=await Promise.all([dbGet("customers"),dbGet("deals"),dbGet("tasks"),dbGet("history")]);
   // Guard: if data is not a valid array, fall back to seed (prevents crash from corrupted localStorage)
-  state.patients=Array.isArray(p?.[0]?.data)?p[0].data:SEED_PATIENTS;
-  state.events=Array.isArray(e?.[0]?.data)?e[0].data:SEED_EVENTS;
-  state.appointments=Array.isArray(a?.[0]?.data)?a[0].data:SEED_APPOINTMENTS;
+  state.patients=Array.isArray(p?.[0]?.data)?p[0].data:(activeCompanyId===1?SEED_PATIENTS:[]);
+  state.events=Array.isArray(e?.[0]?.data)?e[0].data:(activeCompanyId===1?SEED_EVENTS:[]);
+  state.appointments=Array.isArray(a?.[0]?.data)?a[0].data:(activeCompanyId===1?SEED_APPOINTMENTS:[]);
   const loadedTr=Array.isArray(tr?.[0]?.data)?tr[0].data:null;
   // Migrate: replace if fewer entries OR if EUR prices are missing/zero (price list update)
   const needsTrUpdate=!loadedTr||loadedTr.length<SEED_TREATMENTS.length||loadedTr.some(t=>t.type==='treatment'&&(!(t.salePriceEUR>0)||!(t.salePriceUSD>0)))||loadedTr.some(t=>t.type==='travel'&&t.category==='Uçuş');
   state.treatments=needsTrUpdate?SEED_TREATMENTS:loadedTr;
-  if(!p||!p[0])dbSet("customers",SEED_PATIENTS);
-  if(!e||!e[0])dbSet("deals",SEED_EVENTS);
-  if(!a||!a[0])dbSet("tasks",SEED_APPOINTMENTS);
+  if(!p||!p[0])dbSet("customers",activeCompanyId===1?SEED_PATIENTS:[]);
+  if(!e||!e[0])dbSet("deals",activeCompanyId===1?SEED_EVENTS:[]);
+  if(!a||!a[0])dbSet("tasks",activeCompanyId===1?SEED_APPOINTMENTS:[]);
   if(needsTrUpdate)dbSet("history",SEED_TREATMENTS);
 }
-async function loadUsers(){try{const r=await fetch(`${SUPA_URL}/rest/v1/crm_users?select=id,username,role,display_name&order=id`,{headers:H});if(r.ok)state.users=await r.json();}catch{}}
+async function loadUsers(){
+  try{
+    const filter=isSuperAdmin()?`?select=id,username,role,display_name,company_id,company_name&order=id`:`?company_id=eq.${currentUser.company_id}&select=id,username,role,display_name,company_id,company_name&order=id`;
+    const r=await fetch(`${SUPA_URL}/rest/v1/crm_users${filter}`,{headers:H});
+    if(r.ok){
+      state.users=await r.json();
+      state.companies=[...new Map(state.users.filter(u=>u.company_id).map(u=>[u.company_id,{id:u.company_id,name:u.company_name||`Firma ${u.company_id}`}])).values()];
+    }
+  }catch{}
+}
+async function logAction(action,detail=''){
+  if(!currentUser||!activeCompanyId)return;
+  try{await fetch(`${SUPA_URL}/rest/v1/crm_logs`,{method:'POST',headers:{...H,'Prefer':'return=minimal'},body:JSON.stringify({company_id:activeCompanyId,company_name:currentUser.company_name||'—',username:currentUser.username,display_name:currentUser.display_name||currentUser.username,action,detail:String(detail).substring(0,200)})});}catch{}
+}
+async function loadLogs(){
+  try{
+    const filter=isSuperAdmin()?`?select=*&order=created_at.desc&limit=300`:`?company_id=eq.${activeCompanyId}&select=*&order=created_at.desc&limit=200`;
+    const r=await fetch(`${SUPA_URL}/rest/v1/crm_logs${filter}`,{headers:H});
+    if(r.ok)state.logs=await r.json();
+  }catch{state.logs=[];}
+}
 
 // ── AUTH
 // Supabase erişilemezse bu yedek kullanıcılar devreye girer
 const FALLBACK_USERS=[
-  {id:1,username:"admin",password:"admin123",role:"admin",display_name:"Admin"},
-  {id:2,username:"satis",password:"satis123",role:"satis",display_name:"Satış"},
+  {id:1,username:"admin",password:"admin123",role:"admin",display_name:"Admin",company_id:1,company_name:"Turuncu Dental"},
+  {id:2,username:"satis",password:"satis123",role:"satis",display_name:"Satış",company_id:1,company_name:"Turuncu Dental"},
 ];
 function shake(){const b=document.querySelector(".login-box");b.classList.remove("shake");setTimeout(()=>b.classList.add("shake"),10);}
 async function doLogin(){
@@ -831,21 +870,23 @@ async function doLogin(){
     const r=await fetch(`${SUPA_URL}/rest/v1/crm_users?username=eq.${encodeURIComponent(username)}&password=eq.${encodeURIComponent(password)}&select=*`,{headers:{...H,"Prefer":"return=representation"}});
     if(r.ok){
       const data=await r.json();
-      if(data&&data.length>0){currentUser=data[0];sessionStorage.setItem("crm_user",JSON.stringify(currentUser));await showApp();btn.textContent=t.loginBtn;btn.disabled=false;return;}
+      if(data&&data.length>0){currentUser=data[0];activeCompanyId=currentUser.role==='superadmin'?null:(currentUser.company_id||1);sessionStorage.setItem("crm_user",JSON.stringify(currentUser));await showApp();logAction('login','');btn.textContent=t.loginBtn;btn.disabled=false;return;}
     }
   }catch{}
   // Supabase'e ulaşılamazsa yedek kullanıcılar
   const fallback=FALLBACK_USERS.find(u=>u.username===username&&u.password===password);
   if(fallback){
-    currentUser={id:fallback.id,username:fallback.username,role:fallback.role,display_name:fallback.display_name};
+    currentUser={id:fallback.id,username:fallback.username,role:fallback.role,display_name:fallback.display_name,company_id:fallback.company_id||1,company_name:fallback.company_name||'Turuncu Dental'};
+    activeCompanyId=currentUser.role==='superadmin'?null:(currentUser.company_id||1);
     sessionStorage.setItem("crm_user",JSON.stringify(currentUser));
     await showApp();
+    logAction('login','');
   } else {
     document.getElementById("login-err").textContent=t.loginErr;shake();
   }
   btn.textContent=t.loginBtn;btn.disabled=false;
 }
-function doLogout(){currentUser=null;sessionStorage.removeItem("crm_user");document.getElementById("app").style.display="none";document.getElementById("login-screen").style.display="flex";document.getElementById("login-password").value="";}
+function doLogout(){logAction('logout','');currentUser=null;activeCompanyId=null;sessionStorage.removeItem("crm_user");document.getElementById("app").style.display="none";document.getElementById("login-screen").style.display="flex";document.getElementById("login-password").value="";}
 async function showApp(){
   document.getElementById("login-screen").style.display="none";document.getElementById("app").style.display="flex";
   const color=ROLE_COLORS[currentUser.role]||"#f97316";
@@ -862,7 +903,9 @@ async function showApp(){
   const _lo2=document.getElementById("btn-logout");if(_lo2)_lo2.title=t.logout;
   document.getElementById("nav-treatments").style.display=canSeeCatalog()?"":"none";
   document.getElementById("nav-reports").style.display=canSeeReports()?"":"none";
+  document.getElementById("nav-logs").style.display=canSeeLogs()?"":"none";
   if(canManageUsers()){document.getElementById("nav-users").style.display="";await loadUsers();}
+  if(isSuperAdmin()){document.getElementById("company-selector").style.display="";populateCompanySelector();}
   render();
   // Arka planda her 90 saniyede veriyi Supabase'den yenile
   if(window._syncInterval)clearInterval(window._syncInterval);
@@ -872,6 +915,17 @@ async function showApp(){
     await loadAll();
     if(JSON.stringify({p:state.patients,e:state.events,a:state.appointments})!==before)render();
   },90000);
+}
+
+function populateCompanySelector(){
+  const sel=document.getElementById("company-select");if(!sel)return;
+  const opts=[`<option value="">${t.selectCompany||"— Firma Seç —"}</option>`,...state.companies.map(c=>`<option value="${c.id}"${activeCompanyId===c.id?" selected":""}>${c.name}</option>`)].join("");
+  sel.innerHTML=opts;sel.value=activeCompanyId||"";
+}
+async function setCompany(cid){
+  activeCompanyId=cid?+cid:null;
+  if(activeCompanyId){await loadAll();}else{state.patients=[];state.events=[];state.appointments=[];}
+  render();
 }
 
 // ── LANG
@@ -921,6 +975,7 @@ function render(){
   else if(currentTab==="treatments")c.innerHTML=renderTreatments();
   else if(currentTab==="reports"){c.innerHTML=renderReports();renderReportCharts();}
   else if(currentTab==="users")c.innerHTML=renderUsers();
+  else if(currentTab==="logs"){c.innerHTML=renderLogs();loadLogs().then(()=>{if(currentTab==="logs")c.innerHTML=renderLogs();});}
   if(currentTab==="appointments")setupAptEventSelector();
 }
 function renderTopbarActions(){
@@ -2312,12 +2367,12 @@ function renderUsers(){
   return`<div style="max-width:700px;display:flex;flex-direction:column;gap:9px">
     ${state.users.map(u=>{
       const isMe=u.id===currentUser.id;const color=ROLE_COLORS[u.role]||"#f97316";
-      const rl=u.role==="admin"?t.roleAdmin:u.role==="satis"?t.roleSales:t.roleReader;
+      const rl=u.role==="superadmin"?(t.roleSuper||"Süper Admin"):u.role==="admin"?t.roleAdmin:u.role==="satis"?t.roleSales:t.roleReader;
       return`<div class="card" style="display:flex;align-items:center;gap:14px">
         <div style="width:40px;height:40px;border-radius:50%;background:${color}22;display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:800;color:${color};border:2px solid ${color}44;flex-shrink:0">${(u.display_name||u.username)[0].toUpperCase()}</div>
         <div style="flex:1;min-width:0">
           <div style="font-weight:700;font-size:14px">${u.display_name||u.username}${isMe?` <span style="font-size:10px;background:#1a2236;border-radius:10px;padding:1px 7px;color:#4a607d">${t.youLabel}</span>`:""}</div>
-          <div style="font-size:12px;color:#4a607d">@${u.username}</div>
+          <div style="font-size:12px;color:#4a607d">@${u.username}${isSuperAdmin()&&u.company_name?` · <span style="color:#60a5fa">${u.company_name}</span>`:""}</div>
         </div>
         <span class="badge" style="background:${color}18;color:${color}">${rl}</span>
         <div style="display:flex;gap:6px">
@@ -2326,6 +2381,40 @@ function renderUsers(){
         </div>
       </div>`;
     }).join("")}
+  </div>`;
+}
+function renderLogs(){
+  if(!canSeeLogs())return`<div class="empty">${t.accessDenied}</div>`;
+  if(!state.logs.length)return`<div class="empty" style="padding:40px 0"><div style="font-size:32px;margin-bottom:12px">📋</div><div style="font-size:14px;color:#3d5270">${t.logNoLogs||"Henüz aktivite yok"}</div></div>`;
+  const actionLabels={login:t.actLogin,logout:t.actLogout,patient_add:t.actPatientAdd,patient_edit:t.actPatientEdit,patient_save:t.actPatientSave,note_add:t.actNoteAdd,file_upload:t.actFileUpload,quote_download:t.actQuoteDownload,status_change:t.actStatusChange};
+  const rows=state.logs.map(l=>{
+    const d=new Date(l.created_at);
+    const dateStr=d.toLocaleDateString('tr-TR',{day:'2-digit',month:'2-digit',year:'numeric'})+' '+d.toLocaleTimeString('tr-TR',{hour:'2-digit',minute:'2-digit'});
+    const actionLabel=actionLabels[l.action]||l.action;
+    return`<tr>
+      <td style="font-size:11px;color:#4a607d;white-space:nowrap">${dateStr}</td>
+      <td><span style="background:#1a2236;padding:2px 8px;border-radius:12px;font-size:11px;color:#60a5fa">${l.company_name||'—'}</span></td>
+      <td style="font-weight:600;font-size:12px">${l.display_name||l.username}</td>
+      <td><span style="background:#0d1320;padding:2px 8px;border-radius:12px;font-size:11px;color:#f97316;font-weight:700">${actionLabel}</span></td>
+      <td style="font-size:12px;color:#4a607d;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${l.detail||''}</td>
+    </tr>`;
+  }).join('');
+  return`<div style="max-width:920px">
+    <div class="card">
+      <div class="section-title" style="margin-bottom:12px">📋 ${t.navLogs||"Aktivite Logu"}</div>
+      <div style="overflow-x:auto">
+        <table class="data-table" style="width:100%;min-width:600px">
+          <thead><tr>
+            <th>${t.logTime||"Zaman"}</th>
+            <th>${t.logCompany||"Firma"}</th>
+            <th>${t.logUser||"Kullanıcı"}</th>
+            <th>${t.logActionCol||"İşlem"}</th>
+            <th>${t.logDetail||"Detay"}</th>
+          </tr></thead>
+          <tbody>${rows}</tbody>
+        </table>
+      </div>
+    </div>
   </div>`;
 }
 // ==ACTIONS==
@@ -2355,8 +2444,8 @@ async function savePatientModal(editId){
   if(!await confirmDialog(editId?t.confirmSavePatient:t.confirmAddPatient))return;
   const _nat=document.getElementById("pm-nationality").value;
   const item={name,phone:document.getElementById("pm-phone").value,email:document.getElementById("pm-email").value,country:_nat,nationality:_nat,status:document.getElementById("pm-status").value,eventId:+document.getElementById("pm-eventId").value||null};
-  if(editId){state.patients=state.patients.map(p=>p.id==editId?{...p,...item}:p);toast("✅ "+t.updated);}
-  else{state.patients.push({...item,id:Date.now(),assignee:currentUser.username,createdAt:new Date().toISOString(),consultation:{dentalConcerns:"",medicalHistory:"",allergies:"",medications:"",smoking:false,pregnant:false,bisphosphonate:false,heartDisease:false,diabetes:false,notes:""},assessment:{currentCondition:{},treatmentPlan:{},dentistNotes:""},booking:{treatments:[],accommodations:[],travels:[],discount:0,deposit:0,notes:""},notes:[]});toast("✅ "+t.added);}
+  if(editId){state.patients=state.patients.map(p=>p.id==editId?{...p,...item}:p);logAction('patient_edit',name);toast("✅ "+t.updated);}
+  else{state.patients.push({...item,id:Date.now(),assignee:currentUser.username,createdAt:new Date().toISOString(),consultation:{dentalConcerns:"",medicalHistory:"",allergies:"",medications:"",smoking:false,pregnant:false,bisphosphonate:false,heartDisease:false,diabetes:false,notes:""},assessment:{currentCondition:{},treatmentPlan:{},dentistNotes:""},booking:{treatments:[],accommodations:[],travels:[],discount:0,deposit:0,notes:""},notes:[]});logAction('patient_add',name);toast("✅ "+t.added);}
   await persist("customers");closeModal();render();
 }
 
@@ -2391,7 +2480,8 @@ async function saveCurrentPatient(){
     p.booking.notes=document.getElementById("pb-notes")?.value||"";
   }
   ptFormDirty=false;
-  await persist("customers");toast("✅ "+t.saved);
+  const _sp=getPatient(currentPatientId);
+  await persist("customers");logAction('patient_save',_sp?.name||'');toast("✅ "+t.saved);
   renderPatientOverlay();
 }
 
@@ -2444,7 +2534,7 @@ async function addPatientNote(){
   const text=document.getElementById("new-note-text")?.value?.trim();if(!text)return;
   if(!p.notes)p.notes=[];
   p.notes.push({id:Date.now(),date:new Date().toISOString().slice(0,10),text,by:currentUser.username});
-  await persist("customers");toast("✅ "+t.added);renderPtBody();
+  await persist("customers");logAction('note_add',p?.name||'');toast("✅ "+t.added);renderPtBody();
 }
 async function deletePatientNote(noteId){
   const p=getPatient(currentPatientId);if(!p)return;
@@ -2569,8 +2659,9 @@ async function deleteTreatment(id){if(!canEdit())return;if(!await confirmDialog(
 // ── USERS
 function openUserModal(editId){
   const u=editId?state.users.find(u=>u.id===editId):null;
-  const roleOpts=[["admin",t.roleAdmin],["satis",t.roleSales],["okuyucu",t.roleReader]].map(([v,l])=>`<option value="${v}"${u?.role===v?" selected":""}>${l}</option>`).join("");
+  const roleOpts=[...(isSuperAdmin()?[["superadmin",t.roleSuper||"Süper Admin"]]:[]),["admin",t.roleAdmin],["satis",t.roleSales],["okuyucu",t.roleReader]].map(([v,l])=>`<option value="${v}"${u?.role===v?" selected":""}>${l}</option>`).join("");
   const roleDesc={
+    superadmin:"Tüm firmaları yönetir, log raporlarına erişir",
     admin:t.adminRoleDesc,
     satis:t.salesRoleDesc,
     okuyucu:t.readerRoleDesc
@@ -2579,9 +2670,10 @@ function openUserModal(editId){
     <div class="field"><label>${t.fdisplayName}</label><input id="u-displayName" value="${u?.display_name||""}"/></div>
     <div class="field"><label>${t.loginUser}</label><input id="u-username" value="${u?.username||""}" ${editId?"readonly style='opacity:.5;cursor:not-allowed'":""}/></div>
     <div class="field"><label>${editId?t.fnewPass:t.fpassword}</label><input id="u-password" type="password" placeholder="${editId?t.fnewPassHint:"••••••••"}"/>${editId?`<div style="font-size:10px;color:#3d5270;margin-top:3px">${t.fnewPassHint}</div>`:""}</div>
-    <div class="field"><label>${t.fRole}</label><select id="u-role" onchange="document.getElementById('role-desc').textContent=({admin:'${roleDesc.admin}',satis:'${roleDesc.satis}',okuyucu:'${roleDesc.okuyucu}'})[this.value]||''">${roleOpts}</select>
+    <div class="field"><label>${t.fRole}</label><select id="u-role" onchange="document.getElementById('role-desc').textContent=({superadmin:'Tüm firmaları yönetir',admin:'${roleDesc.admin}',satis:'${roleDesc.satis}',okuyucu:'${roleDesc.okuyucu}'})[this.value]||''">${roleOpts}</select>
       <div id="role-desc" style="margin-top:6px;font-size:11px;color:#4a607d;line-height:1.5">${roleDesc[u?.role||'satis']||''}</div>
-    </div>`;
+    </div>
+    ${isSuperAdmin()?`<div class="field-row"><div class="field"><label>${t.fcompanyId||"Firma ID"}</label><input id="u-company-id" type="number" value="${u?.company_id||""}"/></div><div class="field"><label>${t.fcompanyName||"Firma Adı"}</label><input id="u-company-name" value="${u?.company_name||""}"/></div></div>`:''}`;
   makeModal(editId?t.editUser:t.newUser,body,`saveUser(${editId||0})`);
 }
 async function saveUser(editId){
@@ -2596,7 +2688,9 @@ async function saveUser(editId){
     toast(t.userUpdated);}catch{toast(t.errorMsg,"err");return;}
   } else {
     if(state.users.some(u=>u.username===username)){toast(t.usernameExists,"err");return;}
-    try{const r=await fetch(`${SUPA_URL}/rest/v1/crm_users`,{method:"POST",headers:{...H,"Prefer":"return=representation"},body:JSON.stringify({username,password,role,display_name:displayName})});if(!r.ok){toast(t.addFailed,"err");return;}const added=(await r.json());state.users.push({id:(Array.isArray(added)?added[0]:added).id,username,role,display_name:displayName});toast(t.userAdded);}catch{toast(t.errorMsg,"err");return;}
+    const companyId=isSuperAdmin()?(+document.getElementById("u-company-id")?.value||currentUser.company_id||1):(currentUser.company_id||1);
+    const companyName=isSuperAdmin()?(document.getElementById("u-company-name")?.value||currentUser.company_name||''):(currentUser.company_name||'');
+    try{const r=await fetch(`${SUPA_URL}/rest/v1/crm_users`,{method:"POST",headers:{...H,"Prefer":"return=representation"},body:JSON.stringify({username,password,role,display_name:displayName,company_id:companyId,company_name:companyName})});if(!r.ok){toast(t.addFailed,"err");return;}const added=(await r.json());state.users.push({id:(Array.isArray(added)?added[0]:added).id,username,role,display_name:displayName,company_id:companyId,company_name:companyName});toast(t.userAdded);}catch{toast(t.errorMsg,"err");return;}
   }
   closeModal();render();
 }
@@ -2614,6 +2708,7 @@ function togglePdfPrices(){
 }
 async function downloadQuotePDF(patientId){
   const p=getPatient(patientId);if(!p)return;
+  logAction('quote_download',p.name);
   const a=p.assessment||{};const b=p.booking||{};
   // Warn if accommodation or transfer is missing before generating PDF
   const _pdfWarnings=[];
@@ -2731,7 +2826,7 @@ async function downloadQuotePDF(patientId){
 // ==INIT==
 (async()=>{
   const saved=sessionStorage.getItem("crm_user");
-  if(saved){try{currentUser=JSON.parse(saved);await showApp();}catch{sessionStorage.removeItem("crm_user");}}
+  if(saved){try{currentUser=JSON.parse(saved);activeCompanyId=currentUser.role==='superadmin'?null:(currentUser.company_id||1);await showApp();}catch{sessionStorage.removeItem("crm_user");}}
 })();
 </script>
 </body>
