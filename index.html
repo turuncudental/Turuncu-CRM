@@ -469,6 +469,15 @@ tr:{
   salesRoleDesc:"Hasta ekleme/düzenleme, tedavi planı, konaklama, transfer, teklif PDF. Raporlar ve katalog erişimi yok.",
   readerRoleDesc:"Sadece görüntüleme. Finansal bilgiler, raporlar ve düzenleme butonları gizlenir.",
   receivedDeposit:"Alınan Deposit",earnedLabel:"Kazanılan",
+  dentalTourism:"Diş Turizmi Hizmetleri",quoteTitle:"TEKLİF",dateLabel:"Tarih:",
+  patientInfoHeader:"HASTA BİLGİLERİ",treatmentHeader:"TEDAVİ",qtyHeader:"ADET",unitPriceHeader:"BİRİM FİYAT",
+  noTreatments:"Tedavi seçilmemiş",preparedBy:"Hazırlayan:",pdfMissingWarning:"⚠️ Eksik bilgi:",pdfProceed:"Yine de teklif oluşturulsun mu?",
+  hidePrices:"🙈 Fiyatları Gizle",showPrices:"👁 Fiyatları Göster",closeBtn:"✕ Kapat",printBtn:"🖨 Yazdır / PDF",
+  dentalHistory:"Diş Anamnezi",activeLabel:"● AKTİF",resetAll:"✕ Hepsini Sıfırla",remove:"Kaldır",clearTooth:"✕ Temizle",toothNum:"Diş",
+  jawTxHint:"aktif — çenedeki herhangi bir dişe tıkla (tüm çene otomatik ayarlanır), tekrar tıkla iptal",
+  toothTxHint:"aktif — dişe tıkla, aynı dişe tekrar tıkla iptal",
+  condBrushHint:"fırçası aktif — dişlere tıkla, iptal için tekrar tıkla",
+  clearBrushHint:"✕ <strong>Temizle</strong> fırçası aktif — tıklanan dişi sıfırlar",
 },
 en:{
   navDashboard:"Dashboard",navPatients:"Patients",navEvents:"Events",navAppointments:"Appointments",
@@ -551,6 +560,15 @@ en:{
   salesRoleDesc:"Add/edit patients, treatment plans, accommodation, transfer, quote PDF. No access to reports or catalog.",
   readerRoleDesc:"View only. Financial data, reports and edit buttons are hidden.",
   receivedDeposit:"Received Deposit",earnedLabel:"Earned",
+  dentalTourism:"Dental Tourism Services",quoteTitle:"QUOTE",dateLabel:"Date:",
+  patientInfoHeader:"PATIENT INFORMATION",treatmentHeader:"TREATMENT",qtyHeader:"QTY",unitPriceHeader:"UNIT PRICE",
+  noTreatments:"No treatments selected",preparedBy:"Prepared by:",pdfMissingWarning:"⚠️ Missing information:",pdfProceed:"Generate quote anyway?",
+  hidePrices:"🙈 Hide Prices",showPrices:"👁 Show Prices",closeBtn:"✕ Close",printBtn:"🖨 Print / PDF",
+  dentalHistory:"Dental History",activeLabel:"● ACTIVE",resetAll:"✕ Reset All",remove:"Remove",clearTooth:"✕ Clear",toothNum:"Tooth",
+  jawTxHint:"active — click any tooth in the jaw (entire jaw auto-set), click again to cancel",
+  toothTxHint:"active — click a tooth, click again to cancel",
+  condBrushHint:"brush active — click teeth, click again to cancel",
+  clearBrushHint:"✕ <strong>Clear</strong> brush active — resets clicked tooth",
 }};
 
 let lang="tr",t=T.tr;
@@ -1069,7 +1087,7 @@ function renderPtConsultation(p){
       </div>
     </div>
     <div class="card">
-      <div class="section-title">Diş Anamnezi</div>
+      <div class="section-title">${t.dentalHistory}</div>
       <div class="field"><label>${t.dentalConcerns}</label><textarea id="pc-dentalConcerns" rows="3">${c.dentalConcerns||""}</textarea></div>
       <div class="field"><label>${t.medicalHistory}</label><textarea id="pc-medicalHistory" rows="2">${c.medicalHistory||""}</textarea></div>
       <div class="field-row">
@@ -1252,18 +1270,18 @@ function renderPtAssessment(p){
   const currBtn=['GBP','EUR','USD'].map(c=>`<button onclick="setCurrency('${c}')" style="padding:3px 10px;border-radius:14px;border:1px solid ${activeCurrency===c?'#f97316':'#1a2236'};background:${activeCurrency===c?'#f9731622':'#131b2a'};color:${activeCurrency===c?'#f97316':'#4a607d'};font-size:11px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif">${c==='GBP'?'£ GBP':c==='EUR'?'€ EUR':'$ USD'}</button>`).join('');
   const activeBrushTx=activeTxBrush&&activeTxBrush!=='__manual__'?allTxCatalog.find(t=>t.id===activeTxBrush):null;
   const isJawTxBrush=activeTxBrush&&!!JAW_PLAN_MAP[activeTxBrush];
-  const txBrushHint=activeTxBrush==='__manual__'?'':(activeBrushTx?(isJawTxBrush?`<div class="paint-hint">🦷 <strong>${activeBrushTx.name}</strong> aktif — çenedeki herhangi bir dişe tıkla (tüm çene otomatik ayarlanır), tekrar tıkla iptal</div>`:`<div class="paint-hint">🖌 <strong>${activeBrushTx.name}</strong> aktif — dişe tıkla, aynı dişe tekrar tıkla iptal</div>`):'');
-  const paintHint=paintBrush&&paintBrush!=="healthy"?`<div class="paint-hint">${TOOTH_ICONS[paintBrush]||"○"} <strong>${condLabel(paintBrush)}</strong> fırçası aktif — dişlere tıkla, iptal için tekrar tıkla</div>`:paintBrush==="healthy"?`<div class="paint-hint">✕ <strong>Temizle</strong> fırçası aktif — tıklanan dişi sıfırlar</div>`:"";
+  const txBrushHint=activeTxBrush==='__manual__'?'':(activeBrushTx?(isJawTxBrush?`<div class="paint-hint">🦷 <strong>${activeBrushTx.name}</strong> ${t.jawTxHint}</div>`:`<div class="paint-hint">🖌 <strong>${activeBrushTx.name}</strong> ${t.toothTxHint}</div>`):'');
+  const paintHint=paintBrush&&paintBrush!=="healthy"?`<div class="paint-hint">${TOOTH_ICONS[paintBrush]||"○"} <strong>${condLabel(paintBrush)}</strong> ${t.condBrushHint}</div>`:paintBrush==="healthy"?`<div class="paint-hint">${t.clearBrushHint}</div>`:"";
   const createdPlans=getCreatedPlans(p);
   return`<div style="max-width:800px;display:flex;flex-direction:column;gap:14px">
     <div class="card">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:8px">
         <div style="display:flex;align-items:center;gap:10px">
           <div class="section-title" style="margin-bottom:0">${t.treatmentPlan}</div>
-          ${createdPlans.map((pl,i)=>`<div style="display:flex;flex-direction:column;align-items:center;gap:2px"><button onclick="setActivePlan('${pl}')" style="padding:4px 12px;border-radius:20px;border:1px solid ${activePlan===pl?'#f97316':'#1a2236'};background:${activePlan===pl?'#f9731622':'#131b2a'};color:${activePlan===pl?'#f97316':'#4a607d'};font-size:11px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif">${i+1}. Plan</button>${p.assessment?.activePlan===pl?'<span style="font-size:9px;color:#22c55e;font-weight:800;letter-spacing:0.5px">● AKTİF</span>':''}</div>`).join('')}
+          ${createdPlans.map((pl,i)=>`<div style="display:flex;flex-direction:column;align-items:center;gap:2px"><button onclick="setActivePlan('${pl}')" style="padding:4px 12px;border-radius:20px;border:1px solid ${activePlan===pl?'#f97316':'#1a2236'};background:${activePlan===pl?'#f9731622':'#131b2a'};color:${activePlan===pl?'#f97316':'#4a607d'};font-size:11px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif">${i+1}. Plan</button>${p.assessment?.activePlan===pl?`<span style="font-size:9px;color:#22c55e;font-weight:800;letter-spacing:0.5px">${t.activeLabel}</span>`:''}</div>`).join('')}
           ${createdPlans.length<3?`<button onclick="addTreatmentPlan()" style="padding:4px 12px;border-radius:20px;border:1px dashed #2a3a54;background:transparent;color:#3d5270;font-size:11px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif">+ Plan</button>`:''}
         </div>
-        <button onclick="resetActivePlan()" style="padding:4px 14px;border-radius:20px;border:1px solid #ef444444;background:#2b0f0f;color:#ef4444;font-size:11px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif">✕ Hepsini Sıfırla</button>
+        <button onclick="resetActivePlan()" style="padding:4px 14px;border-radius:20px;border:1px solid #ef444444;background:#2b0f0f;color:#ef4444;font-size:11px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif">${t.resetAll}</button>
       </div>
       ${txBrushHint}
       <svg aria-hidden="true" style="position:absolute;width:0;height:0;overflow:hidden"><defs>
@@ -1316,7 +1334,7 @@ function renderPtAssessment(p){
             <td style="font-weight:700;color:#f97316;text-align:center">1</td>
             <td style="font-size:12px">${currSym()}${getEffectivePrice(r.tx).toLocaleString()}</td>
             <td style="font-weight:700;color:#34d399">${currSym()}${getEffectivePrice(r.tx).toLocaleString()}</td>
-            <td><button class="sm-btn danger" onclick="removeJawTx('${r.jaw}')" title="Kaldır">✕</button></td>
+            <td><button class="sm-btn danger" onclick="removeJawTx('${r.jaw}')" title="${t.remove}">✕</button></td>
           </tr>`).join('')}
           ${groupedRows.map(r=>`<tr>
             <td style="font-weight:600;line-height:1.4">${r.tx.name}${showToothNums(r.tx.name)?`<br/><span style="font-size:9px;color:#22c55e;font-weight:400;letter-spacing:0.2px">${[...r.toothNums].sort((a,b)=>a-b).join(', ')}</span>`:''}</td>
@@ -1345,10 +1363,10 @@ function renderPtAssessment(p){
         <div style="display:flex;align-items:center;gap:10px;padding:10px;background:${v.nights?'#0a2a1a':'#131b2a'};border:1px solid ${v.nights?'#22c55e44':'#1a2236'};border-radius:8px;margin-bottom:8px;flex-wrap:wrap">
           <div style="font-size:12px;font-weight:700;color:${i===0?'#60a5fa':'#34d399'};min-width:60px">${i+1}. Visit</div>
           <div style="display:flex;flex-wrap:wrap;gap:6px">
-            ${[3,4,5,6,7,10].map(n=>`<button onclick="setVisitNights(${i},${n})" style="padding:3px 9px;border-radius:14px;border:1px solid ${v.nights===n?'#f97316':'#1a2236'};background:${v.nights===n?'#f9731622':'#131b2a'};color:${v.nights===n?'#f97316':'#4a607d'};font-size:11px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif">${n} gece</button>`).join('')}
+            ${[3,4,5,6,7,10].map(n=>`<button onclick="setVisitNights(${i},${n})" style="padding:3px 9px;border-radius:14px;border:1px solid ${v.nights===n?'#f97316':'#1a2236'};background:${v.nights===n?'#f9731622':'#131b2a'};color:${v.nights===n?'#f97316':'#4a607d'};font-size:11px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif">${n} ${t.nights.toLowerCase()}</button>`).join('')}
             <input type="number" min="1" max="30" placeholder="?" value="${v.nights||''}" onchange="setVisitNights(${i},this.value)" style="width:52px;background:#131b2a;border:1px solid #1a2236;border-radius:6px;padding:3px 6px;color:#dde4ef;font-size:12px;text-align:center"/>
           </div>
-          <div style="font-size:12px;font-weight:700;color:${v.nights?'#22c55e':'#ef4444'}">${v.nights?v.nights+' gece ✓':t.notEntered}</div>
+          <div style="font-size:12px;font-weight:700;color:${v.nights?'#22c55e':'#ef4444'}">${v.nights?v.nights+' '+t.nights.toLowerCase()+' ✓':t.notEntered}</div>
         </div>`;}).join('')}
       ${visitWarning?`<div style="background:#2b0f0f;border:1px solid #ef444444;border-radius:8px;padding:10px 12px;font-size:12px;color:#ef4444;font-weight:600;margin-top:4px">${t.implantVisitWarning}</div>`:''}
     </div>`:''}
@@ -1369,7 +1387,7 @@ function renderPtAssessment(p){
             <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;flex-wrap:wrap">
               <span style="font-size:13px;font-weight:800;color:${viColor}">${vi+1}${t.visitAccom}</span>
               ${vn?`<span style="font-size:11px;background:#0a1525;padding:2px 8px;border-radius:12px;color:#4a8aaf;border:1px solid #1a3040">${t.plannedNights}: ${vn} ${t.nights}</span>`:''}
-              ${viMissing?`<span style="font-size:11px;color:#ef4444;font-weight:700">${t.facilityNotAdded}</span>`:`<span style="font-size:11px;color:${viColor}">${vEntries.reduce((s,{a})=>s+(a.nights||1),0)} gece ✓</span>`}
+              ${viMissing?`<span style="font-size:11px;color:#ef4444;font-weight:700">${t.facilityNotAdded}</span>`:`<span style="font-size:11px;color:${viColor}">${vEntries.reduce((s,{a})=>s+(a.nights||1),0)} ${t.nights.toLowerCase()} ✓</span>`}
             </div>
             <div style="display:flex;gap:8px;margin-bottom:8px;flex-wrap:wrap">
               <select id="pb-accom-sel-${vi}" style="background:#131b2a;border:1px solid #1a2236;border-radius:8px;padding:6px 10px;color:#dde4ef;font-size:12px;outline:none;flex:1;min-width:180px">
@@ -1508,8 +1526,8 @@ function toothClick(e,num){
   if(top+200>window.innerHeight)top=rect.top-208;
   popup.style.left=left+"px";popup.style.top=top+"px";
   const hasCond=chart[num]&&chart[num]!=="healthy";
-  const clearRow=hasCond?`<button onclick="setToothCond(${num},'healthy')" style="grid-column:1/-1;padding:5px 8px;border-radius:6px;border:1px dashed #3d5270;background:#131b2a;color:#3d5270;font-size:11px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif">✕ Temizle</button>`:"";
-  popup.innerHTML=`<div style="font-size:11px;font-weight:800;color:#f97316;margin-bottom:8px">Diş ${num} — ${t.treatmentPlan}</div>
+  const clearRow=hasCond?`<button onclick="setToothCond(${num},'healthy')" style="grid-column:1/-1;padding:5px 8px;border-radius:6px;border:1px dashed #3d5270;background:#131b2a;color:#3d5270;font-size:11px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif">${t.clearTooth}</button>`:"";
+  popup.innerHTML=`<div style="font-size:11px;font-weight:800;color:#f97316;margin-bottom:8px">${t.toothNum} ${num} — ${t.treatmentPlan}</div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:5px">
     ${popupKeys.map(k=>{const cur=chart[num]===k||(!chart[num]&&k==="healthy");return`<button onclick="setToothCond(${num},'${k}')" style="padding:5px 8px;border-radius:6px;border:1px solid ${cur?"#f97316":"#1a2236"};background:${cur?"#f9731622":"#131b2a"};color:${cur?"#f97316":"#4a607d"};font-size:11px;font-weight:600;cursor:pointer;text-align:left;font-family:'DM Sans',sans-serif;display:flex;align-items:center;gap:4px"><span>${TOOTH_ICONS[k]||"○"}</span><span>${condLabel(k)}</span></button>`}).join("")}
     ${clearRow}
@@ -1752,10 +1770,10 @@ function renderPtBooking(p){
       ${(isImplant?[0,1]:[0]).map(i=>{const v=(b.visits||[])[i]||{nights:null};return`<div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;padding:10px 12px;background:${v.nights?'#0a2a1a':'#131b2a'};border:1px solid ${v.nights?'#22c55e44':'#1a2236'};border-radius:8px;flex-wrap:wrap">
         <div style="font-size:12px;font-weight:800;color:#dde4ef;min-width:65px">${i+1}. Visit</div>
         <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center">
-          ${[3,4,5,6,7,10].map(n=>`<button onclick="setVisitNights(${i},${n})" style="padding:4px 11px;border-radius:16px;border:1px solid ${v.nights===n?'#22c55e':'#1a2236'};background:${v.nights===n?'#22c55e22':'#0d1320'};color:${v.nights===n?'#22c55e':'#4a607d'};font-size:11px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif">${n} gece</button>`).join('')}
+          ${[3,4,5,6,7,10].map(n=>`<button onclick="setVisitNights(${i},${n})" style="padding:4px 11px;border-radius:16px;border:1px solid ${v.nights===n?'#22c55e':'#1a2236'};background:${v.nights===n?'#22c55e22':'#0d1320'};color:${v.nights===n?'#22c55e':'#4a607d'};font-size:11px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif">${n} ${t.nights.toLowerCase()}</button>`).join('')}
           <input type="number" min="1" value="${v.nights||''}" placeholder="?" onchange="setVisitNights(${i},this.value)" style="width:54px;background:#0d1320;border:1px solid #1a2236;border-radius:6px;padding:4px 6px;color:#dde4ef;font-size:12px;text-align:center"/>
         </div>
-        <div style="margin-left:auto;font-size:11px;font-weight:700;color:${v.nights?'#22c55e':'#ef4444'}">${v.nights?v.nights+' gece ✓':t.notEntered}</div>
+        <div style="margin-left:auto;font-size:11px;font-weight:700;color:${v.nights?'#22c55e':'#ef4444'}">${v.nights?v.nights+' '+t.nights.toLowerCase()+' ✓':t.notEntered}</div>
       </div>`;}).join('')}
       ${visitWarning?`<div style="background:#2b0f0f;border:1px solid #ef444444;border-radius:8px;padding:10px 12px;font-size:12px;color:#ef4444;font-weight:600;margin-top:4px">${t.implantVisitWarning}</div>`:''}
     </div>`:''}
@@ -1776,7 +1794,7 @@ function renderPtBooking(p){
             <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;flex-wrap:wrap">
               <span style="font-size:13px;font-weight:800;color:${viColor}">${vi+1}${t.visitAccom}</span>
               ${vn?`<span style="font-size:11px;background:#0a1525;padding:2px 8px;border-radius:12px;color:#4a8aaf;border:1px solid #1a3040">${t.plannedNights}: ${vn} ${t.nights}</span>`:''}
-              ${viMissing?`<span style="font-size:11px;color:#ef4444;font-weight:700">${t.facilityNotAdded}</span>`:`<span style="font-size:11px;color:${viColor}">${vEntries.reduce((s,{a})=>s+(a.nights||1),0)} gece ✓</span>`}
+              ${viMissing?`<span style="font-size:11px;color:#ef4444;font-weight:700">${t.facilityNotAdded}</span>`:`<span style="font-size:11px;color:${viColor}">${vEntries.reduce((s,{a})=>s+(a.nights||1),0)} ${t.nights.toLowerCase()} ✓</span>`}
             </div>
             <div style="display:flex;gap:8px;margin-bottom:8px;flex-wrap:wrap">
               <select id="pb-accom-sel-${vi}" style="background:#131b2a;border:1px solid #1a2236;border-radius:8px;padding:6px 10px;color:#dde4ef;font-size:12px;outline:none;flex:1;min-width:180px">
@@ -2545,6 +2563,12 @@ async function deleteUser(id){
 }
 
 // ── PDF QUOTE
+function togglePdfPrices(){
+  const s=document.getElementById('quote-price-style');
+  const hidden=s.textContent.includes('none');
+  s.textContent=hidden?'':'.qp-price{display:none!important}';
+  document.getElementById('quote-toggle-prices').textContent=hidden?t.hidePrices:t.showPrices;
+}
 async function downloadQuotePDF(patientId){
   const p=getPatient(patientId);if(!p)return;
   const a=p.assessment||{};const b=p.booking||{};
@@ -2553,7 +2577,7 @@ async function downloadQuotePDF(patientId){
   if(!(b.accommodations||[]).length) _pdfWarnings.push(t.noAccomSelected);
   if(!(b.travels||[]).length) _pdfWarnings.push(t.noTransferSelected);
   if(_pdfWarnings.length){
-    const _warnMsg='⚠️ Eksik bilgi:<br><br>• '+_pdfWarnings.join('<br>• ')+'<br><br>Yine de teklif oluşturulsun mu?';
+    const _warnMsg=t.pdfMissingWarning+'<br><br>• '+_pdfWarnings.join('<br>• ')+'<br><br>'+t.pdfProceed;
     if(!await confirmDialog(_warnMsg))return;
   }
   const planKey=a.activePlan||'treatmentPlan';
@@ -2593,11 +2617,11 @@ async function downloadQuotePDF(patientId){
   el.style.cssText="position:fixed;left:-9999px;top:0;width:794px;background:#fff;font-family:Arial,Helvetica,sans-serif;padding:48px;color:#1a1a2e;box-sizing:border-box";
   el.innerHTML=`
     <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:28px;padding-bottom:18px;border-bottom:3px solid #f97316">
-      <div><div style="font-size:24px;font-weight:900;color:#f97316">🦷 Turuncu Dental</div><div style="font-size:11px;color:#888;margin-top:3px">Diş Turizmi Hizmetleri</div></div>
-      <div style="text-align:right"><div style="font-size:20px;font-weight:900;color:#1a1a2e;letter-spacing:3px">TEKLİF</div><div style="font-size:10px;color:#777;margin-top:8px">Tarih: ${dateStr}</div></div>
+      <div><div style="font-size:24px;font-weight:900;color:#f97316">🦷 Turuncu Dental</div><div style="font-size:11px;color:#888;margin-top:3px">${t.dentalTourism}</div></div>
+      <div style="text-align:right"><div style="font-size:20px;font-weight:900;color:#1a1a2e;letter-spacing:3px">${t.quoteTitle}</div><div style="font-size:10px;color:#777;margin-top:8px">${t.dateLabel} ${dateStr}</div></div>
     </div>
     <div style="margin-bottom:20px;padding:14px 16px;background:#fff8f0;border-radius:6px;border-left:3px solid #f97316">
-      <div style="font-size:9px;font-weight:700;color:#f97316;letter-spacing:1px;margin-bottom:6px">HASTA BİLGİLERİ</div>
+      <div style="font-size:9px;font-weight:700;color:#f97316;letter-spacing:1px;margin-bottom:6px">${t.patientInfoHeader}</div>
       <div style="font-size:15px;font-weight:700">${p.name}</div>
       ${p.country?`<div style="font-size:12px;color:#555;margin-top:2px">${p.country}</div>`:""}
       ${p.email?`<div style="font-size:11px;color:#777;margin-top:2px">${p.email}</div>`:""}
@@ -2605,24 +2629,24 @@ async function downloadQuotePDF(patientId){
     </div>
     <table style="width:100%;border-collapse:collapse;margin-bottom:18px">
       <thead><tr style="background:#f97316">
-        <th style="padding:9px 12px;text-align:left;font-size:10px;font-weight:700;color:#fff">TEDAVİ</th>
-        <th style="padding:9px 12px;text-align:center;font-size:10px;font-weight:700;color:#fff;width:60px">ADET</th>
-        <th class="qp-price" style="padding:9px 12px;text-align:right;font-size:10px;font-weight:700;color:#fff;width:120px">BİRİM FİYAT</th>
-        <th class="qp-price" style="padding:9px 12px;text-align:right;font-size:10px;font-weight:700;color:#fff;width:120px">TOPLAM</th>
+        <th style="padding:9px 12px;text-align:left;font-size:10px;font-weight:700;color:#fff">${t.treatmentHeader}</th>
+        <th style="padding:9px 12px;text-align:center;font-size:10px;font-weight:700;color:#fff;width:60px">${t.qtyHeader}</th>
+        <th class="qp-price" style="padding:9px 12px;text-align:right;font-size:10px;font-weight:700;color:#fff;width:120px">${t.unitPriceHeader}</th>
+        <th class="qp-price" style="padding:9px 12px;text-align:right;font-size:10px;font-weight:700;color:#fff;width:120px">${t.total.toUpperCase()}</th>
       </tr></thead>
       <tbody>${(()=>{
-        const allRows=[...rows.map(r=>({name:r.name,qty:r.qty,price:r.price,unit:''})),...(b.accommodations||[]).map(ac=>({name:'🏨 '+ac.name,qty:ac.nights||1,price:ac.pricePerNight||0,unit:'gece'})),...(b.travels||[]).map(tr=>({name:'✈️ '+tr.name,qty:tr.persons||1,price:tr.price||0,unit:'kişi'}))];
+        const allRows=[...rows.map(r=>({name:r.name,qty:r.qty,price:r.price,unit:''})),...(b.accommodations||[]).map(ac=>({name:'🏨 '+ac.name,qty:ac.nights||1,price:ac.pricePerNight||0,unit:t.nights.toLowerCase()})),...(b.travels||[]).map(tr=>({name:'✈️ '+tr.name,qty:tr.persons||1,price:tr.price||0,unit:t.persons.toLowerCase()}))];
         return allRows.length?allRows.map((r,i)=>`<tr style="background:${i%2?"#fff8f0":"#fff"}">
           <td style="padding:9px 12px;font-size:12px">${r.name}</td>
           <td style="padding:9px 12px;text-align:center;font-size:12px;color:#555">${r.qty}${r.unit?' '+r.unit:''}</td>
           <td class="qp-price" style="padding:9px 12px;text-align:right;font-size:12px;color:#555">${currSym()}${(r.price||0).toLocaleString()}</td>
           <td class="qp-price" style="padding:9px 12px;text-align:right;font-size:12px;font-weight:700">${currSym()}${(r.qty*r.price).toLocaleString()}</td>
-        </tr>`).join(""):`<tr><td colspan="4" style="padding:16px;text-align:center;color:#888;font-size:12px">Tedavi seçilmemiş</td></tr>`;
+        </tr>`).join(""):`<tr><td colspan="4" style="padding:16px;text-align:center;color:#888;font-size:12px">${t.noTreatments}</td></tr>`;
       })()}</tbody>
     </table>
     <div style="display:flex;justify-content:flex-end;margin-bottom:20px">
       <div style="min-width:220px">
-        <div class="qp-price" style="display:flex;justify-content:space-between;padding:7px 12px;background:#f8f9fa;border:1px solid #e9ecef;border-bottom:none;border-radius:4px 4px 0 0"><span style="font-size:11px;color:#777">Ara Toplam</span><span style="font-size:12px;font-weight:600">${currSym()}${sub.toLocaleString()}</span></div>
+        <div class="qp-price" style="display:flex;justify-content:space-between;padding:7px 12px;background:#f8f9fa;border:1px solid #e9ecef;border-bottom:none;border-radius:4px 4px 0 0"><span style="font-size:11px;color:#777">${t.subtotal}</span><span style="font-size:12px;font-weight:600">${currSym()}${sub.toLocaleString()}</span></div>
         ${b.discount?`<div class="qp-price" style="display:flex;justify-content:space-between;padding:7px 12px;background:#f8f9fa;border:1px solid #e9ecef;border-bottom:none"><span style="font-size:11px;color:#777">${t.discount}</span><span style="font-size:12px;font-weight:600;color:#e55">-${currSym()}${(b.discount).toLocaleString()}</span></div>`:""}
         <div style="display:flex;justify-content:space-between;padding:8px 12px;background:#f97316;border-radius:4px;margin-top:2px"><span style="font-size:12px;font-weight:700;color:#fff">${t.cashPayment}</span><span style="font-size:14px;font-weight:900;color:#fff">${currSym()}${total.toLocaleString()}</span></div>
         <div style="display:flex;justify-content:space-between;padding:7px 12px;background:#e8f0fe;border:1px solid #c7d7f9;border-top:none;border-radius:0 0 4px 4px;margin-bottom:6px"><span style="font-size:11px;color:#3b5bdb;font-weight:600">${t.cardPayment}</span><span style="font-size:12px;font-weight:700;color:#3b5bdb">${currSym()}${Math.round(total*1.02).toLocaleString()}</span></div>
@@ -2638,7 +2662,7 @@ async function downloadQuotePDF(patientId){
       </div>
     </div>
     <div style="margin-top:24px;padding-top:12px;border-top:1px solid #e9ecef;text-align:center;font-size:9px;color:#aaa">
-      Hazırlayan: ${currentUser.display_name||currentUser.username} · Tarih: ${dateStr} · Turuncu Dental CRM
+      ${t.preparedBy} ${currentUser.display_name||currentUser.username} · ${t.dateLabel} ${dateStr} · Turuncu Dental CRM
     </div>`;
   // Inject hide-prices style (default: hidden)
   const priceStyle=document.createElement('style');
@@ -2653,9 +2677,9 @@ async function downloadQuotePDF(patientId){
   btnBar.id='quote-print-btns';
   btnBar.style.cssText='display:flex;gap:10px;justify-content:flex-end;flex-wrap:wrap;margin-bottom:12px;flex-shrink:0';
   btnBar.innerHTML=`
-    <button id="quote-toggle-prices" onclick="(function(){const s=document.getElementById('quote-price-style');const hidden=s.textContent.includes('none');s.textContent=hidden?'':'.qp-price{display:none!important}';document.getElementById('quote-toggle-prices').textContent=hidden?'🙈 Fiyatları Gizle':'👁 Fiyatları Göster';})()" style="padding:9px 20px;border-radius:8px;border:1px solid #60a5fa44;background:#0a1a2e;color:#60a5fa;font-size:13px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif">👁 Fiyatları Göster</button>
-    <button onclick="document.getElementById('quote-overlay').remove()" style="padding:9px 20px;border-radius:8px;border:1px solid #dde4ef44;background:#1a2236;color:#dde4ef;font-size:13px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif">✕ Kapat</button>
-    <button onclick="window.print()" style="padding:9px 20px;border-radius:8px;border:none;background:#f97316;color:#fff;font-size:13px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif">🖨 Yazdır / PDF</button>`;
+    <button id="quote-toggle-prices" onclick="togglePdfPrices()" style="padding:9px 20px;border-radius:8px;border:1px solid #60a5fa44;background:#0a1a2e;color:#60a5fa;font-size:13px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif">${t.showPrices}</button>
+    <button onclick="document.getElementById('quote-overlay').remove()" style="padding:9px 20px;border-radius:8px;border:1px solid #dde4ef44;background:#1a2236;color:#dde4ef;font-size:13px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif">${t.closeBtn}</button>
+    <button onclick="window.print()" style="padding:9px 20px;border-radius:8px;border:none;background:#f97316;color:#fff;font-size:13px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif">${t.printBtn}</button>`;
   el.style.cssText='background:#fff;font-family:Arial,Helvetica,sans-serif;padding:48px;color:#1a1a2e;box-sizing:border-box;max-width:794px;width:100%;margin:0 auto;border-radius:8px;';
   ov.appendChild(btnBar);
   ov.appendChild(el);
