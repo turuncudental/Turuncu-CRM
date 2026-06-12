@@ -1518,12 +1518,18 @@ function setPaintBrush(k){
 }
 
 function hasImplantInPlan(p){
-  const a=p.assessment||{};const planKey=a.activePlan||'treatmentPlan';
+  const a=p.assessment||{};
   const allTx=state.treatments.filter(tx=>tx.type==='treatment'&&tx.active);
-  const toothMap=(a.toothTx||{})[planKey]||{};const jawMap=(a.jawTx||{})[planKey]||{};
-  return Object.values(toothMap).some(id=>{const tx=allTx.find(t=>t.id===+id);return tx?.category==='İmplant';})
-      ||Object.values(jawMap).some(id=>{const tx=allTx.find(t=>t.id===+id);return tx?.category==='İmplant';})
-      ||Object.values((a[planKey])||{}).includes('implant');
+  // Check active plan first, then session plan, then all created plans
+  const candidates=[a.activePlan,activePlan,...getCreatedPlans(p)].filter(Boolean);
+  const seen=new Set();
+  return candidates.some(planKey=>{
+    if(seen.has(planKey))return false;seen.add(planKey);
+    const toothMap=(a.toothTx||{})[planKey]||{};const jawMap=(a.jawTx||{})[planKey]||{};
+    return Object.values(toothMap).some(id=>{const tx=allTx.find(t=>t.id===+id);return tx?.category==='İmplant';})
+        ||Object.values(jawMap).some(id=>{const tx=allTx.find(t=>t.id===+id);return tx?.category==='İmplant';})
+        ||Object.values((a[planKey])||{}).includes('implant');
+  });
 }
 function setVisitNights(visitIdx,val){
   const p=getPatient(currentPatientId);if(!p)return;
