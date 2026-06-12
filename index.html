@@ -1520,16 +1520,23 @@ function setPaintBrush(k){
 function hasImplantInPlan(p){
   const a=p.assessment||{};
   const allTx=state.treatments.filter(tx=>tx.type==='treatment'&&tx.active);
+  const isImplantTx=tx=>tx&&(tx.category==='İmplant'||(tx.name||'').toLowerCase().includes('implant'));
   // Check active plan first, then session plan, then all created plans
   const candidates=[a.activePlan,activePlan,...getCreatedPlans(p)].filter(Boolean);
   const seen=new Set();
   return candidates.some(planKey=>{
     if(seen.has(planKey))return false;seen.add(planKey);
     const toothMap=(a.toothTx||{})[planKey]||{};const jawMap=(a.jawTx||{})[planKey]||{};
-    return Object.values(toothMap).some(id=>{const tx=allTx.find(t=>t.id===+id);return tx?.category==='İmplant';})
-        ||Object.values(jawMap).some(id=>{const tx=allTx.find(t=>t.id===+id);return tx?.category==='İmplant';})
+    return Object.values(toothMap).some(id=>isImplantTx(allTx.find(t=>t.id===+id)))
+        ||Object.values(jawMap).some(id=>isImplantTx(allTx.find(t=>t.id===+id)))
         ||Object.values((a[planKey])||{}).includes('implant');
   });
+}
+function toggleTwoVisit(){
+  const p=getPatient(currentPatientId);if(!p)return;
+  if(!p.booking)p.booking={};
+  p.booking.twoVisit=!p.booking.twoVisit;
+  persist("customers");renderPtBody();
 }
 function setVisitNights(visitIdx,val){
   const p=getPatient(currentPatientId);if(!p)return;
@@ -1548,7 +1555,7 @@ function renderPtBooking(p){
   const total=sub-discountAmt;
   const balance=total-(b.deposit||0);
   const cardBalance=Math.round(balance*1.02);
-  const isImplant=hasImplantInPlan(p);
+  const isImplant=p.booking?.twoVisit===true||hasImplantInPlan(p);
   const visits=b.visits||(isImplant?[{nights:null},{nights:null}]:[]);
   const visitWarning=isImplant&&visits.some(v=>!v||!v.nights);
   const activeTx=getCatalogByType("treatment");
@@ -1594,7 +1601,10 @@ function renderPtBooking(p){
     </div>`:''}
 
     <div class="card">
-      <div class="section-title">🏨 ${t.bookingAccommodation}</div>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:8px">
+        <div class="section-title" style="margin-bottom:0">🏨 ${t.bookingAccommodation}</div>
+        <button onclick="toggleTwoVisit()" style="padding:4px 12px;border-radius:16px;border:1px solid ${isImplant?'#f97316':'#1a2236'};background:${isImplant?'#f9731622':'#131b2a'};color:${isImplant?'#f97316':'#4a607d'};font-size:11px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif">${isImplant?'✅ 2 Visit':'⬜ 2 Visit'}</button>
+      </div>
       ${isImplant?(()=>{
         const viColors=['#60a5fa','#34d399'];
         const sections=[0,1].map(vi=>{
