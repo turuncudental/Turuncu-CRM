@@ -1005,10 +1005,10 @@ function renderPatients(){
   ["walkin","consultation","assessed","pricing","booked","cancelled"].forEach(s=>counts[s]=state.patients.filter(p=>p.status===s).length);
 
   if(!filtered.length)return`<div>
-    <div class="status-tabs">${statuses.map(s=>`<button class="status-tab${filterStatus===s?" active":""}" onclick="setFilterStatus('${s}')">${s==="all"?"Tümü":statusLabel(s)} <span style="font-size:10px;opacity:.7">${counts[s]}</span></button>`).join("")}</div>
+    <div class="status-tabs">${statuses.map(s=>`<button class="status-tab${filterStatus===s?" active":""}" onclick="setFilterStatus('${s}')">${s==="all"?t.statusAll:statusLabel(s)} <span style="font-size:10px;opacity:.7">${counts[s]}</span></button>`).join("")}</div>
     <div class="empty">${t.noPatients}</div></div>`;
 
-  const statusBar=`<div class="status-tabs">${statuses.map(s=>`<button class="status-tab${filterStatus===s?" active":""}" onclick="setFilterStatus('${s}')">${s==="all"?"Tümü":statusLabel(s)} <span style="font-size:10px;opacity:.7">${counts[s]}</span></button>`).join("")}</div>`;
+  const statusBar=`<div class="status-tabs">${statuses.map(s=>`<button class="status-tab${filterStatus===s?" active":""}" onclick="setFilterStatus('${s}')">${s==="all"?t.statusAll:statusLabel(s)} <span style="font-size:10px;opacity:.7">${counts[s]}</span></button>`).join("")}</div>`;
   if(patientViewMode==='list'){
     const sortedList=[...filtered].sort((a,b)=>{
       if(!patientSortKey)return 0;
