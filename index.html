@@ -213,6 +213,7 @@ nav button:hover:not(.active){color:#94a3b8}
       <button data-tab="treatments" id="nav-treatments" style="display:none" onclick="setTab('treatments')">🦷 &nbsp;<span class="nav-lbl" data-key="navTreatments">Tedaviler</span></button>
       <button data-tab="reports" id="nav-reports" style="display:none" onclick="setTab('reports')">↗ &nbsp;<span class="nav-lbl" data-key="navReports">Raporlar</span></button>
       <button data-tab="users" id="nav-users" style="display:none" onclick="setTab('users')">👤 &nbsp;<span class="nav-lbl" data-key="navUsers">Kullanıcılar</span></button>
+      <button data-tab="companies" id="nav-companies" style="display:none" onclick="setTab('companies')">🏢 &nbsp;<span class="nav-lbl" data-key="navCompanies">Firmalar</span></button>
       <button data-tab="logs" id="nav-logs" style="display:none" onclick="setTab('logs')">📋 &nbsp;<span class="nav-lbl" data-key="navLogs">Aktivite Logu</span></button>
     </nav>
     <div id="company-selector" style="display:none;padding:6px 14px 2px">
@@ -394,7 +395,7 @@ function getToothSVGKey(n){
 const T={
 tr:{
   navDashboard:"Panel",navPatients:"Hastalar",navEvents:"Etkinlikler",navAppointments:"Randevular",
-  navTreatments:"Tedaviler",navReports:"Raporlar",navUsers:"Kullanıcılar",navLogs:"Aktivite Logu",
+  navTreatments:"Tedaviler",navReports:"Raporlar",navUsers:"Kullanıcılar",navCompanies:"Firmalar",navLogs:"Aktivite Logu",
   live:"Canlı",search:"Ara...",
   totalPatients:"Toplam Hasta",upcomingEvents:"Yaklaşan Etkinlik",convRate:"Dönüşüm Oranı",totalRevenue:"Toplam Gelir",
   registered:"Kayıtlı",walkins:"Walk-in",consultations:"Konsültasyon",waitingDentist:"Diş Hekimi Bekliyor",
@@ -431,6 +432,7 @@ tr:{
   logTime:"Zaman",logCompany:"Firma",logUser:"Kullanıcı",logActionCol:"İşlem",logDetail:"Detay",logNoLogs:"Henüz aktivite yok",logLoadMore:"Daha Fazla Yükle",
   actLogin:"Giriş yaptı",actLogout:"Çıkış yaptı",actPatientAdd:"Hasta ekledi",actPatientEdit:"Hasta düzenledi",actPatientSave:"Hasta kaydetti",actNoteAdd:"Not ekledi",actFileUpload:"Dosya yükledi",actQuoteDownload:"PDF indirdi",actStatusChange:"Durum değiştirdi",
   fcompanyId:"Firma ID",fcompanyName:"Firma Adı",
+  addCompany:"+ Firma Ekle",newCompany:"Yeni Firma",editCompany:"Firma Düzenle",noCompanies:"Henüz firma yok",confirmDeleteCompany:"Bu firmayı silmek istediğinizden emin misiniz?",companyDeleted:"Firma silindi",companyAdded:"Firma eklendi",companyUpdated:"Firma güncellendi",selectFirm:"Firma Seç",
   fdisplayName:"Ad Soyad",fpassword:"Şifre",fnewPass:"Yeni Şifre",fRole:"Yetki",fnewPassHint:"(boş bırakırsanız değişmez)",
   noUsers:"Kullanıcı bulunamadı",userAdded:"Kullanıcı eklendi",userUpdated:"Kullanıcı güncellendi",userDeleted:"Kullanıcı silindi",
   cantDeleteSelf:"Kendi hesabınızı silemezsiniz",usernameExists:"Bu kullanıcı adı kullanımda",passRequired:"Şifre zorunludur",usernameRequired:"Kullanıcı adı zorunludur",
@@ -503,7 +505,7 @@ tr:{
 },
 en:{
   navDashboard:"Dashboard",navPatients:"Patients",navEvents:"Events",navAppointments:"Appointments",
-  navTreatments:"Treatments",navReports:"Reports",navUsers:"Users",navLogs:"Activity Log",
+  navTreatments:"Treatments",navReports:"Reports",navUsers:"Users",navCompanies:"Companies",navLogs:"Activity Log",
   live:"Live",search:"Search...",
   totalPatients:"Total Patients",upcomingEvents:"Upcoming Events",convRate:"Conversion Rate",totalRevenue:"Total Revenue",
   registered:"Registered",walkins:"Walk-ins",consultations:"Consultations",waitingDentist:"Waiting for Dentist",
@@ -540,6 +542,7 @@ en:{
   logTime:"Time",logCompany:"Company",logUser:"User",logActionCol:"Action",logDetail:"Detail",logNoLogs:"No activity yet",logLoadMore:"Load More",
   actLogin:"Logged in",actLogout:"Logged out",actPatientAdd:"Added patient",actPatientEdit:"Edited patient",actPatientSave:"Saved patient record",actNoteAdd:"Added note",actFileUpload:"Uploaded file",actQuoteDownload:"Downloaded PDF",actStatusChange:"Changed status",
   fcompanyId:"Company ID",fcompanyName:"Company Name",
+  addCompany:"+ Add Company",newCompany:"New Company",editCompany:"Edit Company",noCompanies:"No companies yet",confirmDeleteCompany:"Are you sure you want to delete this company?",companyDeleted:"Company deleted",companyAdded:"Company added",companyUpdated:"Company updated",selectFirm:"Select Company",
   fdisplayName:"Full Name",fpassword:"Password",fnewPass:"New Password",fRole:"Role",fnewPassHint:"(leave blank to keep)",
   noUsers:"No users found",userAdded:"User added",userUpdated:"User updated",userDeleted:"User deleted",
   cantDeleteSelf:"Cannot delete your own account",usernameExists:"Username already taken",passRequired:"Password required",usernameRequired:"Username required",
@@ -853,6 +856,12 @@ async function loadLogs(){
     if(r.ok)state.logs=await r.json();
   }catch{state.logs=[];}
 }
+async function loadCompanies(){
+  try{
+    const r=await fetch(`${SUPA_URL}/rest/v1/crm_companies?select=*&order=id`,{headers:H});
+    if(r.ok)state.companies=await r.json();
+  }catch{}
+}
 
 // ── AUTH
 // Supabase erişilemezse bu yedek kullanıcılar devreye girer
@@ -904,8 +913,9 @@ async function showApp(){
   document.getElementById("nav-treatments").style.display=canSeeCatalog()?"":"none";
   document.getElementById("nav-reports").style.display=canSeeReports()?"":"none";
   document.getElementById("nav-logs").style.display=canSeeLogs()?"":"none";
+  document.getElementById("nav-companies").style.display=canSeeLogs()?"":"none";
   if(canManageUsers()){document.getElementById("nav-users").style.display="";await loadUsers();}
-  if(isSuperAdmin()){document.getElementById("company-selector").style.display="";populateCompanySelector();}
+  if(isSuperAdmin()){await loadCompanies();document.getElementById("company-selector").style.display="";populateCompanySelector();}
   render();
   // Arka planda her 90 saniyede veriyi Supabase'den yenile
   if(window._syncInterval)clearInterval(window._syncInterval);
@@ -975,6 +985,7 @@ function render(){
   else if(currentTab==="treatments")c.innerHTML=renderTreatments();
   else if(currentTab==="reports"){c.innerHTML=renderReports();renderReportCharts();}
   else if(currentTab==="users")c.innerHTML=renderUsers();
+  else if(currentTab==="companies")c.innerHTML=renderCompanies();
   else if(currentTab==="logs"){c.innerHTML=renderLogs();loadLogs().then(()=>{if(currentTab==="logs")c.innerHTML=renderLogs();});}
   if(currentTab==="appointments")setupAptEventSelector();
 }
@@ -989,6 +1000,7 @@ function renderTopbarActions(){
     else html=`<button class="btn" onclick="openTreatmentModal(0,'travel')">${t.addTravel}</button>`;
   }
   else if(canManageUsers()&&currentTab==="users")html=`<button class="btn" onclick="openUserModal(0)">${t.addUser}</button>`;
+  else if(canSeeLogs()&&currentTab==="companies")html=`<button class="btn" onclick="openCompanyModal(0)">${t.addCompany||"+ Firma Ekle"}</button>`;
   el.innerHTML=html;
 }
 setInterval(async()=>{if(!currentUser)return;await loadAll();if(!document.getElementById("patient-overlay").style.display||document.getElementById("patient-overlay").style.display==="none")render();},15000);
@@ -2383,6 +2395,54 @@ function renderUsers(){
     }).join("")}
   </div>`;
 }
+function renderCompanies(){
+  if(!canSeeLogs())return`<div class="empty">${t.accessDenied}</div>`;
+  if(!state.companies.length)return`<div class="empty"><div style="font-size:32px;margin-bottom:12px">🏢</div><div>${t.noCompanies||"Henüz firma yok"}</div></div>`;
+  return`<div style="max-width:600px;display:flex;flex-direction:column;gap:9px">
+    ${state.companies.map(c=>{
+      const userCount=state.users.filter(u=>u.company_id===c.id).length;
+      return`<div class="card" style="display:flex;align-items:center;gap:14px">
+        <div style="width:42px;height:42px;border-radius:10px;background:#f9731622;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0">🏢</div>
+        <div style="flex:1;min-width:0">
+          <div style="font-weight:700;font-size:14px">${c.name}</div>
+          <div style="font-size:11px;color:#4a607d">ID: ${c.id} · ${userCount} kullanıcı</div>
+        </div>
+        <div style="display:flex;gap:6px">
+          <button class="sm-btn" onclick="openCompanyModal(${c.id})">${t.editBtn||"Düzenle"}</button>
+          <button class="sm-btn danger" onclick="deleteCompany(${c.id})">✕</button>
+        </div>
+      </div>`;
+    }).join("")}
+  </div>`;
+}
+function openCompanyModal(editId){
+  const c=editId?state.companies.find(c=>c.id===editId):null;
+  const body=`<div class="field"><label>${t.fcompanyName||"Firma Adı"}</label><input id="cm-name" value="${c?.name||""}"/></div>`;
+  makeModal(editId?t.editCompany||"Firma Düzenle":t.newCompany||"Yeni Firma",body,`saveCompany(${editId||0})`);
+}
+async function saveCompany(editId){
+  const name=document.getElementById("cm-name")?.value?.trim();if(!name)return;
+  if(editId){
+    try{const r=await fetch(`${SUPA_URL}/rest/v1/crm_companies?id=eq.${editId}`,{method:"PATCH",headers:{...H,"Prefer":"return=minimal"},body:JSON.stringify({name})});if(!r.ok){toast(t.updateFailed||"Hata","err");return;}
+    state.companies=state.companies.map(c=>c.id===editId?{...c,name}:c);
+    await fetch(`${SUPA_URL}/rest/v1/crm_users?company_id=eq.${editId}`,{method:"PATCH",headers:{...H,"Prefer":"return=minimal"},body:JSON.stringify({company_name:name})});
+    state.users=state.users.map(u=>u.company_id===editId?{...u,company_name:name}:u);
+    toast("✅ "+(t.companyUpdated||"Firma güncellendi"));}catch{toast(t.errorMsg||"Hata","err");return;}
+  } else {
+    try{const r=await fetch(`${SUPA_URL}/rest/v1/crm_companies`,{method:"POST",headers:{...H,"Prefer":"return=representation"},body:JSON.stringify({name})});if(!r.ok){toast(t.addFailed||"Hata","err");return;}
+    const added=await r.json();const newC=Array.isArray(added)?added[0]:added;
+    state.companies.push(newC);toast("✅ "+(t.companyAdded||"Firma eklendi"));}catch{toast(t.errorMsg||"Hata","err");return;}
+  }
+  closeModal();render();populateCompanySelector();
+}
+async function deleteCompany(id){
+  if(!canSeeLogs())return;
+  const userCount=state.users.filter(u=>u.company_id===id).length;
+  if(userCount>0){toast(`Bu firmaya bağlı ${userCount} kullanıcı var. Önce kullanıcıları silin.`,"err");return;}
+  if(!await confirmDialog(t.confirmDeleteCompany||"Bu firmayı silmek istediğinizden emin misiniz?",true))return;
+  try{const r=await fetch(`${SUPA_URL}/rest/v1/crm_companies?id=eq.${id}`,{method:"DELETE",headers:H});if(!r.ok){toast(t.updateFailed||"Hata","err");return;}
+  state.companies=state.companies.filter(c=>c.id!==id);toast(t.companyDeleted||"Firma silindi","warn");render();populateCompanySelector();}catch{toast(t.errorMsg||"Hata","err");}
+}
 function renderLogs(){
   if(!canSeeLogs())return`<div class="empty">${t.accessDenied}</div>`;
   if(!state.logs.length)return`<div class="empty" style="padding:40px 0"><div style="font-size:32px;margin-bottom:12px">📋</div><div style="font-size:14px;color:#3d5270">${t.logNoLogs||"Henüz aktivite yok"}</div></div>`;
@@ -2673,7 +2733,7 @@ function openUserModal(editId){
     <div class="field"><label>${t.fRole}</label><select id="u-role" onchange="document.getElementById('role-desc').textContent=({superadmin:'Tüm firmaları yönetir',admin:'${roleDesc.admin}',satis:'${roleDesc.satis}',okuyucu:'${roleDesc.okuyucu}'})[this.value]||''">${roleOpts}</select>
       <div id="role-desc" style="margin-top:6px;font-size:11px;color:#4a607d;line-height:1.5">${roleDesc[u?.role||'satis']||''}</div>
     </div>
-    ${isSuperAdmin()?`<div class="field-row"><div class="field"><label>${t.fcompanyId||"Firma ID"}</label><input id="u-company-id" type="number" value="${u?.company_id||""}"/></div><div class="field"><label>${t.fcompanyName||"Firma Adı"}</label><input id="u-company-name" value="${u?.company_name||""}"/></div></div>`:''}`;
+    ${isSuperAdmin()?`<div class="field"><label>${t.fcompanyName||"Firma"}</label><select id="u-company-sel" style="background:#131b2a;border:1px solid #1a2236;border-radius:8px;padding:8px 10px;color:#dde4ef;font-size:13px;outline:none;width:100%"><option value="">${t.selectFirm||"Firma Seç"}</option>${state.companies.map(c=>`<option value="${c.id}|${c.name}"${u?.company_id===c.id?" selected":""}>${c.name}</option>`).join("")}</select></div>`:''}`;
   makeModal(editId?t.editUser:t.newUser,body,`saveUser(${editId||0})`);
 }
 async function saveUser(editId){
@@ -2688,8 +2748,10 @@ async function saveUser(editId){
     toast(t.userUpdated);}catch{toast(t.errorMsg,"err");return;}
   } else {
     if(state.users.some(u=>u.username===username)){toast(t.usernameExists,"err");return;}
-    const companyId=isSuperAdmin()?(+document.getElementById("u-company-id")?.value||currentUser.company_id||1):(currentUser.company_id||1);
-    const companyName=isSuperAdmin()?(document.getElementById("u-company-name")?.value||currentUser.company_name||''):(currentUser.company_name||'');
+    const _csel=document.getElementById("u-company-sel")?.value||"";
+    const [_cid,_cname]=isSuperAdmin()?(_csel?_csel.split("|"):["",""]):[String(currentUser.company_id||1),currentUser.company_name||""];
+    const companyId=+_cid||currentUser.company_id||1;
+    const companyName=_cname||currentUser.company_name||'';
     try{const r=await fetch(`${SUPA_URL}/rest/v1/crm_users`,{method:"POST",headers:{...H,"Prefer":"return=representation"},body:JSON.stringify({username,password,role,display_name:displayName,company_id:companyId,company_name:companyName})});if(!r.ok){toast(t.addFailed,"err");return;}const added=(await r.json());state.users.push({id:(Array.isArray(added)?added[0]:added).id,username,role,display_name:displayName,company_id:companyId,company_name:companyName});toast(t.userAdded);}catch{toast(t.errorMsg,"err");return;}
   }
   closeModal();render();
