@@ -8,6 +8,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bcryptjs@2.4.3/dist/bcrypt.min.js"></script>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800;900&display=swap');
 *{box-sizing:border-box;margin:0;padding:0}
@@ -876,10 +877,15 @@ async function doLogin(){
   if(!username||!password){document.getElementById("login-err").textContent=t.loginErr;shake();return;}
   const btn=document.getElementById("login-btn");btn.textContent=t.loginLoading;btn.disabled=true;
   try{
-    const r=await fetch(`${SUPA_URL}/rest/v1/crm_users?username=eq.${encodeURIComponent(username)}&password=eq.${encodeURIComponent(password)}&select=*`,{headers:{...H,"Prefer":"return=representation"}});
+    const r=await fetch(`${SUPA_URL}/rest/v1/crm_users?username=eq.${encodeURIComponent(username)}&select=*`,{headers:H});
     if(r.ok){
       const data=await r.json();
-      if(data&&data.length>0){currentUser=data[0];activeCompanyId=currentUser.role==='superadmin'?null:(currentUser.company_id||1);sessionStorage.setItem("crm_user",JSON.stringify(currentUser));await showApp();logAction('login','');btn.textContent=t.loginBtn;btn.disabled=false;return;}
+      if(data&&data.length>0){
+        const usr=data[0];let ok=false;
+        if(usr.password&&usr.password.startsWith('$2b$')){ok=await bcrypt.compare(password,usr.password);}
+        else{ok=(usr.password===password);if(ok){const h=await bcrypt.hash(password,10);fetch(`${SUPA_URL}/rest/v1/crm_users?id=eq.${usr.id}`,{method:'PATCH',headers:{...H,'Prefer':'return=minimal'},body:JSON.stringify({password:h})}).catch(()=>{});}}
+        if(ok){currentUser=usr;activeCompanyId=currentUser.role==='superadmin'?null:(currentUser.company_id||1);sessionStorage.setItem("crm_user",JSON.stringify(currentUser));await showApp();logAction('login','');btn.textContent=t.loginBtn;btn.disabled=false;return;}
+      }
     }
   }catch{}
   // Supabase'e ulaşılamazsa yedek kullanıcılar
@@ -2742,7 +2748,7 @@ async function saveUser(editId){
   if(!username){toast(t.usernameRequired,"err");return;}
   if(!editId&&!password){toast(t.passRequired,"err");return;}
   if(editId){
-    const upd={display_name:displayName,role};if(password)upd.password=password;
+    const upd={display_name:displayName,role};if(password)upd.password=await bcrypt.hash(password,10);
     try{const r=await fetch(`${SUPA_URL}/rest/v1/crm_users?id=eq.${editId}`,{method:"PATCH",headers:{...H,"Prefer":"return=minimal"},body:JSON.stringify(upd)});if(!r.ok){toast(t.updateFailed,"err");return;}
     state.users=state.users.map(u=>u.id===editId?{...u,...upd}:u);
     if(editId===currentUser.id){currentUser={...currentUser,display_name:displayName,role};sessionStorage.setItem("crm_user",JSON.stringify(currentUser));const color=ROLE_COLORS[role]||"#f97316";document.getElementById("user-name").textContent=displayName||username;document.getElementById("user-avatar").textContent=(displayName||username)[0].toUpperCase();document.getElementById("user-role").textContent=role;document.getElementById("user-role").style.color=color;}
@@ -2753,7 +2759,7 @@ async function saveUser(editId){
     const [_cid,_cname]=isSuperAdmin()?(_csel?_csel.split("|"):["",""]):[String(currentUser.company_id||1),currentUser.company_name||""];
     const companyId=+_cid||currentUser.company_id||1;
     const companyName=_cname||currentUser.company_name||'';
-    try{const r=await fetch(`${SUPA_URL}/rest/v1/crm_users`,{method:"POST",headers:{...H,"Prefer":"return=representation"},body:JSON.stringify({username,password,role,display_name:displayName,company_id:companyId,company_name:companyName})});if(!r.ok){toast(t.addFailed,"err");return;}const added=(await r.json());state.users.push({id:(Array.isArray(added)?added[0]:added).id,username,role,display_name:displayName,company_id:companyId,company_name:companyName});toast(t.userAdded);}catch{toast(t.errorMsg,"err");return;}
+    try{const r=await fetch(`${SUPA_URL}/rest/v1/crm_users`,{method:"POST",headers:{...H,"Prefer":"return=representation"},body:JSON.stringify({username,password:await bcrypt.hash(password,10),role,display_name:displayName,company_id:companyId,company_name:companyName})});if(!r.ok){toast(t.addFailed,"err");return;}const added=(await r.json());state.users.push({id:(Array.isArray(added)?added[0]:added).id,username,role,display_name:displayName,company_id:companyId,company_name:companyName});toast(t.userAdded);}catch{toast(t.errorMsg,"err");return;}
   }
   closeModal();render();
 }
