@@ -190,7 +190,7 @@ nav button:hover:not(.active){color:#94a3b8}
   <div id="sidebar">
     <div class="logo">
       <h1>🦷 Turuncu Dental</h1>
-      <div class="logo-sub">Diş Turizmi CRM</div>
+      <div class="logo-sub" id="logo-sub-crm">Diş Turizmi CRM</div>
       <div style="margin-top:6px"><span class="sync-dot"></span><span class="sync-label" id="sync-label">Canlı</span><span id="syncing-label" style="font-size:10px;color:#3d5270;margin-left:6px;display:none">kaydediliyor...</span></div>
     </div>
     <div class="lang-box">
@@ -203,7 +203,7 @@ nav button:hover:not(.active){color:#94a3b8}
         <div class="user-name" id="user-name">Admin</div>
         <div class="user-role" id="user-role">admin</div>
       </div>
-      <button class="logout-btn" onclick="doLogout()" title="Çıkış">⏻</button>
+      <button id="btn-logout" class="logout-btn" onclick="doLogout()" title="Çıkış">⏻</button>
     </div>
     <nav id="nav">
       <button data-tab="dashboard" class="active" onclick="setTab('dashboard')">▦ &nbsp;<span class="nav-lbl" data-key="navDashboard">Panel</span></button>
@@ -291,8 +291,8 @@ const WORLD_COUNTRIES=[
   {n:"Kyrgyzstan",f:"🇰🇬",nat:"Kyrgyz"},{n:"Tajikistan",f:"🇹🇯",nat:"Tajik"},{n:"Afghanistan",f:"🇦🇫",nat:"Afghan"},
   {n:"Mongolia",f:"🇲🇳",nat:"Mongolian"},{n:"Cambodia",f:"🇰🇭",nat:"Cambodian"},{n:"Myanmar",f:"🇲🇲",nat:"Burmese"},
 ];
-function countryOpts(sel=""){return`<option value="">— Seçin —</option>`+WORLD_COUNTRIES.map(c=>`<option value="${c.n}"${c.n===sel?" selected":""}>${c.f} ${c.n}</option>`).join("");}
-function nationalityOpts(sel=""){return`<option value="">— Seçin —</option>`+WORLD_COUNTRIES.map(c=>`<option value="${c.nat}"${c.nat===sel?" selected":""}>${c.f} ${c.nat}</option>`).join("");}
+function countryOpts(sel=""){return`<option value="">${t.selectDefault}</option>`+WORLD_COUNTRIES.map(c=>`<option value="${c.n}"${c.n===sel?" selected":""}>${c.f} ${c.n}</option>`).join("");}
+function nationalityOpts(sel=""){return`<option value="">${t.selectDefault}</option>`+WORLD_COUNTRIES.map(c=>`<option value="${c.nat}"${c.nat===sel?" selected":""}>${c.f} ${c.nat}</option>`).join("");}
 
 const STATUS_COLORS={walkin:"#94a3b8",consultation:"#60a5fa",assessed:"#a78bfa",pricing:"#f59e0b",booked:"#34d399",cancelled:"#f87171"};
 const ROLE_COLORS={admin:"#f97316",satis:"#60a5fa",okuyucu:"#f59e0b"};
@@ -482,6 +482,15 @@ tr:{
   chooseFile:"📁 Dosya Seç",takePhoto:"📷 Fotoğraf Çek",
   noFilesYet:"Henüz dosya yüklenmedi",uploadFilesHint:"Pasaport, uçuş bileti, panoramik ve diğer belgeleri yükleyin",
   fileCatPanoramic:"Panoramik",fileCatPassport:"Pasaport",fileCatFlight:"Uçuş Bileti",fileCatXray:"Röntgen",fileCatOther:"Diğer",
+  logoCRM:"Diş Turizmi CRM",logout:"Çıkış",selectDefault:"— Seçin —",
+  listView:"Liste görünümü",gridView:"Grid görünümü",
+  consultationCount:"konsültasyon",totalEventsCount:"toplam etkinlik",
+  eventSingle:"Etkinlik",cancelTx:"✕ İptal",makeActivePlan:"✓ Bu Planı Aktif Yap",
+  backToEvents:"← Etkinlikler",noEventPatients:"Bu etkinliğe kayıtlı hasta yok",
+  activeBadge:"Aktif",inactiveBadge:"Pasif",totalQuoteLabel:"Toplam Teklif",
+  appointmentCount:"randevu",noAppointments:"Bu etkinlik için randevu bulunamadı",
+  noRecords:"Kayıt bulunamadı",accessDenied:"Erişim yetkiniz yok.",youLabel:"siz",
+  startDate:"Başlangıç Tarihi",endDate:"Bitiş Tarihi",noEventsFound:"Etkinlik bulunamadı",
 },
 en:{
   navDashboard:"Dashboard",navPatients:"Patients",navEvents:"Events",navAppointments:"Appointments",
@@ -577,6 +586,15 @@ en:{
   chooseFile:"📁 Choose File",takePhoto:"📷 Take Photo",
   noFilesYet:"No files uploaded yet",uploadFilesHint:"Upload passport, flight ticket, panoramic X-rays and other documents",
   fileCatPanoramic:"Panoramic",fileCatPassport:"Passport",fileCatFlight:"Flight Ticket",fileCatXray:"X-Ray",fileCatOther:"Other",
+  logoCRM:"Dental Tourism CRM",logout:"Logout",selectDefault:"— Select —",
+  listView:"List view",gridView:"Grid view",
+  consultationCount:"consultation",totalEventsCount:"total events",
+  eventSingle:"Event",cancelTx:"✕ Cancel",makeActivePlan:"✓ Make This Plan Active",
+  backToEvents:"← Events",noEventPatients:"No patients registered for this event",
+  activeBadge:"Active",inactiveBadge:"Inactive",totalQuoteLabel:"Total Quote",
+  appointmentCount:"appointment",noAppointments:"No appointments for this event",
+  noRecords:"No records found",accessDenied:"Access denied.",youLabel:"you",
+  startDate:"Start Date",endDate:"End Date",noEventsFound:"No events found",
 }};
 
 let lang="tr",t=T.tr;
@@ -837,6 +855,9 @@ async function showApp(){
   await loadAll();
   const _bb2=document.getElementById("btn-back");if(_bb2)_bb2.textContent=t.backBtn;
   const _sb2=document.getElementById("btn-save-patient");if(_sb2)_sb2.textContent=t.saveBtn;
+  const _lc2=document.getElementById("logo-sub-crm");if(_lc2)_lc2.textContent=t.logoCRM;
+  const _sl2=document.getElementById("syncing-label");if(_sl2)_sl2.textContent=t.saving;
+  const _lo2=document.getElementById("btn-logout");if(_lo2)_lo2.title=t.logout;
   document.getElementById("nav-treatments").style.display=canSeeCatalog()?"":"none";
   document.getElementById("nav-reports").style.display=canSeeReports()?"":"none";
   if(canManageUsers()){document.getElementById("nav-users").style.display="";await loadUsers();}
@@ -861,6 +882,9 @@ function setLang(l){
   document.getElementById("search-input").placeholder=t.search;
   const _bb=document.getElementById("btn-back");if(_bb)_bb.textContent=t.backBtn;
   const _sb=document.getElementById("btn-save-patient");if(_sb)_sb.textContent=t.saveBtn;
+  const _lc=document.getElementById("logo-sub-crm");if(_lc)_lc.textContent=t.logoCRM;
+  const _sl=document.getElementById("syncing-label");if(_sl)_sl.textContent=t.saving;
+  const _lo=document.getElementById("btn-logout");if(_lo)_lo.title=t.logout;
   if(currentUser){document.getElementById("page-title").textContent=t[currentTab]||currentTab;updateFooter();render();}
 }
 function setLoginLang(l){
@@ -899,7 +923,7 @@ function render(){
 }
 function renderTopbarActions(){
   const el=document.getElementById("topbar-actions");let html="";
-  if(canEdit()&&currentTab==="patients")html=`<div style="display:flex;gap:6px;align-items:center"><button onclick="patientViewMode=patientViewMode==='grid'?'list':'grid';render()" style="padding:6px 10px;border-radius:8px;border:1px solid #1a2236;background:#1a2236;color:#dde4ef;font-size:15px;cursor:pointer;line-height:1" title="${patientViewMode==='grid'?'Liste görünümü':'Grid görünümü'}">${patientViewMode==='grid'?'≡':'⊞'}</button><button class="btn" onclick="openPatientModal(0)">${t.addPatient}</button></div>`;
+  if(canEdit()&&currentTab==="patients")html=`<div style="display:flex;gap:6px;align-items:center"><button onclick="patientViewMode=patientViewMode==='grid'?'list':'grid';render()" style="padding:6px 10px;border-radius:8px;border:1px solid #1a2236;background:#1a2236;color:#dde4ef;font-size:15px;cursor:pointer;line-height:1" title="${patientViewMode==='grid'?t.listView:t.gridView}">${patientViewMode==='grid'?'≡':'⊞'}</button><button class="btn" onclick="openPatientModal(0)">${t.addPatient}</button></div>`;
   else if(canEdit()&&currentTab==="events")html=`<button class="btn" onclick="openEventModal(0)">${t.addEvent}</button>`;
   else if(canEdit()&&currentTab==="appointments")html=`<button class="btn" onclick="openAppointmentModal()">${t.addAppointment}</button>`;
   else if(canEdit()&&currentTab==="treatments"){
@@ -937,8 +961,8 @@ function renderDashboard(){
 
   return`<div style="display:flex;flex-direction:column;gap:18px">
     <div class="grid4">
-      <div class="card"><div class="kpi-val" style="color:#60a5fa">${total}</div><div class="kpi-lbl">${t.totalPatients}</div><div class="kpi-sub">${state.patients.filter(p=>p.status==="consultation").length} konsültasyon</div></div>
-      <div class="card"><div class="kpi-val" style="color:#a78bfa">${upcomingEvts}</div><div class="kpi-lbl">${t.upcomingEvents}</div><div class="kpi-sub">${state.events.length} toplam etkinlik</div></div>
+      <div class="card"><div class="kpi-val" style="color:#60a5fa">${total}</div><div class="kpi-lbl">${t.totalPatients}</div><div class="kpi-sub">${state.patients.filter(p=>p.status==="consultation").length} ${t.consultationCount}</div></div>
+      <div class="card"><div class="kpi-val" style="color:#a78bfa">${upcomingEvts}</div><div class="kpi-lbl">${t.upcomingEvents}</div><div class="kpi-sub">${state.events.length} ${t.totalEventsCount}</div></div>
       <div class="card"><div class="kpi-val" style="color:#f59e0b">%${conv}</div><div class="kpi-lbl">${t.convRate}</div><div class="kpi-sub">${booked} / ${total} hasta</div></div>
       <div class="card"><div class="kpi-val" style="color:#34d399">${currSym()}${totalRev.toLocaleString()}</div><div class="kpi-lbl">${t.totalRevenue}</div><div class="kpi-sub">${booked} rezervasyon</div></div>
     </div>
@@ -952,7 +976,7 @@ function renderDashboard(){
     <div class="card">
       <div class="section-title">${t.recentPatients}</div>
       <table class="data-table" style="width:100%">
-        <thead><tr><th>${t.fname}</th><th>Ülke</th><th>Durum</th><th>Etkinlik</th><th>Tarih</th><th></th></tr></thead>
+        <thead><tr><th>${t.fname}</th><th>${t.fcountry}</th><th>${t.fstatus}</th><th>${t.eventSingle}</th><th>${t.edate}</th><th></th></tr></thead>
         <tbody>${recent.map(p=>`<tr>
           <td style="font-weight:600">${p.name}</td>
           <td>${flag(p.country)} ${p.country||""}</td>
@@ -1002,7 +1026,7 @@ function renderPatients(){
     return`<div>
       ${statusBar}
       <table class="data-table" style="width:100%">
-        <thead><tr>${th('name','Hasta')}${th('country','Ülke')}${th('event','Etkinlik')}${th('status','Durum')}${th('quote','Teklif')}<th></th></tr></thead>
+        <thead><tr>${th('name',t.aptPatient)}${th('country',t.fcountry)}${th('event',t.eventSingle)}${th('status',t.fstatus)}${th('quote',t.quote)}<th></th></tr></thead>
         <tbody>${sortedList.map(p=>{
           const evt=getEvent(p.eventId);
           const quote=bookingTotal(p);
@@ -1081,7 +1105,7 @@ function renderPtConsultation(p){
   const statusOpts=["walkin","consultation","assessed","pricing","booked","cancelled"].map(s=>`<option value="${s}"${p.status===s?" selected":""}>${statusLabel(s)}</option>`).join("");
   return`<div style="max-width:700px;display:flex;flex-direction:column;gap:14px">
     <div class="card">
-      <div class="section-title">Hasta Bilgileri</div>
+      <div class="section-title">${t.patientInfo}</div>
       <div class="field-row">
         <div class="field"><label>${t.fname}</label><input id="pc-name" value="${p.name||""}"/></div>
         <div class="field"><label>${t.femail}</label><input id="pc-email" value="${p.email||""}"/></div>
@@ -1325,7 +1349,7 @@ function renderPtAssessment(p){
           <option value="__manual__"${activeTxBrush==='__manual__'?' selected':''}>${t.manualAdd}</option>
           ${allTxCatalog.map(tx=>`<option value="${tx.id}"${activeTxBrush===tx.id?' selected':''}>${tx.name} — ${currSym()}${getEffectivePrice(tx)}</option>`).join('')}
         </select>
-        ${activeTxBrush?`<button onclick="setTxBrush(null)" style="padding:5px 12px;border-radius:8px;border:1px solid #ef444444;background:#2b0f0f;color:#ef4444;font-size:11px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif">✕ İptal</button>`:''}
+        ${activeTxBrush?`<button onclick="setTxBrush(null)" style="padding:5px 12px;border-radius:8px;border:1px solid #ef444444;background:#2b0f0f;color:#ef4444;font-size:11px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif">${t.cancelTx}</button>`:''}
       </div>
       ${activeTxBrush==='__manual__'?`<div style="display:flex;gap:8px;align-items:center;margin-top:6px;flex-wrap:wrap">
         <input id="pa-manual-name" placeholder="${t.txNamePlaceholder}" style="background:#131b2a;border:1px solid #1a2236;border-radius:8px;padding:6px 10px;color:#dde4ef;font-size:12px;outline:none;flex:1;min-width:150px"/>
@@ -1508,7 +1532,7 @@ function renderPtAssessment(p){
     <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
       ${p.assessment?.activePlan===activePlan
         ?`<span style="display:flex;align-items:center;gap:6px;color:#22c55e;font-weight:700;font-size:13px">${t.activePlanLabel}</span><button onclick="setPatientActivePlan(null)" style="padding:4px 12px;border-radius:20px;border:1px solid #22c55e44;background:#0a2a1a;color:#22c55e88;font-size:11px;cursor:pointer;font-family:'DM Sans',sans-serif">${t.removeActive}</button>`
-        :`<button onclick="setPatientActivePlan('${activePlan}')" style="padding:6px 18px;border-radius:20px;border:1px solid #22c55e;background:#0a2a1a;color:#22c55e;font-size:12px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif">✓ Bu Planı Aktif Yap</button>`
+        :`<button onclick="setPatientActivePlan('${activePlan}')" style="padding:6px 18px;border-radius:20px;border:1px solid #22c55e;background:#0a2a1a;color:#22c55e;font-size:12px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif">${t.makeActivePlan}</button>`
       }
       <button class="btn sec" onclick="downloadQuotePDF(${p.id})">📄 ${t.downloadPDF}</button>
     </div>`:''}
@@ -2076,7 +2100,7 @@ function renderEvents(){
     const booked=pats.filter(p=>p.status==="booked").length;
     return`<div>
       <div style="display:flex;align-items:center;gap:12px;margin-bottom:18px;flex-wrap:wrap">
-        <button onclick="currentEventDetailId=null;render()" style="padding:6px 14px;border-radius:20px;border:1px solid #1a2236;background:#1a2236;color:#dde4ef;font-size:12px;cursor:pointer;font-family:'DM Sans',sans-serif">← Etkinlikler</button>
+        <button onclick="currentEventDetailId=null;render()" style="padding:6px 14px;border-radius:20px;border:1px solid #1a2236;background:#1a2236;color:#dde4ef;font-size:12px;cursor:pointer;font-family:'DM Sans',sans-serif">${t.backToEvents}</button>
         <div>
           <div style="font-weight:800;font-size:16px">${e.name}</div>
           <div style="font-size:12px;color:#4a607d">📍 ${e.city} · ${e.venue} &nbsp;·&nbsp; ${(d=>d.main?`<span style="color:#22c55e;font-weight:700">${d.main} ${d.year}</span>`:"")(formatEventDateDisplay(e))}</div>
@@ -2084,13 +2108,13 @@ function renderEvents(){
         <div style="margin-left:auto;display:flex;align-items:center;gap:10px">
           <span style="color:#60a5fa;font-size:13px;font-weight:700">${pats.length} hasta</span>
           <span style="color:#34d399;font-size:13px;font-weight:700">${booked} rezerve</span>
-          <button onclick="eventDetailViewMode=eventDetailViewMode==='grid'?'list':'grid';render()" style="padding:6px 10px;border-radius:8px;border:1px solid #1a2236;background:#1a2236;color:#dde4ef;font-size:15px;cursor:pointer;line-height:1" title="${eventDetailViewMode==='grid'?'Liste görünümü':'Grid görünümü'}">${eventDetailViewMode==='grid'?'≡':'⊞'}</button>
+          <button onclick="eventDetailViewMode=eventDetailViewMode==='grid'?'list':'grid';render()" style="padding:6px 10px;border-radius:8px;border:1px solid #1a2236;background:#1a2236;color:#dde4ef;font-size:15px;cursor:pointer;line-height:1" title="${eventDetailViewMode==='grid'?t.listView:t.gridView}">${eventDetailViewMode==='grid'?'≡':'⊞'}</button>
         </div>
       </div>
-      ${pats.length===0?`<div class="empty">Bu etkinliğe kayıtlı hasta yok</div>`:
+      ${pats.length===0?`<div class="empty">${t.noEventPatients}</div>`:
         eventDetailViewMode==='list'?`
         <table class="data-table" style="width:100%">
-          <thead><tr><th>Hasta</th><th>Ülke</th><th>Durum</th><th>Teklif</th><th></th></tr></thead>
+          <thead><tr><th>${t.aptPatient}</th><th>${t.fcountry}</th><th>${t.fstatus}</th><th>${t.quote}</th><th></th></tr></thead>
           <tbody>${pats.map(p=>{
             const quote=patientActivePlanTotal(p);
             return`<tr style="cursor:pointer" onclick="openPatient(${p.id})">
@@ -2120,7 +2144,7 @@ function renderEvents(){
     </div>`;
   }
   const filtered=state.events.filter(e=>matches([e.name,e.city,e.venue]));
-  if(!filtered.length)return`<div class="empty">Etkinlik bulunamadı</div>`;
+  if(!filtered.length)return`<div class="empty">${t.noEventsFound}</div>`;
   return`<div class="grid3">${filtered.map(e=>{
     const pats=state.patients.filter(p=>p.eventId==e.id);
     const booked=pats.filter(p=>p.status==="booked").length;
@@ -2132,7 +2156,7 @@ function renderEvents(){
         <div>
           ${(d=>d.main?`<div style="font-size:18px;font-weight:800;color:#22c55e;line-height:1.2">${d.main}</div><div style="font-size:11px;color:#4a607d;margin-top:1px">${d.year}</div>`:`<div style="font-size:13px;color:#4a607d">—</div>`)(formatEventDateDisplay(e))}
         </div>
-        <span class="badge" style="background:${e.active?"#34d39922":"#1a2236"};color:${e.active?"#34d399":"#4a607d"}">${e.active?"Aktif":"Pasif"}</span>
+        <span class="badge" style="background:${e.active?"#34d39922":"#1a2236"};color:${e.active?"#34d399":"#4a607d"}">${e.active?t.activeBadge:t.inactiveBadge}</span>
       </div>
       <div style="font-weight:800;font-size:14px;margin-bottom:4px">${e.name}</div>
       <div style="font-size:12px;color:#4a607d;margin-bottom:10px">📍 ${e.city} · ${e.venue}</div>
@@ -2141,7 +2165,7 @@ function renderEvents(){
         <span style="color:#34d399">${booked} rezerve</span>
       </div>
       <div style="border-top:1px solid #1a2236;padding-top:8px;display:flex;flex-direction:column;gap:4px">
-        <div style="display:flex;justify-content:space-between;font-size:11px"><span style="color:#4a607d">Toplam Teklif</span><span style="color:#dde4ef;font-weight:700">${totalQuote>0?currSym()+totalQuote.toLocaleString():"—"}</span></div>
+        <div style="display:flex;justify-content:space-between;font-size:11px"><span style="color:#4a607d">${t.totalQuoteLabel}</span><span style="color:#dde4ef;font-weight:700">${totalQuote>0?currSym()+totalQuote.toLocaleString():"—"}</span></div>
         <div style="display:flex;justify-content:space-between;font-size:11px"><span style="color:#4a607d">${t.receivedDeposit}</span><span style="color:#60a5fa;font-weight:700">${totalDeposit>0?currSym()+totalDeposit.toLocaleString():"—"}</span></div>
         <div style="display:flex;justify-content:space-between;font-size:11px"><span style="color:#4a607d">${t.earnedLabel}</span><span style="color:#34d399;font-weight:700">${earned>0?currSym()+earned.toLocaleString():"—"}</span></div>
       </div>
@@ -2160,9 +2184,9 @@ function renderAppointments(){
       <select id="apt-event-sel" onchange="selectedEventId=+this.value||null;render()" style="background:#131b2a;border:1px solid #1a2236;border-radius:8px;padding:7px 12px;color:#dde4ef;font-size:13px;outline:none;min-width:220px">
         <option value="">${t.selectEvent}</option>${evtOpts}
       </select>
-      ${selectedEventId?`<span style="font-size:11px;color:#3d5270">${sorted.length} randevu</span>`:""}
+      ${selectedEventId?`<span style="font-size:11px;color:#3d5270">${sorted.length} ${t.appointmentCount}</span>`:""}
     </div>
-    ${sorted.length===0?`<div class="empty">Bu etkinlik için randevu bulunamadı</div>`:`
+    ${sorted.length===0?`<div class="empty">${t.noAppointments}</div>`:`
     <div style="max-width:680px">${sorted.map(a=>{
       const si=statusInfo[a.status]||statusInfo.scheduled;
       const pat=getPatient(a.patientId);
@@ -2178,7 +2202,7 @@ function renderAppointments(){
           ${a.status!=="did_not_turn_up"?`<button class="sm-btn danger" onclick="setAptStatus(${a.id},'did_not_turn_up')" title="${t.statusDidNotCome}">−</button>`:""}
           ${a.status!=="no_answer"?`<button class="sm-btn warn" onclick="setAptStatus(${a.id},'no_answer')" title="${t.statusNoAnswer}" style="color:#fbbf24;font-weight:bold">?</button>`:""}
           ${a.status!=="cancelled"?`<button class="sm-btn warn" onclick="setAptStatus(${a.id},'cancelled')" title="${t.statusCancelled}">~</button>`:""}
-          <button class="sm-btn danger" onclick="deleteAppointment(${a.id})">Sil</button>
+          <button class="sm-btn danger" onclick="deleteAppointment(${a.id})">${t.deleteBtn}</button>
         </div>`:""}
       </div>`;
     }).join("")}</div>`}
@@ -2200,7 +2224,7 @@ function renderTreatments(){
         <td>${currSym()}${(tr.clinicCost||0).toLocaleString()}</td>
         <td style="font-weight:700;color:#34d399">${currSym()}${getEffectivePrice(tr).toLocaleString()}</td>
         <td><span style="color:${mg>=50?"#34d399":mg>=30?"#f59e0b":"#f87171"};font-weight:700">%${mg}</span></td>
-        <td><span class="badge" style="background:${tr.active?"#34d39922":"#f8717122"};color:${tr.active?"#34d399":"#f87171"}">${tr.active?"Aktif":"Pasif"}</span></td>
+        <td><span class="badge" style="background:${tr.active?"#34d39922":"#f8717122"};color:${tr.active?"#34d399":"#f87171"}">${tr.active?t.activeBadge:t.inactiveBadge}</span></td>
         <td>${canEdit()?`<div style="display:flex;gap:5px"><button class="sm-btn" onclick="openTreatmentModal(${tr.id},'treatment')">✎</button><button class="sm-btn danger" onclick="deleteTreatment(${tr.id})">✕</button></div>`:""}</td>
       </tr>`;}).join("")}</tbody>
     </table>`;
@@ -2212,7 +2236,7 @@ function renderTreatments(){
         <td style="font-size:12px;color:#4a607d">${tr.description||""}</td>
         <td><span class="badge" style="background:#60a5fa22;color:#60a5fa;font-size:10px">${tr.category||""}</span></td>
         <td style="font-weight:700;color:#34d399">${currSym()}${(tr.salePrice||0).toLocaleString()}<span style="font-size:10px;color:#3d5270">${t.perNight}</span></td>
-        <td><span class="badge" style="background:${tr.active?"#34d39922":"#f8717122"};color:${tr.active?"#34d399":"#f87171"}">${tr.active?"Aktif":"Pasif"}</span></td>
+        <td><span class="badge" style="background:${tr.active?"#34d39922":"#f8717122"};color:${tr.active?"#34d399":"#f87171"}">${tr.active?t.activeBadge:t.inactiveBadge}</span></td>
         <td>${canEdit()?`<div style="display:flex;gap:5px"><button class="sm-btn" onclick="openTreatmentModal(${tr.id},'accommodation')">✎</button><button class="sm-btn danger" onclick="deleteTreatment(${tr.id})">✕</button></div>`:""}</td>
       </tr>`).join("")}</tbody>
     </table>`;
@@ -2224,7 +2248,7 @@ function renderTreatments(){
         <td style="font-size:12px;color:#4a607d">${tr.description||""}</td>
         <td><span class="badge" style="background:#f9731622;color:#f97316;font-size:10px">${tr.category||""}</span></td>
         <td style="font-weight:700;color:#34d399">${currSym()}${(tr.salePrice||0).toLocaleString()}<span style="font-size:10px;color:#3d5270">${t.perPax}</span></td>
-        <td><span class="badge" style="background:${tr.active?"#34d39922":"#f8717122"};color:${tr.active?"#34d399":"#f87171"}">${tr.active?"Aktif":"Pasif"}</span></td>
+        <td><span class="badge" style="background:${tr.active?"#34d39922":"#f8717122"};color:${tr.active?"#34d399":"#f87171"}">${tr.active?t.activeBadge:t.inactiveBadge}</span></td>
         <td>${canEdit()?`<div style="display:flex;gap:5px"><button class="sm-btn" onclick="openTreatmentModal(${tr.id},'travel')">✎</button><button class="sm-btn danger" onclick="deleteTreatment(${tr.id})">✕</button></div>`:""}</td>
       </tr>`).join("")}</tbody>
     </table>`;
@@ -2237,7 +2261,7 @@ function renderTreatments(){
       ${tabs.map(([key,label,icon])=>`<button onclick="catalogTab='${key}';render()" style="padding:9px 18px;font-size:13px;font-weight:600;color:${catalogTab===key?"#f97316":"#4a607d"};border:none;background:transparent;cursor:pointer;border-bottom:2px solid ${catalogTab===key?"#f97316":"transparent"};font-family:'DM Sans',sans-serif;transition:all .15s">${icon} ${label}</button>`).join("")}
       ${addBtn}
     </div>
-    ${!filtered.length?`<div class="empty" style="display:flex;align-items:center;gap:12px">Kayıt bulunamadı ${canEdit()?`<button class="btn" onclick="openTreatmentModal(0,'${catalogTab}')">${catalogTab==="treatment"?t.addTreatment:catalogTab==="accommodation"?t.addAccommodation:t.addTravel}</button>`:""}</div>`:`<div class="card" style="overflow-x:auto">${tableHTML}</div>`}
+    ${!filtered.length?`<div class="empty" style="display:flex;align-items:center;gap:12px">${t.noRecords} ${canEdit()?`<button class="btn" onclick="openTreatmentModal(0,'${catalogTab}')">${catalogTab==="treatment"?t.addTreatment:catalogTab==="accommodation"?t.addAccommodation:t.addTravel}</button>`:""}</div>`:`<div class="card" style="overflow-x:auto">${tableHTML}</div>`}
   </div>`;
 }
 
@@ -2278,7 +2302,7 @@ function renderReportCharts(){
 }
 
 function renderUsers(){
-  if(!canManageUsers())return`<div class="empty">Erişim yetkiniz yok.</div>`;
+  if(!canManageUsers())return`<div class="empty">${t.accessDenied}</div>`;
   if(!state.users.length)return`<div class="empty">${t.noUsers}</div>`;
   return`<div style="max-width:700px;display:flex;flex-direction:column;gap:9px">
     ${state.users.map(u=>{
@@ -2287,7 +2311,7 @@ function renderUsers(){
       return`<div class="card" style="display:flex;align-items:center;gap:14px">
         <div style="width:40px;height:40px;border-radius:50%;background:${color}22;display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:800;color:${color};border:2px solid ${color}44;flex-shrink:0">${(u.display_name||u.username)[0].toUpperCase()}</div>
         <div style="flex:1;min-width:0">
-          <div style="font-weight:700;font-size:14px">${u.display_name||u.username}${isMe?` <span style="font-size:10px;background:#1a2236;border-radius:10px;padding:1px 7px;color:#4a607d">siz</span>`:""}</div>
+          <div style="font-weight:700;font-size:14px">${u.display_name||u.username}${isMe?` <span style="font-size:10px;background:#1a2236;border-radius:10px;padding:1px 7px;color:#4a607d">${t.youLabel}</span>`:""}</div>
           <div style="font-size:12px;color:#4a607d">@${u.username}</div>
         </div>
         <span class="badge" style="background:${color}18;color:${color}">${rl}</span>
@@ -2448,8 +2472,8 @@ function openEventModal(editId){
     <div class="field"><label>${t.ename}</label><input id="em-name" value="${e?.name||""}"/></div>
     <div class="field-row"><div class="field"><label>${t.ecity}</label><input id="em-city" value="${e?.city||""}"/></div><div class="field"><label>${t.evenue}</label><input id="em-venue" value="${e?.venue||""}"/></div></div>
     <div class="field-row">
-      <div class="field"><label>Başlangıç Tarihi</label><input type="date" id="em-date-start" value="${ds}"/></div>
-      <div class="field"><label>Bitiş Tarihi</label><input type="date" id="em-date-end" value="${de}"/></div>
+      <div class="field"><label>${t.startDate}</label><input type="date" id="em-date-start" value="${ds}"/></div>
+      <div class="field"><label>${t.endDate}</label><input type="date" id="em-date-end" value="${de}"/></div>
     </div>
     <div style="display:flex;align-items:center;gap:8px"><input type="checkbox" id="em-active" ${e?.active!==false?"checked":""} style="accent-color:#f97316;width:15px;height:15px"/><label style="font-size:13px;cursor:pointer">${t.eactive}</label></div>`;
   makeModal(editId?t.editEvent:t.newEvent,body,`saveEvent(${editId||0})`);
@@ -2522,7 +2546,7 @@ function openTreatmentModal(editId,forcedType){
       <div class="field"><label>${t.trvPrice}</label><input type="number" id="trm-salePrice" value="${tr?.salePrice||0}"/></div>
       <input type="hidden" id="trm-clinicCost" value="0"/>`;
   }
-  body+=`<div style="display:flex;align-items:center;gap:8px;margin-top:8px"><input type="checkbox" id="trm-active" ${tr?.active!==false?"checked":""} style="accent-color:#f97316;width:15px;height:15px"/><label style="font-size:13px;cursor:pointer">Aktif</label></div>`;
+  body+=`<div style="display:flex;align-items:center;gap:8px;margin-top:8px"><input type="checkbox" id="trm-active" ${tr?.active!==false?"checked":""} style="accent-color:#f97316;width:15px;height:15px"/><label style="font-size:13px;cursor:pointer">${t.tactive}</label></div>`;
   const title=type==="accommodation"?(editId?t.editAccommodation:t.newAccommodation):type==="travel"?(editId?t.editTravel:t.newTravel):(editId?t.editTreatment:t.newTreatment);
   makeModal(title,body,`saveTreatment(${editId||0},'${type}')`);
 }
