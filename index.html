@@ -434,7 +434,7 @@ tr:{
   roleAdmin:"Yönetici",roleSales:"Satış Temsilcisi",roleReader:"Okuyucu",roleSuper:"Süper Admin",
   selectCompany:"— Firma Seç —",allCompanies:"Tüm Firmalar",
   logTime:"Zaman",logCompany:"Firma",logUser:"Kullanıcı",logActionCol:"İşlem",logDetail:"Detay",logNoLogs:"Henüz aktivite yok",logLoadMore:"Daha Fazla Yükle",
-  actLogin:"Giriş yaptı",actLogout:"Çıkış yaptı",actPatientAdd:"Hasta ekledi",actPatientEdit:"Hasta düzenledi",actPatientSave:"Hasta kaydetti",actNoteAdd:"Not ekledi",actFileUpload:"Dosya yükledi",actQuoteDownload:"PDF indirdi",actStatusChange:"Durum değiştirdi",
+  actLogin:"Giriş yaptı",actLogout:"Çıkış yaptı",actPatientAdd:"Hasta ekledi",actPatientEdit:"Hasta düzenledi",actPatientSave:"Hasta kaydetti",actPlanSave:"Plan kaydetti",actStatusChange:"Durum değiştirdi",actNoteAdd:"Not ekledi",actNoteDelete:"Not sildi",actFileUpload:"Dosya yükledi",actFileDelete:"Dosya sildi",actQuoteDownload:"PDF indirdi",actEventAdd:"Etkinlik ekledi",actEventEdit:"Etkinlik düzenledi",actEventDelete:"Etkinlik sildi",actAptAdd:"Randevu ekledi",actAptStatus:"Randevu durumu güncelledi",actAptDelete:"Randevu sildi",actCatalogAdd:"Katalog ekledi",actCatalogEdit:"Katalog düzenledi",actCatalogDelete:"Katalog sildi",actUserAdd:"Kullanıcı ekledi",actUserEdit:"Kullanıcı düzenledi",actUserDelete:"Kullanıcı sildi",actCompanyAdd:"Firma ekledi",actCompanyEdit:"Firma düzenledi",actCompanyDelete:"Firma sildi",actPatientDelete:"Hasta sildi",actDiscountApplied:"İndirim uyguladı",
   fcompanyId:"Firma ID",fcompanyName:"Firma Adı",
   addCompany:"+ Firma Ekle",newCompany:"Yeni Firma",editCompany:"Firma Düzenle",noCompanies:"Henüz firma yok",confirmDeleteCompany:"Bu firmayı silmek istediğinizden emin misiniz?",companyDeleted:"Firma silindi",companyAdded:"Firma eklendi",companyUpdated:"Firma güncellendi",selectFirm:"Firma Seç",
   fdisplayName:"Ad Soyad",fpassword:"Şifre",fnewPass:"Yeni Şifre",fRole:"Yetki",fnewPassHint:"(boş bırakırsanız değişmez)",
@@ -545,7 +545,7 @@ en:{
   roleAdmin:"Admin",roleSales:"Sales Rep",roleReader:"Reader",roleSuper:"Super Admin",
   selectCompany:"— Select Company —",allCompanies:"All Companies",
   logTime:"Time",logCompany:"Company",logUser:"User",logActionCol:"Action",logDetail:"Detail",logNoLogs:"No activity yet",logLoadMore:"Load More",
-  actLogin:"Logged in",actLogout:"Logged out",actPatientAdd:"Added patient",actPatientEdit:"Edited patient",actPatientSave:"Saved patient record",actNoteAdd:"Added note",actFileUpload:"Uploaded file",actQuoteDownload:"Downloaded PDF",actStatusChange:"Changed status",
+  actLogin:"Logged in",actLogout:"Logged out",actPatientAdd:"Added patient",actPatientEdit:"Edited patient",actPatientSave:"Saved patient record",actPlanSave:"Saved plan",actStatusChange:"Changed status",actNoteAdd:"Added note",actNoteDelete:"Deleted note",actFileUpload:"Uploaded file",actFileDelete:"Deleted file",actQuoteDownload:"Downloaded PDF",actEventAdd:"Added event",actEventEdit:"Edited event",actEventDelete:"Deleted event",actAptAdd:"Added appointment",actAptStatus:"Updated appointment status",actAptDelete:"Deleted appointment",actCatalogAdd:"Added catalog item",actCatalogEdit:"Edited catalog item",actCatalogDelete:"Deleted catalog item",actUserAdd:"Added user",actUserEdit:"Edited user",actUserDelete:"Deleted user",actCompanyAdd:"Added company",actCompanyEdit:"Edited company",actCompanyDelete:"Deleted company",actPatientDelete:"Deleted patient",actDiscountApplied:"Applied discount",
   fcompanyId:"Company ID",fcompanyName:"Company Name",
   addCompany:"+ Add Company",newCompany:"New Company",editCompany:"Edit Company",noCompanies:"No companies yet",confirmDeleteCompany:"Are you sure you want to delete this company?",companyDeleted:"Company deleted",companyAdded:"Company added",companyUpdated:"Company updated",selectFirm:"Select Company",
   fdisplayName:"Full Name",fpassword:"Password",fnewPass:"New Password",fRole:"Role",fnewPassHint:"(leave blank to keep)",
@@ -2139,14 +2139,14 @@ async function addPatientFiles(input){
       toast(file.name+' '+t.uploaded);
     }catch(e){toast(t.uploadFailed+': '+e.message,'error');}
   }
-  persist("customers");renderPtBody();input.value='';
+  persist("customers");logAction('file_upload',`${p.name} — ${files.length} dosya`);renderPtBody();input.value='';
 }
 async function deletePatientFile(idx){
   const p=getPatient(currentPatientId);if(!p?.filesMeta)return;
   const f=p.filesMeta[idx];
   if(f?.path)await deleteFromStorage(f.path);
   p.filesMeta.splice(idx,1);
-  persist("customers");renderPtBody();
+  persist("customers");logAction('file_delete',`${p.name} — ${f?.name||''}`);renderPtBody();
 }
 function previewFile(idx){
   const p=getPatient(currentPatientId);if(!p)return;
@@ -2478,11 +2478,11 @@ async function saveCompany(editId){
     state.companies=state.companies.map(c=>c.id===editId?{...c,name}:c);
     await fetch(`${SUPA_URL}/rest/v1/crm_users?company_id=eq.${editId}`,{method:"PATCH",headers:{...H,"Prefer":"return=minimal"},body:JSON.stringify({company_name:name})});
     state.users=state.users.map(u=>u.company_id===editId?{...u,company_name:name}:u);
-    toast("✅ "+(t.companyUpdated||"Firma güncellendi"));}catch{toast(t.errorMsg||"Hata","err");return;}
+    logAction('company_edit',name);toast("✅ "+(t.companyUpdated||"Firma güncellendi"));}catch{toast(t.errorMsg||"Hata","err");return;}
   } else {
     try{const r=await fetch(`${SUPA_URL}/rest/v1/crm_companies`,{method:"POST",headers:{...H,"Prefer":"return=representation"},body:JSON.stringify({name})});if(!r.ok){toast(t.addFailed||"Hata","err");return;}
     const added=await r.json();const newC=Array.isArray(added)?added[0]:added;
-    state.companies.push(newC);toast("✅ "+(t.companyAdded||"Firma eklendi"));}catch{toast(t.errorMsg||"Hata","err");return;}
+    state.companies.push(newC);logAction('company_add',name);toast("✅ "+(t.companyAdded||"Firma eklendi"));}catch{toast(t.errorMsg||"Hata","err");return;}
   }
   closeModal();render();populateCompanySelector();
 }
@@ -2492,15 +2492,16 @@ async function deleteCompany(id){
   if(userCount>0){toast(`Bu firmaya bağlı ${userCount} kullanıcı var. Önce kullanıcıları silin.`,"err");return;}
   if(!await confirmDialog(t.confirmDeleteCompany||"Bu firmayı silmek istediğinizden emin misiniz?",true))return;
   try{const r=await fetch(`${SUPA_URL}/rest/v1/crm_companies?id=eq.${id}`,{method:"DELETE",headers:H});if(!r.ok){toast(t.updateFailed||"Hata","err");return;}
-  state.companies=state.companies.filter(c=>c.id!==id);toast(t.companyDeleted||"Firma silindi","warn");render();populateCompanySelector();}catch{toast(t.errorMsg||"Hata","err");}
+  const _dcname=state.companies.find(c=>c.id===id)?.name||'';
+  state.companies=state.companies.filter(c=>c.id!==id);logAction('company_delete',_dcname);toast(t.companyDeleted||"Firma silindi","warn");render();populateCompanySelector();}catch{toast(t.errorMsg||"Hata","err");}
 }
 function renderLogs(){
   if(!canSeeLogs())return`<div class="empty">${t.accessDenied}</div>`;
   if(!state.logs.length)return`<div class="empty" style="padding:40px 0"><div style="font-size:32px;margin-bottom:12px">📋</div><div style="font-size:14px;color:#3d5270">${t.logNoLogs||"Henüz aktivite yok"}</div></div>`;
-  const actionLabels={login:t.actLogin,logout:t.actLogout,patient_add:t.actPatientAdd,patient_edit:t.actPatientEdit,patient_save:t.actPatientSave,note_add:t.actNoteAdd,file_upload:t.actFileUpload,quote_download:t.actQuoteDownload,status_change:t.actStatusChange};
+  const actionLabels={login:t.actLogin,logout:t.actLogout,patient_add:t.actPatientAdd,patient_edit:t.actPatientEdit,patient_save:t.actPatientSave,plan_save:t.actPlanSave,status_change:t.actStatusChange,note_add:t.actNoteAdd,note_delete:t.actNoteDelete,file_upload:t.actFileUpload,file_delete:t.actFileDelete,quote_download:t.actQuoteDownload,event_add:t.actEventAdd,event_edit:t.actEventEdit,event_delete:t.actEventDelete,apt_add:t.actAptAdd,apt_status:t.actAptStatus,apt_delete:t.actAptDelete,catalog_add:t.actCatalogAdd,catalog_edit:t.actCatalogEdit,catalog_delete:t.actCatalogDelete,user_add:t.actUserAdd,user_edit:t.actUserEdit,user_delete:t.actUserDelete,company_add:t.actCompanyAdd,company_edit:t.actCompanyEdit,company_delete:t.actCompanyDelete,patient_delete:t.actPatientDelete,discount_applied:t.actDiscountApplied};
   const rows=state.logs.map(l=>{
     const d=new Date(l.created_at);
-    const dateStr=d.toLocaleDateString('tr-TR',{day:'2-digit',month:'2-digit',year:'numeric'})+' '+d.toLocaleTimeString('tr-TR',{hour:'2-digit',minute:'2-digit'});
+    const dateStr=d.toLocaleDateString('tr-TR',{day:'2-digit',month:'2-digit',year:'numeric'})+' '+d.toLocaleTimeString('tr-TR',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
     const actionLabel=actionLabels[l.action]||l.action;
     return`<tr>
       <td style="font-size:11px;color:#4a607d;white-space:nowrap">${dateStr}</td>
@@ -2600,6 +2601,7 @@ async function saveCurrentPatient(){
   if(!await confirmDialog(t.confirmSavePatient))return;
   await takeSnapshot('customers',state.patients);
   if(currentPtTab==="consultation"){
+    const _oldStatus=p.status;
     p.name=document.getElementById("pc-name")?.value||p.name;
     p.email=document.getElementById("pc-email")?.value||"";
     p.phone=document.getElementById("pc-phone")?.value||"";
@@ -2607,6 +2609,7 @@ async function saveCurrentPatient(){
     p.country=document.getElementById("pc-nationality")?.value||"";
     p.nationality=document.getElementById("pc-nationality")?.value||"";
     p.status=document.getElementById("pc-status")?.value||p.status;
+    if(p.status!==_oldStatus)logAction('status_change',`${p.name}: ${_oldStatus} → ${p.status}`);
     p.eventId=+document.getElementById("pc-eventId")?.value||null;
     if(!p.consultation)p.consultation={};
     p.consultation.dentalConcerns=document.getElementById("pc-dentalConcerns")?.value||"";
@@ -2627,7 +2630,9 @@ async function saveCurrentPatient(){
   }
   ptFormDirty=false;
   const _sp=getPatient(currentPatientId);
-  await persist("customers");logAction('patient_save',_sp?.name||'');toast("✅ "+t.saved);
+  const _logAct=currentPtTab==="assessment"?'plan_save':'patient_save';
+  const _logDetail=currentPtTab==="assessment"?`${_sp?.name||''} — ${currSym()}${patientActivePlanTotal(_sp||{}).toLocaleString()}`:(_sp?.name||'');
+  await persist("customers");logAction(_logAct,_logDetail);toast("✅ "+t.saved);
   renderPatientOverlay();
 }
 
@@ -2671,7 +2676,7 @@ function updateBookingQty(arr,idx,val,field="qty"){
 }
 function updateBookingDiscount(val){const p=getPatient(currentPatientId);if(!p?.booking)return;p.booking.discount=val||0;p.booking.discountRate=0;renderPtBody();}
 function updateBookingDeposit(val){const p=getPatient(currentPatientId);if(!p?.booking)return;p.booking.deposit=val||0;renderPtBody();}
-function updateBookingDiscountRate(rate,sub){const p=getPatient(currentPatientId);if(!p?.booking)return;p.booking.discountRate=rate||0;p.booking.discount=rate>0?Math.round(sub*rate/100):0;renderPtBody();}
+function updateBookingDiscountRate(rate,sub){const p=getPatient(currentPatientId);if(!p?.booking)return;p.booking.discountRate=rate||0;p.booking.discount=rate>0?Math.round(sub*rate/100):0;if(rate>0)logAction('discount_applied',`${p.name} — %${rate} (${currSym()}${p.booking.discount})`);renderPtBody();}
 function updateBookingDiscountAmt(amt,sub){const p=getPatient(currentPatientId);if(!p?.booking)return;p.booking.discount=amt||0;p.booking.discountRate=sub>0?+((amt/sub)*100).toFixed(1):0;renderPtBody();}
 
 // ── NOTES
@@ -2686,7 +2691,7 @@ async function deletePatientNote(noteId){
   const p=getPatient(currentPatientId);if(!p)return;
   if(!await confirmDialog(t.confirmDeleteNote,true))return;
   p.notes=(p.notes||[]).filter(n=>n.id!==noteId);
-  await persist("customers");toast("🗑️ "+t.deleted,"warn");renderPtBody();
+  await persist("customers");logAction('note_delete',p?.name||'');toast("🗑️ "+t.deleted,"warn");renderPtBody();
 }
 
 // ── EVENTS
@@ -2726,11 +2731,11 @@ async function saveEvent(editId){
   const dateStart=document.getElementById("em-date-start").value;
   const dateEnd=document.getElementById("em-date-end").value||dateStart;
   const item={name,city:document.getElementById("em-city").value,venue:document.getElementById("em-venue").value,dateStart,dateEnd,date:dateStart,active:document.getElementById("em-active").checked};
-  if(editId){state.events=state.events.map(e=>e.id==editId?{...e,...item}:e);}
-  else{state.events.push({...item,id:Date.now()});}
+  if(editId){state.events=state.events.map(e=>e.id==editId?{...e,...item}:e);logAction('event_edit',name);}
+  else{state.events.push({...item,id:Date.now()});logAction('event_add',name);}
   await persist("deals");toast("✅ "+t.saved);closeModal();render();
 }
-async function deleteEvent(id){if(!isSuperAdmin())return;if(!await confirmDialog(t.confirmDeleteEvent,true))return;await takeSnapshot('deals',state.events);state.events=state.events.map(e=>e.id===id?{...e,deleted:true}:e);await persist("deals");toast(t.eventDeleted,"warn");render();}
+async function deleteEvent(id){if(!isSuperAdmin())return;if(!await confirmDialog(t.confirmDeleteEvent,true))return;const _de=state.events.find(e=>e.id===id);await takeSnapshot('deals',state.events);state.events=state.events.map(e=>e.id===id?{...e,deleted:true}:e);await persist("deals");logAction('event_delete',_de?.name||'');toast(t.eventDeleted,"warn");render();}
 
 // ── APPOINTMENTS
 function openAppointmentModal(){
@@ -2746,14 +2751,16 @@ async function saveAppointment(){
   const patientId=+document.getElementById("am-patientId")?.value;const eventId=+document.getElementById("am-eventId")?.value;
   if(!patientId||!eventId)return;
   const pat=getPatient(patientId);
+  const _evtName=state.events.find(e=>e.id===eventId)?.name||'';
   state.appointments.push({id:Date.now(),eventId,patientId,patientName:pat?.name||"",time:document.getElementById("am-time").value,status:"scheduled"});
-  await persist("tasks");toast("✅ "+t.added);closeModal();render();
+  await persist("tasks");logAction('apt_add',`${pat?.name||''} / ${_evtName}`);toast("✅ "+t.added);closeModal();render();
 }
 async function setAptStatus(id,status){
+  const _apt=state.appointments.find(a=>a.id==id);
   state.appointments=state.appointments.map(a=>a.id==id?{...a,status}:a);
-  await persist("tasks");toast("✅ "+t.saved);render();
+  await persist("tasks");logAction('apt_status',`${_apt?.patientName||''} → ${status}`);toast("✅ "+t.saved);render();
 }
-async function deleteAppointment(id){if(!await confirmDialog(t.confirmDeleteApt,true))return;await takeSnapshot('tasks',state.appointments);state.appointments=state.appointments.map(a=>a.id===id?{...a,deleted:true}:a);await persist("tasks");toast(t.aptDeleted,"warn");render();}
+async function deleteAppointment(id){if(!await confirmDialog(t.confirmDeleteApt,true))return;const _da=state.appointments.find(a=>a.id===id);await takeSnapshot('tasks',state.appointments);state.appointments=state.appointments.map(a=>a.id===id?{...a,deleted:true}:a);await persist("tasks");logAction('apt_delete',_da?.patientName||'');toast(t.aptDeleted,"warn");render();}
 
 // ── TREATMENTS
 function openTreatmentModal(editId,forcedType){
@@ -2796,12 +2803,12 @@ async function saveTreatment(editId,type){
   const name=document.getElementById("trm-name")?.value?.trim();if(!name)return;
   if(!await confirmDialog(editId?t.confirmSaveTx:t.confirmAddTx))return;
   const item={name,description:document.getElementById("trm-desc").value,category:document.getElementById("trm-cat").value,clinicCost:+document.getElementById("trm-clinicCost").value||0,salePrice:+document.getElementById("trm-salePrice").value||0,salePriceEUR:+document.getElementById("trm-salePriceEUR")?.value||0,salePriceUSD:+document.getElementById("trm-salePriceUSD")?.value||0,active:document.getElementById("trm-active").checked,type:type||"treatment"};
-  if(editId){state.treatments=state.treatments.map(tr=>tr.id==editId?{...tr,...item}:tr);}
-  else{state.treatments.push({...item,id:Date.now()});}
+  if(editId){state.treatments=state.treatments.map(tr=>tr.id==editId?{...tr,...item}:tr);logAction('catalog_edit',name);}
+  else{state.treatments.push({...item,id:Date.now()});logAction('catalog_add',name);}
   await persist("history");toast("✅ "+t.saved);closeModal();render();
 }
-async function deleteTreatment(id){if(!canEdit())return;if(!await confirmDialog(t.confirmDeleteTx,true))return;await takeSnapshot('history',state.treatments);state.treatments=state.treatments.map(tr=>tr.id===id?{...tr,deleted:true}:tr);await persist("history");toast(t.recordDeleted,"warn");render();}
-async function deletePatient(id){if(!isSuperAdmin())return;if(!await confirmDialog(t.confirmDeletePatient||'Bu hastayı silmek istediğinizden emin misiniz?',true))return;await takeSnapshot('customers',state.patients);state.patients=state.patients.map(p=>p.id===id?{...p,deleted:true}:p);await persist("customers");toast(t.patientDeleted||'Hasta silindi',"warn");closePatient();render();}
+async function deleteTreatment(id){if(!canEdit())return;if(!await confirmDialog(t.confirmDeleteTx,true))return;const _dt=state.treatments.find(tr=>tr.id===id);await takeSnapshot('history',state.treatments);state.treatments=state.treatments.map(tr=>tr.id===id?{...tr,deleted:true}:tr);await persist("history");logAction('catalog_delete',_dt?.name||'');toast(t.recordDeleted,"warn");render();}
+async function deletePatient(id){if(!isSuperAdmin())return;if(!await confirmDialog(t.confirmDeletePatient||'Bu hastayı silmek istediğinizden emin misiniz?',true))return;const _dp=state.patients.find(p=>p.id===id);await takeSnapshot('customers',state.patients);state.patients=state.patients.map(p=>p.id===id?{...p,deleted:true}:p);await persist("customers");logAction('patient_delete',_dp?.name||'');toast(t.patientDeleted||'Hasta silindi',"warn");closePatient();render();}
 async function restoreFromTrash(type,id){
   if(type==='patient'){state.patients=state.patients.map(p=>p.id==id?{...p,deleted:false}:p);await persist('customers');}
   else if(type==='event'){state.events=state.events.map(e=>e.id==id?{...e,deleted:false}:e);await persist('deals');}
@@ -2853,20 +2860,21 @@ async function saveUser(editId){
     try{const r=await fetch(`${SUPA_URL}/rest/v1/crm_users?id=eq.${editId}`,{method:"PATCH",headers:{...H,"Prefer":"return=minimal"},body:JSON.stringify(upd)});if(!r.ok){toast(t.updateFailed,"err");return;}
     state.users=state.users.map(u=>u.id===editId?{...u,...upd}:u);
     if(editId===currentUser.id){currentUser={...currentUser,display_name:displayName,role};sessionStorage.setItem("crm_user",JSON.stringify(currentUser));const color=ROLE_COLORS[role]||"#f97316";document.getElementById("user-name").textContent=displayName||username;document.getElementById("user-avatar").textContent=(displayName||username)[0].toUpperCase();document.getElementById("user-role").textContent=role;document.getElementById("user-role").style.color=color;}
-    toast(t.userUpdated);}catch{toast(t.errorMsg,"err");return;}
+    logAction('user_edit',displayName||username);toast(t.userUpdated);}catch{toast(t.errorMsg,"err");return;}
   } else {
     if(state.users.some(u=>u.username===username)){toast(t.usernameExists,"err");return;}
     const _csel=document.getElementById("u-company-sel")?.value||"";
     const [_cid,_cname]=isSuperAdmin()?(_csel?_csel.split("|"):["",""]):[String(currentUser.company_id||1),currentUser.company_name||""];
     const companyId=+_cid||currentUser.company_id||1;
     const companyName=_cname||currentUser.company_name||'';
-    try{const r=await fetch(`${SUPA_URL}/rest/v1/crm_users`,{method:"POST",headers:{...H,"Prefer":"return=representation"},body:JSON.stringify({username,password:await bcrypt.hash(password,10),role,display_name:displayName,company_id:companyId,company_name:companyName})});if(!r.ok){toast(t.addFailed,"err");return;}const added=(await r.json());state.users.push({id:(Array.isArray(added)?added[0]:added).id,username,role,display_name:displayName,company_id:companyId,company_name:companyName});toast(t.userAdded);}catch{toast(t.errorMsg,"err");return;}
+    try{const r=await fetch(`${SUPA_URL}/rest/v1/crm_users`,{method:"POST",headers:{...H,"Prefer":"return=representation"},body:JSON.stringify({username,password:await bcrypt.hash(password,10),role,display_name:displayName,company_id:companyId,company_name:companyName})});if(!r.ok){toast(t.addFailed,"err");return;}const added=(await r.json());state.users.push({id:(Array.isArray(added)?added[0]:added).id,username,role,display_name:displayName,company_id:companyId,company_name:companyName});logAction('user_add',`${displayName||username} (${companyName})`);toast(t.userAdded);}catch{toast(t.errorMsg,"err");return;}
   }
   closeModal();render();
 }
 async function deleteUser(id){
   if(!canManageUsers())return;if(id===currentUser.id){toast(t.cantDeleteSelf,"err");return;}
-  try{const r=await fetch(`${SUPA_URL}/rest/v1/crm_users?id=eq.${id}`,{method:"DELETE",headers:H});if(!r.ok){toast(t.updateFailed,"err");return;}state.users=state.users.filter(u=>u.id!==id);toast(t.userDeleted,"warn");render();}catch{toast(t.errorMsg,"err");}
+  const _du=state.users.find(u=>u.id===id);
+  try{const r=await fetch(`${SUPA_URL}/rest/v1/crm_users?id=eq.${id}`,{method:"DELETE",headers:H});if(!r.ok){toast(t.updateFailed,"err");return;}state.users=state.users.filter(u=>u.id!==id);logAction('user_delete',_du?.display_name||_du?.username||'');toast(t.userDeleted,"warn");render();}catch{toast(t.errorMsg,"err");}
 }
 
 // ── PDF QUOTE
