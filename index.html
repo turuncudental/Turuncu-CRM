@@ -751,7 +751,7 @@ async function dbSet(table,data){
   try{await fetch(`${SUPA_URL}/rest/v1/${table}`,{method:"POST",headers:{...H,"Prefer":"resolution=merge-duplicates,return=minimal"},body:JSON.stringify({id:1,data})});}catch{}
 }
 const TABLE_STATE={customers:"patients",deals:"events",tasks:"appointments",history:"treatments"};
-async function persist(table){document.getElementById("syncing-label").style.display="inline";await dbSet(table,state[TABLE_STATE[table]||table]);document.getElementById("syncing-label").style.display="none";updateFooter();}
+async function persist(table){const sl=document.getElementById("syncing-label");sl.textContent=t.saving;sl.style.display="inline";await dbSet(table,state[TABLE_STATE[table]||table]);sl.style.display="none";updateFooter();}
 async function loadAll(){
   const [p,e,a,tr]=await Promise.all([dbGet("customers"),dbGet("deals"),dbGet("tasks"),dbGet("history")]);
   // Guard: if data is not a valid array, fall back to seed (prevents crash from corrupted localStorage)
@@ -1291,15 +1291,15 @@ function renderPtAssessment(p){
       </div>
       <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:4px">
         <select id="tx-brush-main" onchange="setTxBrush(this.value)" style="background:#131b2a;border:1px solid ${activeTxBrush?'#f97316':'#1a2236'};border-radius:8px;padding:6px 10px;color:${activeTxBrush?'#f97316':'#dde4ef'};font-size:12px;outline:none;flex:1;min-width:200px">
-          <option value="">— Tedavi Seçip Dişe Tıkla —</option>
-          <option value="__manual__"${activeTxBrush==='__manual__'?' selected':''}>✏️ Manuel Ekle...</option>
+          <option value="">${t.selectTxClickTooth}</option>
+          <option value="__manual__"${activeTxBrush==='__manual__'?' selected':''}>${t.manualAdd}</option>
           ${allTxCatalog.map(tx=>`<option value="${tx.id}"${activeTxBrush===tx.id?' selected':''}>${tx.name} — ${currSym()}${getEffectivePrice(tx)}</option>`).join('')}
         </select>
         ${activeTxBrush?`<button onclick="setTxBrush(null)" style="padding:5px 12px;border-radius:8px;border:1px solid #ef444444;background:#2b0f0f;color:#ef4444;font-size:11px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif">✕ İptal</button>`:''}
       </div>
       ${activeTxBrush==='__manual__'?`<div style="display:flex;gap:8px;align-items:center;margin-top:6px;flex-wrap:wrap">
-        <input id="pa-manual-name" placeholder="Tedavi adı" style="background:#131b2a;border:1px solid #1a2236;border-radius:8px;padding:6px 10px;color:#dde4ef;font-size:12px;outline:none;flex:1;min-width:150px"/>
-        <input id="pa-manual-price" type="number" min="0" placeholder="Fiyat" style="background:#131b2a;border:1px solid #1a2236;border-radius:8px;padding:6px 10px;color:#dde4ef;font-size:12px;outline:none;width:100px"/>
+        <input id="pa-manual-name" placeholder="${t.txNamePlaceholder}" style="background:#131b2a;border:1px solid #1a2236;border-radius:8px;padding:6px 10px;color:#dde4ef;font-size:12px;outline:none;flex:1;min-width:150px"/>
+        <input id="pa-manual-price" type="number" min="0" placeholder="${t.pricePlaceholder}" style="background:#131b2a;border:1px solid #1a2236;border-radius:8px;padding:6px 10px;color:#dde4ef;font-size:12px;outline:none;width:100px"/>
         <button class="sm-btn success" onclick="addManualTreatment()">+ Ekle</button>
       </div>`:''}
     </div>
@@ -1312,7 +1312,7 @@ function renderPtAssessment(p){
         <thead><tr><th>${t.tname}</th><th>${t.qty}</th><th>${t.unitPrice}</th><th>${t.total}</th><th></th></tr></thead>
         <tbody>
           ${jawRows.map(r=>`<tr>
-            <td style="font-weight:600">🦷 ${r.tx.name} <span style="font-size:11px;color:#4a607d">(${r.jaw==='upper'?'Üst Çene':'Alt Çene'})</span></td>
+            <td style="font-weight:600">🦷 ${r.tx.name} <span style="font-size:11px;color:#4a607d">(${r.jaw==='upper'?t.upperJaw:t.lowerJaw})</span></td>
             <td style="font-weight:700;color:#f97316;text-align:center">1</td>
             <td style="font-size:12px">${currSym()}${getEffectivePrice(r.tx).toLocaleString()}</td>
             <td style="font-weight:700;color:#34d399">${currSym()}${getEffectivePrice(r.tx).toLocaleString()}</td>
@@ -1323,17 +1323,17 @@ function renderPtAssessment(p){
             <td style="font-weight:700;color:#f97316;text-align:center">${r.count}</td>
             <td style="font-size:12px">${currSym()}${getEffectivePrice(r.tx).toLocaleString()}</td>
             <td style="font-weight:700;color:#34d399">${currSym()}${(r.count*getEffectivePrice(r.tx)).toLocaleString()}</td>
-            <td><button class="sm-btn danger" onclick="removeTxGroup(${r.txId})" title="Tümünü Kaldır">✕</button></td>
+            <td><button class="sm-btn danger" onclick="removeTxGroup(${r.txId})" title="${t.removeAll}">✕</button></td>
           </tr>`).join('')}
           ${extraRows.map(r=>{const uPrice=r.price||getEffectivePrice(r.tx);return`<tr>
-            <td style="font-weight:600">${r.tx.name} <span style="color:#4a607d;font-size:10px">${r.customName?'manuel':'ekstra'}</span></td>
+            <td style="font-weight:600">${r.tx.name} <span style="color:#4a607d;font-size:10px">${r.customName?t.manualLabel:t.extraLabel}</span></td>
             <td><input type="number" min="1" value="${r.qty||1}" onchange="updateExtraTxQty(${r.idx},+this.value)" style="${inStyle};text-align:center"/></td>
             <td style="font-size:12px">${currSym()}${uPrice.toLocaleString()}</td>
             <td style="font-weight:700;color:#34d399">${currSym()}${((r.qty||1)*uPrice).toLocaleString()}</td>
             <td><button class="sm-btn danger" onclick="removeExtraTreatment(${r.idx})">✕</button></td>
           </tr>`;}).join('')}
         </tbody>
-      </table>`:`<div style="font-size:12px;color:#3d5270;padding:6px 0">Yukarıdan tedavi seçip dişe tıklayın</div>`}
+      </table>`:`<div style="font-size:12px;color:#3d5270;padding:6px 0">${t.selectTxFromAbove}</div>`}
     </div>
     ${twoVisitMode?`<div class="card" style="${visitWarning?'border-color:#ef444466;':''}">
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;flex-wrap:wrap">
@@ -1383,7 +1383,7 @@ function renderPtAssessment(p){
               <button class="sm-btn success" onclick="addBookingAccommodation(${vi})">+ Ekle</button>
             </div>
             ${vEntries.length?`<table class="data-table" style="width:100%">
-              <thead><tr><th>${t.aname}</th><th>${t.nights}</th><th>${t.pricePerNight}</th><th>Toplam</th><th></th></tr></thead>
+              <thead><tr><th>${t.aname}</th><th>${t.nights}</th><th>${t.pricePerNight}</th><th>${t.total}</th><th></th></tr></thead>
               <tbody>${vEntries.map(({a,i})=>`<tr>
                 <td style="font-weight:600">🏨 ${a.name}</td>
                 <td><input type="number" min="1" value="${a.nights||1}" onchange="updateBookingQty('accommodations',${i},+this.value,'nights')" style="${inStyle}"/></td>
@@ -1623,7 +1623,7 @@ function updateExtraTxQty(idx,qty){
   persist("customers");renderPtBody();
 }
 async function resetActivePlan(){
-  if(!await confirmDialog("Tedavi planı, konaklama ve transfer seçimleri silinecek. Emin misiniz?",true))return;
+  if(!await confirmDialog(t.resetPlanConfirm,true))return;
   const p=getPatient(currentPatientId);if(!p)return;
   if(!p.assessment)p.assessment={currentCondition:{},treatmentPlan:{},dentistNotes:""};
   // Clear plan selections
@@ -1732,7 +1732,7 @@ function renderPtBooking(p){
         ${activeTx.map(tr=>`<button class="sm-btn" onclick="addBookingItem('treatment',${tr.id})" style="font-size:11px">+ ${tr.name} <span style="color:#34d399">${currSym()}${tr.salePrice}</span></button>`).join("")}
       </div>
       ${(b.treatments||[]).length?`<table class="data-table" style="width:100%">
-        <thead><tr><th>${t.tname}</th><th>${t.nights.replace("Gece","Adet")}</th><th>Fiyat</th><th>Toplam</th><th></th></tr></thead>
+        <thead><tr><th>${t.tname}</th><th>${t.qty}</th><th>${t.unitPrice}</th><th>${t.total}</th><th></th></tr></thead>
         <tbody>${(b.treatments||[]).map((tr,i)=>`<tr>
           <td style="font-weight:600">${tr.name}</td>
           <td><input type="number" min="1" value="${tr.qty||1}" onchange="updateBookingQty('treatments',${i},+this.value)" style="${inStyle}"/></td>
@@ -1745,9 +1745,9 @@ function renderPtBooking(p){
 
     ${(isImplant||visits.length>0)?`<div class="card" style="${visitWarning?'border-color:#ef444466;':''}">
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;flex-wrap:wrap">
-        <div class="section-title" style="margin-bottom:0">🏥 Visit Planlaması</div>
-        ${isImplant?'<span style="font-size:10px;background:#60a5fa22;border:1px solid #60a5fa44;color:#60a5fa;padding:2px 8px;border-radius:20px;font-weight:700">İmplant → 2 Visit</span>':''}
-        ${visitWarning?'<span style="font-size:10px;background:#ef444422;border:1px solid #ef444444;color:#ef4444;padding:2px 8px;border-radius:20px;font-weight:700">⚠ Gece sayısı girilmedi!</span>':''}
+        <div class="section-title" style="margin-bottom:0">${t.visitPlanning}</div>
+        ${isImplant?`<span style="font-size:10px;background:#60a5fa22;border:1px solid #60a5fa44;color:#60a5fa;padding:2px 8px;border-radius:20px;font-weight:700">${t.implant2Visit}</span>`:''}
+        ${visitWarning?`<span style="font-size:10px;background:#ef444422;border:1px solid #ef444444;color:#ef4444;padding:2px 8px;border-radius:20px;font-weight:700">${t.nightsNotEntered}</span>`:''}
       </div>
       ${(isImplant?[0,1]:[0]).map(i=>{const v=(b.visits||[])[i]||{nights:null};return`<div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;padding:10px 12px;background:${v.nights?'#0a2a1a':'#131b2a'};border:1px solid ${v.nights?'#22c55e44':'#1a2236'};border-radius:8px;flex-wrap:wrap">
         <div style="font-size:12px;font-weight:800;color:#dde4ef;min-width:65px">${i+1}. Visit</div>
@@ -1755,9 +1755,9 @@ function renderPtBooking(p){
           ${[3,4,5,6,7,10].map(n=>`<button onclick="setVisitNights(${i},${n})" style="padding:4px 11px;border-radius:16px;border:1px solid ${v.nights===n?'#22c55e':'#1a2236'};background:${v.nights===n?'#22c55e22':'#0d1320'};color:${v.nights===n?'#22c55e':'#4a607d'};font-size:11px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif">${n} gece</button>`).join('')}
           <input type="number" min="1" value="${v.nights||''}" placeholder="?" onchange="setVisitNights(${i},this.value)" style="width:54px;background:#0d1320;border:1px solid #1a2236;border-radius:6px;padding:4px 6px;color:#dde4ef;font-size:12px;text-align:center"/>
         </div>
-        <div style="margin-left:auto;font-size:11px;font-weight:700;color:${v.nights?'#22c55e':'#ef4444'}">${v.nights?v.nights+' gece ✓':'Girilmedi ✕'}</div>
+        <div style="margin-left:auto;font-size:11px;font-weight:700;color:${v.nights?'#22c55e':'#ef4444'}">${v.nights?v.nights+' gece ✓':t.notEntered}</div>
       </div>`;}).join('')}
-      ${visitWarning?`<div style="background:#2b0f0f;border:1px solid #ef444444;border-radius:8px;padding:10px 12px;font-size:12px;color:#ef4444;font-weight:600;margin-top:4px">⚠️ İmplant tedavisi olan hastalar en az 2 visit gelmeli. Her iki visit için konaklama gece sayısını seçin!</div>`:''}
+      ${visitWarning?`<div style="background:#2b0f0f;border:1px solid #ef444444;border-radius:8px;padding:10px 12px;font-size:12px;color:#ef4444;font-weight:600;margin-top:4px">${t.implantVisitWarning}</div>`:''}
     </div>`:''}
 
     <div class="card">
@@ -1790,7 +1790,7 @@ function renderPtBooking(p){
               <button class="sm-btn success" onclick="addBookingAccommodation(${vi})">+ Ekle</button>
             </div>
             ${vEntries.length?`<table class="data-table" style="width:100%">
-              <thead><tr><th>${t.aname}</th><th>${t.nights}</th><th>${t.pricePerNight}</th><th>Toplam</th><th></th></tr></thead>
+              <thead><tr><th>${t.aname}</th><th>${t.nights}</th><th>${t.pricePerNight}</th><th>${t.total}</th><th></th></tr></thead>
               <tbody>${vEntries.map(({a,i})=>`<tr>
                 <td style="font-weight:600">🏨 ${a.name}</td>
                 <td><input type="number" min="1" value="${a.nights||1}" onchange="updateBookingQty('accommodations',${i},+this.value,'nights')" style="${inStyle}"/></td>
@@ -1808,8 +1808,8 @@ function renderPtBooking(p){
         </div>`;
       })():`<div style="display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap">
         <select id="pb-accom-sel" style="background:#131b2a;border:1px solid #1a2236;border-radius:8px;padding:6px 10px;color:#dde4ef;font-size:12px;outline:none;flex:1;min-width:180px">
-          <option value="">— Tesis Seçin —</option>
-          ${activeAc.map(a=>`<option value="${a.id}">${a.name} (${a.category}) — ${currSym()}${a.salePrice}/gece</option>`).join("")}
+          <option value="">${t.selectFacility}</option>
+          ${activeAc.map(a=>`<option value="${a.id}">${a.name} (${a.category}) — ${currSym()}${a.salePrice}${t.perNight}</option>`).join("")}
         </select>
         <div style="display:flex;align-items:center;gap:6px">
           <input type="number" id="pb-accom-nights" min="1" value="3" style="${inStyle};width:54px"/>
@@ -1818,7 +1818,7 @@ function renderPtBooking(p){
         <button class="sm-btn success" onclick="addBookingAccommodation()">+ Ekle</button>
       </div>
       ${(b.accommodations||[]).length?`<table class="data-table" style="width:100%">
-        <thead><tr><th>${t.aname}</th><th>${t.nights}</th><th>${t.pricePerNight}</th><th>Toplam</th><th></th></tr></thead>
+        <thead><tr><th>${t.aname}</th><th>${t.nights}</th><th>${t.pricePerNight}</th><th>${t.total}</th><th></th></tr></thead>
         <tbody>${(b.accommodations||[]).map((a,i)=>`<tr>
           <td style="font-weight:600">🏨 ${a.name}</td>
           <td><input type="number" min="1" value="${a.nights||1}" onchange="updateBookingQty('accommodations',${i},+this.value,'nights')" style="${inStyle}"/></td>
@@ -1833,8 +1833,8 @@ function renderPtBooking(p){
       <div class="section-title">🚐 ${t.bookingTravel}</div>
       <div style="display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap">
         <select id="pb-travel-sel" style="background:#131b2a;border:1px solid #1a2236;border-radius:8px;padding:6px 10px;color:#dde4ef;font-size:12px;outline:none;flex:1;min-width:180px">
-          <option value="">— Ulaşım Seçin —</option>
-          ${activeTr.map(tr=>`<option value="${tr.id}">${tr.name} (${tr.category}) — ${currSym()}${tr.salePrice}/kişi</option>`).join("")}
+          <option value="">${t.selectTransport}</option>
+          ${activeTr.map(tr=>`<option value="${tr.id}">${tr.name} (${tr.category}) — ${currSym()}${tr.salePrice}${t.perPax}</option>`).join("")}
         </select>
         <div style="display:flex;align-items:center;gap:6px">
           <input type="number" id="pb-travel-persons" min="1" value="1" style="${inStyle};width:54px"/>
@@ -1843,7 +1843,7 @@ function renderPtBooking(p){
         <button class="sm-btn success" onclick="addBookingTravel()">+ Ekle</button>
       </div>
       ${(b.travels||[]).length?`<table class="data-table" style="width:100%">
-        <thead><tr><th>Sefer / Firma</th><th>${t.persons}</th><th>${t.perPerson}</th><th>Toplam</th><th></th></tr></thead>
+        <thead><tr><th>${t.transportCompany}</th><th>${t.persons}</th><th>${t.perPerson}</th><th>${t.total}</th><th></th></tr></thead>
         <tbody>${(b.travels||[]).map((tr,i)=>`<tr>
           <td style="font-weight:600">✈️ ${tr.name}</td>
           <td><input type="number" min="1" value="${tr.persons||1}" onchange="updateBookingQty('travels',${i},+this.value,'persons')" style="${inStyle}"/></td>
@@ -1855,14 +1855,14 @@ function renderPtBooking(p){
     </div>
 
     <div class="card">
-      <div class="section-title">Finansal Özet</div>
+      <div class="section-title">${t.financialSummary}</div>
       <div style="max-width:380px">
-        ${txSub?`<div class="stat-row"><span>🦷 Tedaviler</span><span>${currSym()}${txSub.toLocaleString()}</span></div>`:""}
-        ${acSub?`<div class="stat-row"><span>🏨 Konaklama</span><span>${currSym()}${acSub.toLocaleString()}</span></div>`:""}
-        ${trSub?`<div class="stat-row"><span>🚐 Transfer</span><span>${currSym()}${trSub.toLocaleString()}</span></div>`:""}
+        ${txSub?`<div class="stat-row"><span>${t.treatmentsLine}</span><span>${currSym()}${txSub.toLocaleString()}</span></div>`:""}
+        ${acSub?`<div class="stat-row"><span>${t.accommodationLine}</span><span>${currSym()}${acSub.toLocaleString()}</span></div>`:""}
+        ${trSub?`<div class="stat-row"><span>${t.transferLine}</span><span>${currSym()}${trSub.toLocaleString()}</span></div>`:""}
         <div class="stat-row"><span>${t.subtotal}</span><span style="font-weight:700">${currSym()}${sub.toLocaleString()}</span></div>
         <div class="stat-row" style="align-items:center">
-          <span>İndirim</span>
+          <span>${t.discount}</span>
           <span style="display:flex;align-items:center;gap:6px">
             <input type="number" min="0" max="100" step="0.5" value="${discountRate||''}" placeholder="%" onchange="updateBookingDiscountRate(+this.value,${sub})" style="width:54px;background:#131b2a;border:1px solid #1a2236;border-radius:6px;padding:3px 6px;color:#fbbf24;font-size:12px;text-align:right"/>
             <span style="font-size:11px;color:#4a607d">%</span>
@@ -1870,18 +1870,18 @@ function renderPtBooking(p){
             <input type="number" min="0" value="${discountAmt||''}" placeholder="${currSym()}" onchange="updateBookingDiscountAmt(+this.value,${sub})" style="width:72px;background:#131b2a;border:1px solid #1a2236;border-radius:6px;padding:3px 6px;color:#fbbf24;font-size:12px;text-align:right"/>
           </span>
         </div>
-        ${discountAmt>0?`<div class="stat-row"><span style="font-size:11px;color:#4a607d">Uygulanan İndirim</span><span style="color:#fbbf24;font-weight:700">−${currSym()}${discountAmt.toLocaleString()}${discountRate>0?` (%${discountRate})`:"" }</span></div>`:""}
+        ${discountAmt>0?`<div class="stat-row"><span style="font-size:11px;color:#4a607d">${t.discountApplied}</span><span style="color:#fbbf24;font-weight:700">−${currSym()}${discountAmt.toLocaleString()}${discountRate>0?` (%${discountRate})`:"" }</span></div>`:""}
         <div class="stat-row"><span style="font-weight:700;color:#dde4ef">${t.totalCost}</span><span style="font-weight:800;color:#34d399;font-size:15px">${currSym()}${total.toLocaleString()}</span></div>
         <div class="stat-row"><span>${t.deposit}</span><span><input type="number" min="0" value="${b.deposit||''}" placeholder="0" onchange="updateBookingDeposit(+this.value)" style="width:80px;background:#131b2a;border:1px solid #1a2236;border-radius:6px;padding:3px 6px;color:#dde4ef;font-size:12px;text-align:right"/></span></div>
         <div style="border-top:2px solid #f97316;margin:8px 0"></div>
-        <div class="stat-row"><span style="font-weight:700;color:#dde4ef">💵 Nakit Ödeme Toplamı</span><span style="font-weight:800;color:#f97316;font-size:16px">${currSym()}${balance.toLocaleString()}</span></div>
-        <div class="stat-row"><span style="font-size:12px;color:#60a5fa">💳 Kart ile Ödeme (+%2)</span><span style="font-weight:700;color:#60a5fa;font-size:14px">${currSym()}${cardBalance.toLocaleString()}</span></div>
+        <div class="stat-row"><span style="font-weight:700;color:#dde4ef">${t.cashTotal}</span><span style="font-weight:800;color:#f97316;font-size:16px">${currSym()}${balance.toLocaleString()}</span></div>
+        <div class="stat-row"><span style="font-size:12px;color:#60a5fa">${t.cardPayment}</span><span style="font-weight:700;color:#60a5fa;font-size:14px">${currSym()}${cardBalance.toLocaleString()}</span></div>
         ${isImplant?`<div style="border-top:1px solid #1a2236;margin:10px 0 6px"></div>
-        <div style="font-size:10px;color:#4a607d;font-weight:700;margin-bottom:6px;letter-spacing:.5px">2 VİSİT ÖDEME PLANI</div>
-        <div class="stat-row" style="background:#0d2b1a;border-radius:6px;padding:6px 10px;margin-bottom:4px"><span style="font-size:12px;font-weight:700;color:#34d399">1. Visit (%60) — Nakit</span><span style="font-weight:800;color:#34d399">${currSym()}${Math.round(balance*0.6).toLocaleString()}</span></div>
-        <div class="stat-row" style="background:#0a1a2e;border-radius:6px;padding:6px 10px;margin-bottom:4px"><span style="font-size:11px;color:#60a5fa">1. Visit (%60) — Kart</span><span style="font-weight:700;color:#60a5fa">${currSym()}${Math.round(balance*0.6*1.02).toLocaleString()}</span></div>
-        <div class="stat-row" style="background:#0d2b1a;border-radius:6px;padding:6px 10px;margin-bottom:4px"><span style="font-size:12px;font-weight:700;color:#34d399">2. Visit (%40) — Nakit</span><span style="font-weight:800;color:#34d399">${currSym()}${Math.round(balance*0.4).toLocaleString()}</span></div>
-        <div class="stat-row" style="background:#0a1a2e;border-radius:6px;padding:6px 10px"><span style="font-size:11px;color:#60a5fa">2. Visit (%40) — Kart</span><span style="font-weight:700;color:#60a5fa">${currSym()}${Math.round(balance*0.4*1.02).toLocaleString()}</span></div>`:''}
+        <div style="font-size:10px;color:#4a607d;font-weight:700;margin-bottom:6px;letter-spacing:.5px">${t.twoVisitPlan}</div>
+        <div class="stat-row" style="background:#0d2b1a;border-radius:6px;padding:6px 10px;margin-bottom:4px"><span style="font-size:12px;font-weight:700;color:#34d399">${t.v1Cash}</span><span style="font-weight:800;color:#34d399">${currSym()}${Math.round(balance*0.6).toLocaleString()}</span></div>
+        <div class="stat-row" style="background:#0a1a2e;border-radius:6px;padding:6px 10px;margin-bottom:4px"><span style="font-size:11px;color:#60a5fa">${t.v1Card}</span><span style="font-weight:700;color:#60a5fa">${currSym()}${Math.round(balance*0.6*1.02).toLocaleString()}</span></div>
+        <div class="stat-row" style="background:#0d2b1a;border-radius:6px;padding:6px 10px;margin-bottom:4px"><span style="font-size:12px;font-weight:700;color:#34d399">${t.v2Cash}</span><span style="font-weight:800;color:#34d399">${currSym()}${Math.round(balance*0.4).toLocaleString()}</span></div>
+        <div class="stat-row" style="background:#0a1a2e;border-radius:6px;padding:6px 10px"><span style="font-size:11px;color:#60a5fa">${t.v2Card}</span><span style="font-weight:700;color:#60a5fa">${currSym()}${Math.round(balance*0.4*1.02).toLocaleString()}</span></div>`:''}
 
       </div>
       <div class="field" style="margin-top:12px"><label>${t.bookingNotes}</label><textarea id="pb-notes" rows="2">${b.notes||""}</textarea></div>
@@ -1933,7 +1933,7 @@ async function uploadToStorage(file,patientId,compressedDataUrl){
     headers:{'apikey':SUPA_KEY,'Authorization':'Bearer '+SUPA_KEY,'Content-Type':ct,'x-upsert':'true'},
     body
   });
-  if(!r.ok){const e=await r.json().catch(()=>({}));throw new Error(e.error||e.message||'Yükleme başarısız');}
+  if(!r.ok){const e=await r.json().catch(()=>({}));throw new Error(e.error||e.message||t.uploadFailed);}
   return{path,url:`${SUPA_URL}/storage/v1/object/public/${PF_BUCKET}/${path}`};
 }
 async function deleteFromStorage(path){
@@ -1955,13 +1955,13 @@ async function addPatientFiles(input){
     if(file.type.startsWith('image/')){
       compressed=await compressImage(file);
       if(!compressed){toast('Resim okunamadı: '+file.name,'error');continue;}
-    }else if(file.size>20*1024*1024){toast(file.name+' çok büyük (maks 20MB)','error');continue;}
+    }else if(file.size>20*1024*1024){toast(file.name+' '+t.fileTooLarge,'error');continue;}
     try{
-      toast(file.name+' yükleniyor...');
+      toast(file.name+' '+t.uploading);
       const{path,url}=await uploadToStorage(file,p.id,compressed);
       p.filesMeta.push({id:Date.now()+Math.random(),name:file.name,type:compressed?'image/jpeg':file.type,category:cat,uploadedAt:new Date().toISOString(),path,url});
-      toast(file.name+' yüklendi ✓');
-    }catch(e){toast('Yükleme başarısız: '+e.message,'error');}
+      toast(file.name+' '+t.uploaded);
+    }catch(e){toast(t.uploadFailed+': '+e.message,'error');}
   }
   persist("customers");renderPtBody();input.value='';
 }
@@ -2111,10 +2111,10 @@ function renderEvents(){
       </div>
       <div style="border-top:1px solid #1a2236;padding-top:8px;display:flex;flex-direction:column;gap:4px">
         <div style="display:flex;justify-content:space-between;font-size:11px"><span style="color:#4a607d">Toplam Teklif</span><span style="color:#dde4ef;font-weight:700">${totalQuote>0?currSym()+totalQuote.toLocaleString():"—"}</span></div>
-        <div style="display:flex;justify-content:space-between;font-size:11px"><span style="color:#4a607d">Alınan Deposit</span><span style="color:#60a5fa;font-weight:700">${totalDeposit>0?currSym()+totalDeposit.toLocaleString():"—"}</span></div>
-        <div style="display:flex;justify-content:space-between;font-size:11px"><span style="color:#4a607d">Kazanılan</span><span style="color:#34d399;font-weight:700">${earned>0?currSym()+earned.toLocaleString():"—"}</span></div>
+        <div style="display:flex;justify-content:space-between;font-size:11px"><span style="color:#4a607d">${t.receivedDeposit}</span><span style="color:#60a5fa;font-weight:700">${totalDeposit>0?currSym()+totalDeposit.toLocaleString():"—"}</span></div>
+        <div style="display:flex;justify-content:space-between;font-size:11px"><span style="color:#4a607d">${t.earnedLabel}</span><span style="color:#34d399;font-weight:700">${earned>0?currSym()+earned.toLocaleString():"—"}</span></div>
       </div>
-      ${canEdit()?`<div style="display:flex;gap:6px;margin-top:9px" onclick="event.stopPropagation()"><button class="sm-btn" onclick="openEventModal(${e.id})">✎ Düzenle</button><button class="sm-btn danger" onclick="deleteEvent(${e.id})">✕</button></div>`:""}
+      ${canEdit()?`<div style="display:flex;gap:6px;margin-top:9px" onclick="event.stopPropagation()"><button class="sm-btn" onclick="openEventModal(${e.id})">${t.editBtn}</button><button class="sm-btn danger" onclick="deleteEvent(${e.id})">✕</button></div>`:""}
     </div>`;
   }).join("")}</div>`;
 }
@@ -2180,7 +2180,7 @@ function renderTreatments(){
         <td style="font-weight:700">🏨 ${tr.name}</td>
         <td style="font-size:12px;color:#4a607d">${tr.description||""}</td>
         <td><span class="badge" style="background:#60a5fa22;color:#60a5fa;font-size:10px">${tr.category||""}</span></td>
-        <td style="font-weight:700;color:#34d399">${currSym()}${(tr.salePrice||0).toLocaleString()}<span style="font-size:10px;color:#3d5270">/gece</span></td>
+        <td style="font-weight:700;color:#34d399">${currSym()}${(tr.salePrice||0).toLocaleString()}<span style="font-size:10px;color:#3d5270">${t.perNight}</span></td>
         <td><span class="badge" style="background:${tr.active?"#34d39922":"#f8717122"};color:${tr.active?"#34d399":"#f87171"}">${tr.active?"Aktif":"Pasif"}</span></td>
         <td>${canEdit()?`<div style="display:flex;gap:5px"><button class="sm-btn" onclick="openTreatmentModal(${tr.id},'accommodation')">✎</button><button class="sm-btn danger" onclick="deleteTreatment(${tr.id})">✕</button></div>`:""}</td>
       </tr>`).join("")}</tbody>
@@ -2192,7 +2192,7 @@ function renderTreatments(){
         <td style="font-weight:700">🚐 ${tr.name}</td>
         <td style="font-size:12px;color:#4a607d">${tr.description||""}</td>
         <td><span class="badge" style="background:#f9731622;color:#f97316;font-size:10px">${tr.category||""}</span></td>
-        <td style="font-weight:700;color:#34d399">${currSym()}${(tr.salePrice||0).toLocaleString()}<span style="font-size:10px;color:#3d5270">/kişi</span></td>
+        <td style="font-weight:700;color:#34d399">${currSym()}${(tr.salePrice||0).toLocaleString()}<span style="font-size:10px;color:#3d5270">${t.perPax}</span></td>
         <td><span class="badge" style="background:${tr.active?"#34d39922":"#f8717122"};color:${tr.active?"#34d399":"#f87171"}">${tr.active?"Aktif":"Pasif"}</span></td>
         <td>${canEdit()?`<div style="display:flex;gap:5px"><button class="sm-btn" onclick="openTreatmentModal(${tr.id},'travel')">✎</button><button class="sm-btn danger" onclick="deleteTreatment(${tr.id})">✕</button></div>`:""}</td>
       </tr>`).join("")}</tbody>
@@ -2261,7 +2261,7 @@ function renderUsers(){
         </div>
         <span class="badge" style="background:${color}18;color:${color}">${rl}</span>
         <div style="display:flex;gap:6px">
-          <button class="sm-btn" onclick="openUserModal(${u.id})">✎ Düzenle</button>
+          <button class="sm-btn" onclick="openUserModal(${u.id})">${t.editBtn}</button>
           ${!isMe?`<button class="sm-btn danger" onclick="deleteUser(${u.id})">✕</button>`:""}
         </div>
       </div>`;
@@ -2292,7 +2292,7 @@ function openPatientModal(editId){
 }
 async function savePatientModal(editId){
   const name=document.getElementById("pm-name")?.value?.trim();if(!name)return;
-  if(!await confirmDialog(editId?"Hasta bilgilerini kaydetmek istiyor musunuz?":"Yeni hasta eklemek istiyor musunuz?"))return;
+  if(!await confirmDialog(editId?t.confirmSavePatient:t.confirmAddPatient))return;
   const _nat=document.getElementById("pm-nationality").value;
   const item={name,phone:document.getElementById("pm-phone").value,email:document.getElementById("pm-email").value,country:_nat,nationality:_nat,status:document.getElementById("pm-status").value,eventId:+document.getElementById("pm-eventId").value||null};
   if(editId){state.patients=state.patients.map(p=>p.id==editId?{...p,...item}:p);toast("✅ "+t.updated);}
@@ -2303,7 +2303,7 @@ async function savePatientModal(editId){
 // ── SAVE CURRENT PATIENT (from overlay)
 async function saveCurrentPatient(){
   const p=getPatient(currentPatientId);if(!p)return;
-  if(!await confirmDialog("Hasta bilgilerini kaydetmek istiyor musunuz?"))return;
+  if(!await confirmDialog(t.confirmSavePatient))return;
   if(currentPtTab==="consultation"){
     p.name=document.getElementById("pc-name")?.value||p.name;
     p.email=document.getElementById("pc-email")?.value||"";
@@ -2387,7 +2387,7 @@ async function addPatientNote(){
 }
 async function deletePatientNote(noteId){
   const p=getPatient(currentPatientId);if(!p)return;
-  if(!await confirmDialog("Bu notu silmek istiyor musunuz?",true))return;
+  if(!await confirmDialog(t.confirmDeleteNote,true))return;
   p.notes=(p.notes||[]).filter(n=>n.id!==noteId);
   await persist("customers");toast("🗑️ "+t.deleted,"warn");renderPtBody();
 }
@@ -2425,7 +2425,7 @@ function openEventModal(editId){
 }
 async function saveEvent(editId){
   const name=document.getElementById("em-name")?.value?.trim();if(!name)return;
-  if(!await confirmDialog(editId?"Etkinlik bilgilerini kaydetmek istiyor musunuz?":"Yeni etkinlik eklemek istiyor musunuz?"))return;
+  if(!await confirmDialog(editId?t.confirmSaveEvent:t.confirmAddEvent))return;
   const dateStart=document.getElementById("em-date-start").value;
   const dateEnd=document.getElementById("em-date-end").value||dateStart;
   const item={name,city:document.getElementById("em-city").value,venue:document.getElementById("em-venue").value,dateStart,dateEnd,date:dateStart,active:document.getElementById("em-active").checked};
@@ -2433,7 +2433,7 @@ async function saveEvent(editId){
   else{state.events.push({...item,id:Date.now()});}
   await persist("deals");toast("✅ "+t.saved);closeModal();render();
 }
-async function deleteEvent(id){if(!canEdit())return;if(!await confirmDialog("Bu etkinliği silmek istiyor musunuz?",true))return;state.events=state.events.filter(e=>e.id!==id);await persist("deals");toast("🗑️ Etkinlik silindi","warn");render();}
+async function deleteEvent(id){if(!canEdit())return;if(!await confirmDialog(t.confirmDeleteEvent,true))return;state.events=state.events.filter(e=>e.id!==id);await persist("deals");toast(t.eventDeleted,"warn");render();}
 
 // ── APPOINTMENTS
 function openAppointmentModal(){
@@ -2456,7 +2456,7 @@ async function setAptStatus(id,status){
   state.appointments=state.appointments.map(a=>a.id==id?{...a,status}:a);
   await persist("tasks");toast("✅ "+t.saved);render();
 }
-async function deleteAppointment(id){if(!await confirmDialog("Bu randevuyu silmek istiyor musunuz?",true))return;state.appointments=state.appointments.filter(a=>a.id!==id);await persist("tasks");toast("🗑️ Randevu silindi","warn");render();}
+async function deleteAppointment(id){if(!await confirmDialog(t.confirmDeleteApt,true))return;state.appointments=state.appointments.filter(a=>a.id!==id);await persist("tasks");toast(t.aptDeleted,"warn");render();}
 
 // ── TREATMENTS
 function openTreatmentModal(editId,forcedType){
@@ -2497,22 +2497,22 @@ function openTreatmentModal(editId,forcedType){
 }
 async function saveTreatment(editId,type){
   const name=document.getElementById("trm-name")?.value?.trim();if(!name)return;
-  if(!await confirmDialog(editId?"Bu kaydı güncellemek istiyor musunuz?":"Yeni kayıt eklemek istiyor musunuz?"))return;
+  if(!await confirmDialog(editId?t.confirmSaveTx:t.confirmAddTx))return;
   const item={name,description:document.getElementById("trm-desc").value,category:document.getElementById("trm-cat").value,clinicCost:+document.getElementById("trm-clinicCost").value||0,salePrice:+document.getElementById("trm-salePrice").value||0,salePriceEUR:+document.getElementById("trm-salePriceEUR")?.value||0,salePriceUSD:+document.getElementById("trm-salePriceUSD")?.value||0,active:document.getElementById("trm-active").checked,type:type||"treatment"};
   if(editId){state.treatments=state.treatments.map(tr=>tr.id==editId?{...tr,...item}:tr);}
   else{state.treatments.push({...item,id:Date.now()});}
   await persist("history");toast("✅ "+t.saved);closeModal();render();
 }
-async function deleteTreatment(id){if(!canEdit())return;if(!await confirmDialog("Bu kaydı silmek istiyor musunuz?",true))return;state.treatments=state.treatments.filter(tr=>tr.id!==id);await persist("history");toast("🗑️ Kayıt silindi","warn");render();}
+async function deleteTreatment(id){if(!canEdit())return;if(!await confirmDialog(t.confirmDeleteTx,true))return;state.treatments=state.treatments.filter(tr=>tr.id!==id);await persist("history");toast(t.recordDeleted,"warn");render();}
 
 // ── USERS
 function openUserModal(editId){
   const u=editId?state.users.find(u=>u.id===editId):null;
   const roleOpts=[["admin",t.roleAdmin],["satis",t.roleSales],["okuyucu",t.roleReader]].map(([v,l])=>`<option value="${v}"${u?.role===v?" selected":""}>${l}</option>`).join("");
   const roleDesc={
-    admin:"Tüm ekranlar, tüm işlemler, kullanıcı yönetimi, raporlar, katalog düzenleme.",
-    satis:"Hasta ekleme/düzenleme, tedavi planı, konaklama, transfer, teklif PDF. Raporlar ve katalog erişimi yok.",
-    okuyucu:"Sadece görüntüleme. Finansal bilgiler, raporlar ve düzenleme butonları gizlenir."
+    admin:t.adminRoleDesc,
+    satis:t.salesRoleDesc,
+    okuyucu:t.readerRoleDesc
   };
   const body=`
     <div class="field"><label>${t.fdisplayName}</label><input id="u-displayName" value="${u?.display_name||""}"/></div>
@@ -2529,19 +2529,19 @@ async function saveUser(editId){
   if(!editId&&!password){toast(t.passRequired,"err");return;}
   if(editId){
     const upd={display_name:displayName,role};if(password)upd.password=password;
-    try{const r=await fetch(`${SUPA_URL}/rest/v1/crm_users?id=eq.${editId}`,{method:"PATCH",headers:{...H,"Prefer":"return=minimal"},body:JSON.stringify(upd)});if(!r.ok){toast("Güncelleme başarısız","err");return;}
+    try{const r=await fetch(`${SUPA_URL}/rest/v1/crm_users?id=eq.${editId}`,{method:"PATCH",headers:{...H,"Prefer":"return=minimal"},body:JSON.stringify(upd)});if(!r.ok){toast(t.updateFailed,"err");return;}
     state.users=state.users.map(u=>u.id===editId?{...u,...upd}:u);
     if(editId===currentUser.id){currentUser={...currentUser,display_name:displayName,role};sessionStorage.setItem("crm_user",JSON.stringify(currentUser));const color=ROLE_COLORS[role]||"#f97316";document.getElementById("user-name").textContent=displayName||username;document.getElementById("user-avatar").textContent=(displayName||username)[0].toUpperCase();document.getElementById("user-role").textContent=role;document.getElementById("user-role").style.color=color;}
-    toast(t.userUpdated);}catch{toast("Hata","err");return;}
+    toast(t.userUpdated);}catch{toast(t.errorMsg,"err");return;}
   } else {
     if(state.users.some(u=>u.username===username)){toast(t.usernameExists,"err");return;}
-    try{const r=await fetch(`${SUPA_URL}/rest/v1/crm_users`,{method:"POST",headers:{...H,"Prefer":"return=representation"},body:JSON.stringify({username,password,role,display_name:displayName})});if(!r.ok){toast("Eklenemedi","err");return;}const added=(await r.json());state.users.push({id:(Array.isArray(added)?added[0]:added).id,username,role,display_name:displayName});toast(t.userAdded);}catch{toast("Hata","err");return;}
+    try{const r=await fetch(`${SUPA_URL}/rest/v1/crm_users`,{method:"POST",headers:{...H,"Prefer":"return=representation"},body:JSON.stringify({username,password,role,display_name:displayName})});if(!r.ok){toast(t.addFailed,"err");return;}const added=(await r.json());state.users.push({id:(Array.isArray(added)?added[0]:added).id,username,role,display_name:displayName});toast(t.userAdded);}catch{toast(t.errorMsg,"err");return;}
   }
   closeModal();render();
 }
 async function deleteUser(id){
   if(!canManageUsers())return;if(id===currentUser.id){toast(t.cantDeleteSelf,"err");return;}
-  try{const r=await fetch(`${SUPA_URL}/rest/v1/crm_users?id=eq.${id}`,{method:"DELETE",headers:H});if(!r.ok){toast("Silinemedi","err");return;}state.users=state.users.filter(u=>u.id!==id);toast(t.userDeleted,"warn");render();}catch{toast("Hata","err");}
+  try{const r=await fetch(`${SUPA_URL}/rest/v1/crm_users?id=eq.${id}`,{method:"DELETE",headers:H});if(!r.ok){toast(t.updateFailed,"err");return;}state.users=state.users.filter(u=>u.id!==id);toast(t.userDeleted,"warn");render();}catch{toast(t.errorMsg,"err");}
 }
 
 // ── PDF QUOTE
@@ -2550,8 +2550,8 @@ async function downloadQuotePDF(patientId){
   const a=p.assessment||{};const b=p.booking||{};
   // Warn if accommodation or transfer is missing before generating PDF
   const _pdfWarnings=[];
-  if(!(b.accommodations||[]).length) _pdfWarnings.push('🏨 Konaklama seçilmedi');
-  if(!(b.travels||[]).length) _pdfWarnings.push('✈️ Transfer seçilmedi');
+  if(!(b.accommodations||[]).length) _pdfWarnings.push(t.noAccomSelected);
+  if(!(b.travels||[]).length) _pdfWarnings.push(t.noTransferSelected);
   if(_pdfWarnings.length){
     const _warnMsg='⚠️ Eksik bilgi:<br><br>• '+_pdfWarnings.join('<br>• ')+'<br><br>Yine de teklif oluşturulsun mu?';
     if(!await confirmDialog(_warnMsg))return;
@@ -2565,7 +2565,7 @@ async function downloadQuotePDF(patientId){
   const jawTxMap=(a.jawTx||{})[planKey]||{};
   Object.entries(jawTxMap).forEach(([jaw,txId])=>{
     const tx=allTx.find(t=>t.id===+txId);if(!tx)return;
-    const jawLabel=jaw==='upper'?'Üst Çene':'Alt Çene';
+    const jawLabel=jaw==='upper'?t.upperJaw:t.lowerJaw;
     rows.push({name:`${tx.name} (${jawLabel})`,qty:1,price:getEffectivePrice(tx)});
   });
   // Per-tooth treatments (grouped by tx)
@@ -2623,17 +2623,17 @@ async function downloadQuotePDF(patientId){
     <div style="display:flex;justify-content:flex-end;margin-bottom:20px">
       <div style="min-width:220px">
         <div class="qp-price" style="display:flex;justify-content:space-between;padding:7px 12px;background:#f8f9fa;border:1px solid #e9ecef;border-bottom:none;border-radius:4px 4px 0 0"><span style="font-size:11px;color:#777">Ara Toplam</span><span style="font-size:12px;font-weight:600">${currSym()}${sub.toLocaleString()}</span></div>
-        ${b.discount?`<div class="qp-price" style="display:flex;justify-content:space-between;padding:7px 12px;background:#f8f9fa;border:1px solid #e9ecef;border-bottom:none"><span style="font-size:11px;color:#777">İndirim</span><span style="font-size:12px;font-weight:600;color:#e55">-${currSym()}${(b.discount).toLocaleString()}</span></div>`:""}
-        <div style="display:flex;justify-content:space-between;padding:8px 12px;background:#f97316;border-radius:4px;margin-top:2px"><span style="font-size:12px;font-weight:700;color:#fff">💵 Nakit Ödeme</span><span style="font-size:14px;font-weight:900;color:#fff">${currSym()}${total.toLocaleString()}</span></div>
-        <div style="display:flex;justify-content:space-between;padding:7px 12px;background:#e8f0fe;border:1px solid #c7d7f9;border-top:none;border-radius:0 0 4px 4px;margin-bottom:6px"><span style="font-size:11px;color:#3b5bdb;font-weight:600">💳 Kart ile Ödeme (+%2)</span><span style="font-size:12px;font-weight:700;color:#3b5bdb">${currSym()}${Math.round(total*1.02).toLocaleString()}</span></div>
-        ${b.deposit?`<div style="display:flex;justify-content:space-between;padding:7px 12px;background:#f0fff4;border:1px solid #c6f6d5;border-radius:4px 4px 0 0"><span style="font-size:11px;color:#777">Alınan Ön Ödeme (Deposit)</span><span style="font-size:12px;font-weight:600;color:#22863a">${currSym()}${(b.deposit).toLocaleString()}</span></div>
-        <div style="display:flex;justify-content:space-between;padding:7px 12px;background:#fff8f0;border:1px solid #fed7aa;border-top:none;border-radius:0 0 4px 4px;margin-bottom:6px"><span style="font-size:11px;color:#777;font-weight:600">Kalan Nakit Ödeme</span><span style="font-size:13px;font-weight:800;color:#c2410c">${currSym()}${balance.toLocaleString()}</span></div>`:""}
+        ${b.discount?`<div class="qp-price" style="display:flex;justify-content:space-between;padding:7px 12px;background:#f8f9fa;border:1px solid #e9ecef;border-bottom:none"><span style="font-size:11px;color:#777">${t.discount}</span><span style="font-size:12px;font-weight:600;color:#e55">-${currSym()}${(b.discount).toLocaleString()}</span></div>`:""}
+        <div style="display:flex;justify-content:space-between;padding:8px 12px;background:#f97316;border-radius:4px;margin-top:2px"><span style="font-size:12px;font-weight:700;color:#fff">${t.cashPayment}</span><span style="font-size:14px;font-weight:900;color:#fff">${currSym()}${total.toLocaleString()}</span></div>
+        <div style="display:flex;justify-content:space-between;padding:7px 12px;background:#e8f0fe;border:1px solid #c7d7f9;border-top:none;border-radius:0 0 4px 4px;margin-bottom:6px"><span style="font-size:11px;color:#3b5bdb;font-weight:600">${t.cardPayment}</span><span style="font-size:12px;font-weight:700;color:#3b5bdb">${currSym()}${Math.round(total*1.02).toLocaleString()}</span></div>
+        ${b.deposit?`<div style="display:flex;justify-content:space-between;padding:7px 12px;background:#f0fff4;border:1px solid #c6f6d5;border-radius:4px 4px 0 0"><span style="font-size:11px;color:#777">${t.depositReceived}</span><span style="font-size:12px;font-weight:600;color:#22863a">${currSym()}${(b.deposit).toLocaleString()}</span></div>
+        <div style="display:flex;justify-content:space-between;padding:7px 12px;background:#fff8f0;border:1px solid #fed7aa;border-top:none;border-radius:0 0 4px 4px;margin-bottom:6px"><span style="font-size:11px;color:#777;font-weight:600">${t.remainingCash}</span><span style="font-size:13px;font-weight:800;color:#c2410c">${currSym()}${balance.toLocaleString()}</span></div>`:""}
         ${hasImplantInPlan(p)?`<div style="border-top:2px solid #e9ecef;margin:8px 0 6px"></div>
-        <div style="font-size:9px;font-weight:700;color:#f97316;letter-spacing:1px;margin-bottom:6px">2 VİSİT ÖDEME PLANI</div>
-        <div style="display:flex;justify-content:space-between;padding:7px 12px;background:#f0fff4;border:1px solid #c6f6d5;border-radius:4px 4px 0 0"><span style="font-size:11px;color:#333;font-weight:700">1. Visit — %60 Nakit</span><span style="font-size:12px;font-weight:800;color:#166534">${currSym()}${Math.round(balance*0.6).toLocaleString()}</span></div>
-        <div style="display:flex;justify-content:space-between;padding:6px 12px;background:#eff6ff;border:1px solid #bfdbfe;border-top:none"><span style="font-size:10px;color:#1d4ed8">1. Visit — %60 Kart</span><span style="font-size:11px;font-weight:700;color:#1d4ed8">${currSym()}${Math.round(balance*0.6*1.02).toLocaleString()}</span></div>
-        <div style="display:flex;justify-content:space-between;padding:7px 12px;background:#f0fff4;border:1px solid #c6f6d5;border-top:none"><span style="font-size:11px;color:#333;font-weight:700">2. Visit — %40 Nakit</span><span style="font-size:12px;font-weight:800;color:#166534">${currSym()}${Math.round(balance*0.4).toLocaleString()}</span></div>
-        <div style="display:flex;justify-content:space-between;padding:6px 12px;background:#eff6ff;border:1px solid #bfdbfe;border-top:none;border-radius:0 0 4px 4px"><span style="font-size:10px;color:#1d4ed8">2. Visit — %40 Kart</span><span style="font-size:11px;font-weight:700;color:#1d4ed8">${currSym()}${Math.round(balance*0.4*1.02).toLocaleString()}</span></div>`:''}
+        <div style="font-size:9px;font-weight:700;color:#f97316;letter-spacing:1px;margin-bottom:6px">${t.twoVisitPlan}</div>
+        <div style="display:flex;justify-content:space-between;padding:7px 12px;background:#f0fff4;border:1px solid #c6f6d5;border-radius:4px 4px 0 0"><span style="font-size:11px;color:#333;font-weight:700">${t.v1Cash}</span><span style="font-size:12px;font-weight:800;color:#166534">${currSym()}${Math.round(balance*0.6).toLocaleString()}</span></div>
+        <div style="display:flex;justify-content:space-between;padding:6px 12px;background:#eff6ff;border:1px solid #bfdbfe;border-top:none"><span style="font-size:10px;color:#1d4ed8">${t.v1Card}</span><span style="font-size:11px;font-weight:700;color:#1d4ed8">${currSym()}${Math.round(balance*0.6*1.02).toLocaleString()}</span></div>
+        <div style="display:flex;justify-content:space-between;padding:7px 12px;background:#f0fff4;border:1px solid #c6f6d5;border-top:none"><span style="font-size:11px;color:#333;font-weight:700">${t.v2Cash}</span><span style="font-size:12px;font-weight:800;color:#166534">${currSym()}${Math.round(balance*0.4).toLocaleString()}</span></div>
+        <div style="display:flex;justify-content:space-between;padding:6px 12px;background:#eff6ff;border:1px solid #bfdbfe;border-top:none;border-radius:0 0 4px 4px"><span style="font-size:10px;color:#1d4ed8">${t.v2Card}</span><span style="font-size:11px;font-weight:700;color:#1d4ed8">${currSym()}${Math.round(balance*0.4*1.02).toLocaleString()}</span></div>`:''}
 
       </div>
     </div>
