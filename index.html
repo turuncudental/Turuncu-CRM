@@ -216,6 +216,8 @@ nav button:hover:not(.active){color:#94a3b8}
       <button data-tab="users" id="nav-users" style="display:none" onclick="setTab('users')">👤 &nbsp;<span class="nav-lbl" data-key="navUsers">Kullanıcılar</span></button>
       <button data-tab="companies" id="nav-companies" style="display:none" onclick="setTab('companies')">🏢 &nbsp;<span class="nav-lbl" data-key="navCompanies">Firmalar</span></button>
       <button data-tab="logs" id="nav-logs" style="display:none" onclick="setTab('logs')">📋 &nbsp;<span class="nav-lbl" data-key="navLogs">Aktivite Logu</span></button>
+      <button data-tab="trash" id="nav-trash" style="display:none" onclick="setTab('trash')">🗑️ &nbsp;<span class="nav-lbl" data-key="navTrash">Çöp Kutusu</span></button>
+      <button data-tab="snapshots" id="nav-snapshots" style="display:none" onclick="setTab('snapshots')">💾 &nbsp;<span class="nav-lbl" data-key="navSnapshots">Yedekler</span></button>
     </nav>
     <div id="company-selector" style="display:none;padding:6px 14px 2px">
       <div style="font-size:10px;color:#3d5270;font-weight:700;margin-bottom:4px;letter-spacing:.5px">FIRMA</div>
@@ -245,6 +247,7 @@ nav button:hover:not(.active){color:#94a3b8}
       <div id="pt-name" style="font-size:15px;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis"></div>
       <div id="pt-meta" style="font-size:11px;color:#4a607d;margin-top:1px"></div>
     </div>
+    <button id="btn-delete-patient" class="btn" style="font-size:12px;background:#7f1d1d;display:none" onclick="deletePatient(currentPatientId)">🗑 ${t?.deletePatientBtn||'Sil'}</button>
     <button id="btn-save-patient" class="btn" style="font-size:12px" onclick="saveCurrentPatient()">💾 Kaydet</button>
   </div>
   <div class="pt-tabs" id="pt-tabs"></div>
@@ -438,6 +441,7 @@ tr:{
   noUsers:"Kullanıcı bulunamadı",userAdded:"Kullanıcı eklendi",userUpdated:"Kullanıcı güncellendi",userDeleted:"Kullanıcı silindi",
   cantDeleteSelf:"Kendi hesabınızı silemezsiniz",usernameExists:"Bu kullanıcı adı kullanımda",passRequired:"Şifre zorunludur",usernameRequired:"Kullanıcı adı zorunludur",
   cancel:"İptal",save:"Kaydet",saved:"Kaydedildi",deleted:"Silindi",added:"Eklendi",updated:"Güncellendi",
+  navTrash:"Çöp Kutusu",navSnapshots:"Yedekler",trashEmpty:"Çöp kutusu boş",noSnapshots:"Henüz yedek yok",restore:"Geri Yükle",permanent:"Kalıcı Sil",confirmPermanentDelete:"Kalıcı olarak silinecek, geri alınamaz. Emin misiniz?",confirmRestoreSnapshot:"Bu yedeğe dönmek istediğinize emin misiniz? Mevcut veriler değişecek.",snapshotRestored:"Yedek geri yüklendi",deletePatientBtn:"Sil",confirmDeletePatient:"Bu hastayı çöp kutusuna taşımak istediğinizden emin misiniz?",patientDeleted:"Hasta çöp kutusuna taşındı",
   loginSub:"Diş Turizmi Yönetim Sistemi",loginUser:"Kullanıcı Adı",loginPass:"Şifre",loginBtn:"Giriş Yap",loginErr:"Hatalı kullanıcı adı veya şifre",loginLoading:"Giriş yapılıyor...",loginAttemptsLeft:"Yanlış şifre. {n} deneme hakkınız kaldı.",loginLocked:"Hesap {m} dakika kilitlendi. Lütfen bekleyin.",
   downloadPDF:"PDF İndir",sharePDF:"Paylaş",quote:"Teklif",quotePDF:"📄 Teklif PDF",
   patientsByStatus:"Durum Dağılımı",patientsByCountry:"Ülkeye Göre",revenueByCategory:"Kategoriye Göre Gelir",summaryStats:"Özet İstatistikler",
@@ -548,6 +552,7 @@ en:{
   noUsers:"No users found",userAdded:"User added",userUpdated:"User updated",userDeleted:"User deleted",
   cantDeleteSelf:"Cannot delete your own account",usernameExists:"Username already taken",passRequired:"Password required",usernameRequired:"Username required",
   cancel:"Cancel",save:"Save",saved:"Saved",deleted:"Deleted",added:"Added",updated:"Updated",
+  navTrash:"Recycle Bin",navSnapshots:"Backups",trashEmpty:"Recycle bin is empty",noSnapshots:"No backups yet",restore:"Restore",permanent:"Delete Permanently",confirmPermanentDelete:"This will be permanently deleted and cannot be recovered. Are you sure?",confirmRestoreSnapshot:"Are you sure you want to restore this backup? Current data will be replaced.",snapshotRestored:"Backup restored",deletePatientBtn:"Delete",confirmDeletePatient:"Move this patient to the recycle bin?",patientDeleted:"Patient moved to recycle bin",
   loginSub:"Dental Tourism Management System",loginUser:"Username",loginPass:"Password",loginBtn:"Login",loginErr:"Invalid username or password",loginLoading:"Logging in...",loginAttemptsLeft:"Wrong password. {n} attempts remaining.",loginLocked:"Account locked for {m} minutes. Please wait.",
   downloadPDF:"Download PDF",sharePDF:"Share",quote:"Quote",quotePDF:"📄 Quote PDF",
   patientsByStatus:"By Status",patientsByCountry:"By Country",revenueByCategory:"Revenue by Category",summaryStats:"Summary",
@@ -641,7 +646,7 @@ function getEffectivePrice(item){
 let paintBrush=null;
 let activeTxBrush=null;
 let catalogTab="treatment";
-let state={patients:[],events:[],appointments:[],treatments:[],users:[],logs:[],companies:[]};
+let state={patients:[],events:[],appointments:[],treatments:[],users:[],logs:[],companies:[],snapshots:[]};
 // ==SEED==
 const SEED_PATIENTS=[
   {id:1,name:"Sarah Johnson",email:"sarah.j@gmail.com",phone:"+44 7911 123456",dob:"1985-03-15",country:"United Kingdom",nationality:"British",status:"booked",eventId:1,assignee:"admin",createdAt:"2026-05-20",
@@ -857,6 +862,21 @@ async function loadLogs(){
     if(r.ok)state.logs=await r.json();
   }catch{state.logs=[];}
 }
+async function takeSnapshot(tableName,data){
+  if(!activeCompanyId||!currentUser)return;
+  try{
+    await fetch(`${SUPA_URL}/rest/v1/crm_snapshots`,{method:'POST',headers:{...H,'Prefer':'return=minimal'},body:JSON.stringify({company_id:activeCompanyId,company_name:currentUser.company_name||'',table_name:tableName,data,created_by:currentUser.username||''})});
+    const r2=await fetch(`${SUPA_URL}/rest/v1/crm_snapshots?company_id=eq.${activeCompanyId}&table_name=eq.${tableName}&select=id&order=created_at.desc`,{headers:H});
+    if(r2.ok){const rows=await r2.json();if(rows.length>10){const ids=rows.slice(10).map(r=>r.id);await fetch(`${SUPA_URL}/rest/v1/crm_snapshots?id=in.(${ids.join(',')})`,{method:'DELETE',headers:H});}}
+  }catch{}
+}
+async function loadSnapshots(){
+  if(!activeCompanyId)return;
+  try{
+    const r=await fetch(`${SUPA_URL}/rest/v1/crm_snapshots?company_id=eq.${activeCompanyId}&select=*&order=created_at.desc&limit=50`,{headers:H});
+    if(r.ok)state.snapshots=await r.json();
+  }catch{state.snapshots=[];}
+}
 async function loadCompanies(){
   try{
     const r=await fetch(`${SUPA_URL}/rest/v1/crm_companies?select=*&order=id`,{headers:H});
@@ -938,6 +958,8 @@ async function showApp(){
   document.getElementById("nav-reports").style.display=canSeeReports()?"":"none";
   document.getElementById("nav-logs").style.display=canSeeLogs()?"":"none";
   document.getElementById("nav-companies").style.display=canSeeLogs()?"":"none";
+  document.getElementById("nav-trash").style.display=canManageUsers()?"":"none";
+  document.getElementById("nav-snapshots").style.display=isSuperAdmin()?"":"none";
   if(canManageUsers()){document.getElementById("nav-users").style.display="";await loadUsers();}
   if(isSuperAdmin()){await loadCompanies();document.getElementById("company-selector").style.display="";populateCompanySelector();}
   render();
@@ -1011,6 +1033,8 @@ function render(){
   else if(currentTab==="users")c.innerHTML=renderUsers();
   else if(currentTab==="companies")c.innerHTML=renderCompanies();
   else if(currentTab==="logs"){c.innerHTML=renderLogs();loadLogs().then(()=>{if(currentTab==="logs")c.innerHTML=renderLogs();});}
+  else if(currentTab==="trash")c.innerHTML=renderTrash();
+  else if(currentTab==="snapshots"){c.innerHTML=renderSnapshots();loadSnapshots().then(()=>{if(currentTab==="snapshots")c.innerHTML=renderSnapshots();});}
   if(currentTab==="appointments")setupAptEventSelector();
 }
 function renderTopbarActions(){
@@ -1034,7 +1058,7 @@ function renderDashboard(){
   const booked=state.patients.filter(p=>p.status==="booked").length;
   const conv=total?Math.round(booked/total*100):0;
   const today=new Date().toISOString().slice(0,10);
-  const upcomingEvts=state.events.filter(e=>e.active&&(e.dateEnd||e.dateStart||e.date||"")>=today).length;
+  const upcomingEvts=state.events.filter(e=>!e.deleted&&e.active&&(e.dateEnd||e.dateStart||e.date||"")>=today).length;
   const totalRev=state.patients.filter(p=>p.status==="booked").reduce((s,p)=>s+patientActivePlanTotal(p),0);
 
   // find next upcoming event for live stats
@@ -1090,6 +1114,7 @@ let patientSortDir=1;
 function renderPatients(){
   const statuses=["all","walkin","consultation","assessed","pricing","booked","cancelled"];
   const filtered=[...state.patients].reverse().filter(p=>{
+    if(p.deleted)return false;
     const matchStatus=filterStatus==="all"||p.status===filterStatus;
     const matchSearch=matches([p.name,p.email,p.phone,p.country,p.nationality]);
     return matchStatus&&matchSearch;
@@ -1167,6 +1192,7 @@ function openPatient(id){
   const _op=getPatient(id);activePlan=_op?.assessment?.activePlan||'treatmentPlan';
   const overlay=document.getElementById("patient-overlay");
   overlay.style.display="flex";
+  const _db=document.getElementById("btn-delete-patient");if(_db)_db.style.display=canEdit()?"":"none";
   renderPatientOverlay();
 }
 function closePatient(){
@@ -2192,7 +2218,7 @@ function renderEvents(){
   if(currentEventDetailId){
     const e=state.events.find(ev=>ev.id===currentEventDetailId);
     if(!e){currentEventDetailId=null;return renderEvents();}
-    const pats=[...state.patients].reverse().filter(p=>p.eventId==e.id);
+    const pats=[...state.patients].reverse().filter(p=>p.eventId==e.id&&!p.deleted);
     const booked=pats.filter(p=>p.status==="booked").length;
     return`<div>
       <div style="display:flex;align-items:center;gap:12px;margin-bottom:18px;flex-wrap:wrap">
@@ -2239,7 +2265,7 @@ function renderEvents(){
         }).join("")}</div>`}
     </div>`;
   }
-  const filtered=state.events.filter(e=>matches([e.name,e.city,e.venue]));
+  const filtered=state.events.filter(e=>!e.deleted&&matches([e.name,e.city,e.venue]));
   if(!filtered.length)return`<div class="empty">${t.noEventsFound}</div>`;
   return`<div class="grid3">${filtered.map(e=>{
     const pats=state.patients.filter(p=>p.eventId==e.id);
@@ -2273,7 +2299,7 @@ function renderEvents(){
 
 function renderAppointments(){
   const evtOpts=state.events.map(e=>`<option value="${e.id}"${selectedEventId==e.id?" selected":""}>${e.name}</option>`).join("");
-  const apts=selectedEventId?state.appointments.filter(a=>a.eventId==selectedEventId):state.appointments;
+  const apts=(selectedEventId?state.appointments.filter(a=>a.eventId==selectedEventId):state.appointments).filter(a=>!a.deleted);
   const sorted=[...apts].sort((a,b)=>(a.time||"").localeCompare(b.time||""));
   const statusInfo={scheduled:{label:t.statusScheduled,color:"#4a607d"},turned_up:{label:t.statusTurnedUp,color:"#34d399"},did_not_turn_up:{label:t.statusDidNotCome,color:"#f87171"},cancelled:{label:t.statusCancelled,color:"#94a3b8"},no_answer:{label:t.statusNoAnswer,color:"#fbbf24"}};
   return`<div>
@@ -2309,7 +2335,7 @@ function setupAptEventSelector(){const el=document.getElementById("apt-event-sel
 
 function renderTreatments(){
   const tabs=[["treatment",t.catTreatment,"🦷"],["accommodation",t.catAccommodation,"🏨"],["travel",t.catTravel,"🚐"]];
-  const filtered=state.treatments.filter(tr=>(tr.type||"treatment")===catalogTab&&matches([tr.name,tr.description,tr.category]));
+  const filtered=state.treatments.filter(tr=>!tr.deleted&&(tr.type||"treatment")===catalogTab&&matches([tr.name,tr.description,tr.category]));
   let tableHTML="";
   if(catalogTab==="treatment"){
     tableHTML=`<table class="data-table" style="min-width:720px">
@@ -2502,6 +2528,40 @@ function renderLogs(){
     </div>
   </div>`;
 }
+function renderTrash(){
+  if(!canManageUsers())return`<div class="empty">${t.accessDenied}</div>`;
+  const delPats=state.patients.filter(p=>p.deleted);
+  const delEvts=state.events.filter(e=>e.deleted);
+  const delApts=state.appointments.filter(a=>a.deleted);
+  if(!delPats.length&&!delEvts.length&&!delApts.length)return`<div class="empty" style="padding:40px 0"><div style="font-size:32px;margin-bottom:12px">🗑️</div><div style="font-size:14px;color:#3d5270">${t.trashEmpty||"Çöp kutusu boş"}</div></div>`;
+  const row=(type,id,title,sub)=>`<div class="card" style="display:flex;justify-content:space-between;align-items:center;padding:10px 14px;gap:10px">
+    <div style="min-width:0"><div style="font-weight:700;font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${title}</div><div style="font-size:11px;color:#4a607d">${sub||""}</div></div>
+    <div style="display:flex;gap:6px;flex-shrink:0">
+      <button class="sm-btn" onclick="restoreFromTrash('${type}',${id})">${t.restore||"Geri Yükle"}</button>
+      <button class="sm-btn danger" onclick="permanentDelete('${type}',${id})">✕ ${t.permanent||"Kalıcı Sil"}</button>
+    </div></div>`;
+  let html=`<div style="max-width:780px;display:flex;flex-direction:column;gap:18px">`;
+  if(delPats.length)html+=`<div><div style="font-weight:700;font-size:13px;color:#f97316;margin-bottom:8px">👥 ${t.navPatients||"Hastalar"} (${delPats.length})</div><div style="display:flex;flex-direction:column;gap:6px">${delPats.map(p=>row('patient',p.id,p.name,(p.country||"")+(p.phone?" · "+p.phone:""))).join("")}</div></div>`;
+  if(delEvts.length)html+=`<div><div style="font-weight:700;font-size:13px;color:#60a5fa;margin-bottom:8px">📅 ${t.navEvents||"Etkinlikler"} (${delEvts.length})</div><div style="display:flex;flex-direction:column;gap:6px">${delEvts.map(e=>row('event',e.id,e.name,(e.city||"")+(e.dateStart?" · "+e.dateStart:""))).join("")}</div></div>`;
+  if(delApts.length)html+=`<div><div style="font-weight:700;font-size:13px;color:#a78bfa;margin-bottom:8px">🕐 ${t.navAppointments||"Randevular"} (${delApts.length})</div><div style="display:flex;flex-direction:column;gap:6px">${delApts.map(a=>row('appointment',a.id,a.patientName||String(a.id),a.time||"")).join("")}</div></div>`;
+  return html+`</div>`;
+}
+function renderSnapshots(){
+  if(!isSuperAdmin())return`<div class="empty">${t.accessDenied}</div>`;
+  const snaps=state.snapshots||[];
+  if(!snaps.length)return`<div class="empty" style="padding:40px 0"><div style="font-size:32px;margin-bottom:12px">💾</div><div style="font-size:14px;color:#3d5270">${t.noSnapshots||"Henüz yedek yok"}</div></div>`;
+  const tbl={customers:t.navPatients||"Hastalar",deals:t.navEvents||"Etkinlikler",tasks:t.navAppointments||"Randevular",history:t.navTreatments||"Tedaviler"};
+  return`<div style="max-width:780px;display:flex;flex-direction:column;gap:8px">${snaps.map(s=>{
+    const d=new Date(s.created_at);
+    const ds=d.toLocaleDateString('tr-TR')+' '+d.toLocaleTimeString('tr-TR',{hour:'2-digit',minute:'2-digit'});
+    const cnt=Array.isArray(s.data)?s.data.filter(x=>!x.deleted).length:'?';
+    return`<div class="card" style="display:flex;justify-content:space-between;align-items:center;padding:10px 14px;gap:10px">
+      <div><div style="font-weight:700;font-size:13px">${tbl[s.table_name]||s.table_name} — ${cnt} kayıt</div>
+      <div style="font-size:11px;color:#4a607d">${ds} · ${s.created_by||"—"} · ${s.company_name||"—"}</div></div>
+      <button class="sm-btn" onclick="restoreSnapshot(${s.id})">${t.restore||"Geri Yükle"}</button>
+    </div>`;
+  }).join("")}</div>`;
+}
 // ==ACTIONS==
 // ── MODAL HELPERS
 function closeModal(){const m=document.getElementById("modal-overlay");if(m)m.remove();}
@@ -2538,6 +2598,7 @@ async function savePatientModal(editId){
 async function saveCurrentPatient(){
   const p=getPatient(currentPatientId);if(!p)return;
   if(!await confirmDialog(t.confirmSavePatient))return;
+  await takeSnapshot('customers',state.patients);
   if(currentPtTab==="consultation"){
     p.name=document.getElementById("pc-name")?.value||p.name;
     p.email=document.getElementById("pc-email")?.value||"";
@@ -2669,7 +2730,7 @@ async function saveEvent(editId){
   else{state.events.push({...item,id:Date.now()});}
   await persist("deals");toast("✅ "+t.saved);closeModal();render();
 }
-async function deleteEvent(id){if(!canEdit())return;if(!await confirmDialog(t.confirmDeleteEvent,true))return;state.events=state.events.filter(e=>e.id!==id);await persist("deals");toast(t.eventDeleted,"warn");render();}
+async function deleteEvent(id){if(!canEdit())return;if(!await confirmDialog(t.confirmDeleteEvent,true))return;await takeSnapshot('deals',state.events);state.events=state.events.map(e=>e.id===id?{...e,deleted:true}:e);await persist("deals");toast(t.eventDeleted,"warn");render();}
 
 // ── APPOINTMENTS
 function openAppointmentModal(){
@@ -2692,7 +2753,7 @@ async function setAptStatus(id,status){
   state.appointments=state.appointments.map(a=>a.id==id?{...a,status}:a);
   await persist("tasks");toast("✅ "+t.saved);render();
 }
-async function deleteAppointment(id){if(!await confirmDialog(t.confirmDeleteApt,true))return;state.appointments=state.appointments.filter(a=>a.id!==id);await persist("tasks");toast(t.aptDeleted,"warn");render();}
+async function deleteAppointment(id){if(!await confirmDialog(t.confirmDeleteApt,true))return;await takeSnapshot('tasks',state.appointments);state.appointments=state.appointments.map(a=>a.id===id?{...a,deleted:true}:a);await persist("tasks");toast(t.aptDeleted,"warn");render();}
 
 // ── TREATMENTS
 function openTreatmentModal(editId,forcedType){
@@ -2739,7 +2800,29 @@ async function saveTreatment(editId,type){
   else{state.treatments.push({...item,id:Date.now()});}
   await persist("history");toast("✅ "+t.saved);closeModal();render();
 }
-async function deleteTreatment(id){if(!canEdit())return;if(!await confirmDialog(t.confirmDeleteTx,true))return;state.treatments=state.treatments.filter(tr=>tr.id!==id);await persist("history");toast(t.recordDeleted,"warn");render();}
+async function deleteTreatment(id){if(!canEdit())return;if(!await confirmDialog(t.confirmDeleteTx,true))return;await takeSnapshot('history',state.treatments);state.treatments=state.treatments.map(tr=>tr.id===id?{...tr,deleted:true}:tr);await persist("history");toast(t.recordDeleted,"warn");render();}
+async function deletePatient(id){if(!canEdit())return;if(!await confirmDialog(t.confirmDeletePatient||'Bu hastayı silmek istediğinizden emin misiniz?',true))return;await takeSnapshot('customers',state.patients);state.patients=state.patients.map(p=>p.id===id?{...p,deleted:true}:p);await persist("customers");toast(t.patientDeleted||'Hasta silindi',"warn");closePatient();render();}
+async function restoreFromTrash(type,id){
+  if(type==='patient'){state.patients=state.patients.map(p=>p.id==id?{...p,deleted:false}:p);await persist('customers');}
+  else if(type==='event'){state.events=state.events.map(e=>e.id==id?{...e,deleted:false}:e);await persist('deals');}
+  else if(type==='appointment'){state.appointments=state.appointments.map(a=>a.id==id?{...a,deleted:false}:a);await persist('tasks');}
+  toast(t.restored||'Geri yüklendi');render();
+}
+async function permanentDelete(type,id){
+  if(!await confirmDialog(t.confirmPermanentDelete||'Kalıcı olarak silinecek, geri alınamaz. Emin misiniz?',true))return;
+  if(type==='patient'){state.patients=state.patients.filter(p=>p.id!=id);await persist('customers');}
+  else if(type==='event'){state.events=state.events.filter(e=>e.id!=id);await persist('deals');}
+  else if(type==='appointment'){state.appointments=state.appointments.filter(a=>a.id!=id);await persist('tasks');}
+  toast(t.deleted||'Silindi','warn');render();
+}
+async function restoreSnapshot(id){
+  const snap=(state.snapshots||[]).find(s=>s.id==id);if(!snap)return;
+  if(!await confirmDialog(t.confirmRestoreSnapshot||'Bu yedeğe dönmek istediğinize emin misiniz? Mevcut veriler değişecek.',true))return;
+  const stateKey={customers:'patients',deals:'events',tasks:'appointments',history:'treatments'}[snap.table_name]||snap.table_name;
+  state[stateKey]=snap.data;
+  await dbSet(snap.table_name,snap.data);
+  toast(t.snapshotRestored||'Yedek geri yüklendi');render();
+}
 
 // ── USERS
 function openUserModal(editId){
