@@ -438,7 +438,7 @@ tr:{
   noUsers:"Kullanıcı bulunamadı",userAdded:"Kullanıcı eklendi",userUpdated:"Kullanıcı güncellendi",userDeleted:"Kullanıcı silindi",
   cantDeleteSelf:"Kendi hesabınızı silemezsiniz",usernameExists:"Bu kullanıcı adı kullanımda",passRequired:"Şifre zorunludur",usernameRequired:"Kullanıcı adı zorunludur",
   cancel:"İptal",save:"Kaydet",saved:"Kaydedildi",deleted:"Silindi",added:"Eklendi",updated:"Güncellendi",
-  loginSub:"Diş Turizmi Yönetim Sistemi",loginUser:"Kullanıcı Adı",loginPass:"Şifre",loginBtn:"Giriş Yap",loginErr:"Hatalı kullanıcı adı veya şifre",loginLoading:"Giriş yapılıyor...",
+  loginSub:"Diş Turizmi Yönetim Sistemi",loginUser:"Kullanıcı Adı",loginPass:"Şifre",loginBtn:"Giriş Yap",loginErr:"Hatalı kullanıcı adı veya şifre",loginLoading:"Giriş yapılıyor...",loginAttemptsLeft:"Yanlış şifre. {n} deneme hakkınız kaldı.",loginLocked:"Hesap {m} dakika kilitlendi. Lütfen bekleyin.",
   downloadPDF:"PDF İndir",sharePDF:"Paylaş",quote:"Teklif",quotePDF:"📄 Teklif PDF",
   patientsByStatus:"Durum Dağılımı",patientsByCountry:"Ülkeye Göre",revenueByCategory:"Kategoriye Göre Gelir",summaryStats:"Özet İstatistikler",
   totalBooked:"Toplam Rezerve",avgBooking:"Ortalama Rezervasyon",
@@ -548,7 +548,7 @@ en:{
   noUsers:"No users found",userAdded:"User added",userUpdated:"User updated",userDeleted:"User deleted",
   cantDeleteSelf:"Cannot delete your own account",usernameExists:"Username already taken",passRequired:"Password required",usernameRequired:"Username required",
   cancel:"Cancel",save:"Save",saved:"Saved",deleted:"Deleted",added:"Added",updated:"Updated",
-  loginSub:"Dental Tourism Management System",loginUser:"Username",loginPass:"Password",loginBtn:"Login",loginErr:"Invalid username or password",loginLoading:"Logging in...",
+  loginSub:"Dental Tourism Management System",loginUser:"Username",loginPass:"Password",loginBtn:"Login",loginErr:"Invalid username or password",loginLoading:"Logging in...",loginAttemptsLeft:"Wrong password. {n} attempts remaining.",loginLocked:"Account locked for {m} minutes. Please wait.",
   downloadPDF:"Download PDF",sharePDF:"Share",quote:"Quote",quotePDF:"📄 Quote PDF",
   patientsByStatus:"By Status",patientsByCountry:"By Country",revenueByCategory:"Revenue by Category",summaryStats:"Summary",
   totalBooked:"Total Booked",avgBooking:"Avg Booking Value",
@@ -871,11 +871,22 @@ const FALLBACK_USERS=[
   {id:2,username:"satis",password:"satis123",role:"satis",display_name:"Satış",company_id:1,company_name:"Turuncu Dental"},
 ];
 function shake(){const b=document.querySelector(".login-box");b.classList.remove("shake");setTimeout(()=>b.classList.add("shake"),10);}
+const LOGIN_MAX=5,LOGIN_LOCK_MS=15*60*1000;
+function getAttempts(u){try{return JSON.parse(localStorage.getItem("crm_att_"+u))||{count:0,until:0};}catch{return{count:0,until:0};}}
+function setAttempts(u,d){localStorage.setItem("crm_att_"+u,JSON.stringify(d));}
+function clearAttempts(u){localStorage.removeItem("crm_att_"+u);}
 async function doLogin(){
   const username=document.getElementById("login-username").value.trim();
   const password=document.getElementById("login-password").value;
   if(!username||!password){document.getElementById("login-err").textContent=t.loginErr;shake();return;}
+  const att=getAttempts(username);
+  if(att.until>Date.now()){
+    const mins=Math.ceil((att.until-Date.now())/60000);
+    document.getElementById("login-err").textContent=(t.loginLocked||`Hesap kilitli. ${mins} dakika sonra tekrar deneyin.`).replace("{m}",mins);
+    shake();return;
+  }
   const btn=document.getElementById("login-btn");btn.textContent=t.loginLoading;btn.disabled=true;
+  let loginOk=false;
   try{
     const r=await fetch(`${SUPA_URL}/rest/v1/crm_users?username=eq.${encodeURIComponent(username)}&select=*`,{headers:H});
     if(r.ok){
@@ -884,20 +895,27 @@ async function doLogin(){
         const usr=data[0];let ok=false;
         if(usr.password&&usr.password.startsWith('$2b$')){ok=await bcrypt.compare(password,usr.password);}
         else{ok=(usr.password===password);if(ok){const h=await bcrypt.hash(password,10);fetch(`${SUPA_URL}/rest/v1/crm_users?id=eq.${usr.id}`,{method:'PATCH',headers:{...H,'Prefer':'return=minimal'},body:JSON.stringify({password:h})}).catch(()=>{});}}
-        if(ok){currentUser=usr;activeCompanyId=currentUser.role==='superadmin'?null:(currentUser.company_id||1);sessionStorage.setItem("crm_user",JSON.stringify(currentUser));await showApp();logAction('login','');btn.textContent=t.loginBtn;btn.disabled=false;return;}
+        if(ok){loginOk=true;clearAttempts(username);currentUser=usr;activeCompanyId=currentUser.role==='superadmin'?null:(currentUser.company_id||1);sessionStorage.setItem("crm_user",JSON.stringify(currentUser));await showApp();logAction('login','');btn.textContent=t.loginBtn;btn.disabled=false;return;}
       }
     }
   }catch{}
   // Supabase'e ulaşılamazsa yedek kullanıcılar
   const fallback=FALLBACK_USERS.find(u=>u.username===username&&u.password===password);
   if(fallback){
+    loginOk=true;clearAttempts(username);
     currentUser={id:fallback.id,username:fallback.username,role:fallback.role,display_name:fallback.display_name,company_id:fallback.company_id||1,company_name:fallback.company_name||'Turuncu Dental'};
     activeCompanyId=currentUser.role==='superadmin'?null:(currentUser.company_id||1);
     sessionStorage.setItem("crm_user",JSON.stringify(currentUser));
     await showApp();
     logAction('login','');
-  } else {
-    document.getElementById("login-err").textContent=t.loginErr;shake();
+  }
+  if(!loginOk){
+    const newCount=att.count+1;
+    const locked=newCount>=LOGIN_MAX;
+    setAttempts(username,{count:newCount,until:locked?Date.now()+LOGIN_LOCK_MS:0});
+    const remaining=LOGIN_MAX-newCount;
+    const msg=locked?(t.loginLocked||"Hesap 15 dakika kilitlendi.").replace("{m}","15"):remaining>0?(t.loginAttemptsLeft||`Yanlış şifre. ${remaining} deneme hakkınız kaldı.`).replace("{n}",remaining):t.loginErr;
+    document.getElementById("login-err").textContent=msg;shake();
   }
   btn.textContent=t.loginBtn;btn.disabled=false;
 }
