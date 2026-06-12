@@ -210,8 +210,8 @@ nav button:hover:not(.active){color:#94a3b8}
       <button data-tab="patients" onclick="setTab('patients')">👥 &nbsp;<span class="nav-lbl" data-key="navPatients">Hastalar</span></button>
       <button data-tab="events" onclick="setTab('events')">📅 &nbsp;<span class="nav-lbl" data-key="navEvents">Etkinlikler</span></button>
       <button data-tab="appointments" onclick="setTab('appointments')">🕐 &nbsp;<span class="nav-lbl" data-key="navAppointments">Randevular</span></button>
-      <button data-tab="treatments" onclick="setTab('treatments')">🦷 &nbsp;<span class="nav-lbl" data-key="navTreatments">Tedaviler</span></button>
-      <button data-tab="reports" onclick="setTab('reports')">↗ &nbsp;<span class="nav-lbl" data-key="navReports">Raporlar</span></button>
+      <button data-tab="treatments" id="nav-treatments" style="display:none" onclick="setTab('treatments')">🦷 &nbsp;<span class="nav-lbl" data-key="navTreatments">Tedaviler</span></button>
+      <button data-tab="reports" id="nav-reports" style="display:none" onclick="setTab('reports')">↗ &nbsp;<span class="nav-lbl" data-key="navReports">Raporlar</span></button>
       <button data-tab="users" id="nav-users" style="display:none" onclick="setTab('users')">👤 &nbsp;<span class="nav-lbl" data-key="navUsers">Kullanıcılar</span></button>
     </nav>
     <div class="sidebar-footer" id="sidebar-footer">...</div>
@@ -627,6 +627,10 @@ function getEvent(id){return state.events.find(e=>e.id==id);}
 function getTreatment(id){return state.treatments.find(tr=>tr.id==id);}
 function canEdit(){return currentUser&&currentUser.role!=="okuyucu";}
 function canManageUsers(){return currentUser&&currentUser.role==="admin";}
+function canSeeCatalog(){return currentUser&&currentUser.role==="admin";}
+function canSeeReports(){return currentUser&&currentUser.role==="admin";}
+function canSeeFinancials(){return currentUser&&currentUser.role!=="okuyucu";}
+function canEditCatalog(){return currentUser&&currentUser.role==="admin";}
 function bookingTotal(p){
   const txSub=(p.booking?.treatments||[]).reduce((s,tr)=>s+(tr.qty||1)*(tr.price||0),0);
   const acSub=(p.booking?.accommodations||[]).reduce((s,a)=>s+(a.nights||1)*(a.pricePerNight||0),0);
@@ -735,6 +739,8 @@ async function showApp(){
   document.getElementById("user-role").textContent=currentUser.role;
   document.getElementById("user-role").style.color=color;
   await loadAll();
+  document.getElementById("nav-treatments").style.display=canSeeCatalog()?"":"none";
+  document.getElementById("nav-reports").style.display=canSeeReports()?"":"none";
   if(canManageUsers()){document.getElementById("nav-users").style.display="";await loadUsers();}
   render();
   // Arka planda her 90 saniyede veriyi Supabase'den yenile
@@ -1369,7 +1375,7 @@ function renderPtAssessment(p){
         </tr>`).join("")}</tbody>
       </table>`:""}
     </div>
-    <div class="card">
+    ${canSeeFinancials()?`<div class="card">
       <div class="section-title">Finansal Özet</div>
       <div style="max-width:400px">
         ${txSub?`<div class="stat-row"><span>🦷 Tedaviler</span><span>${currSym()}${txSub.toLocaleString()}</span></div>`:""}
@@ -1405,7 +1411,8 @@ function renderPtAssessment(p){
         :`<button onclick="setPatientActivePlan('${activePlan}')" style="padding:6px 18px;border-radius:20px;border:1px solid #22c55e;background:#0a2a1a;color:#22c55e;font-size:12px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif">✓ Bu Planı Aktif Yap</button>`
       }
       <button class="btn sec" onclick="downloadQuotePDF(${p.id})">📄 ${t.downloadPDF}</button>
-    </div>
+    </div>`:''}
+    ${!canSeeFinancials()?`<div style="padding:12px;background:#0d1320;border:1px solid #1a2236;border-radius:10px;color:#3d5270;font-size:12px;text-align:center">🔒 Finansal bilgiler bu hesap için gizlenmiştir.</div>`:''}
     <div class="card">
       <div class="section-title">${t.dentistNotes}</div>
       <div class="field"><textarea id="pa-dentistNotes" rows="4">${a.dentistNotes||""}</textarea></div>
@@ -2432,11 +2439,18 @@ async function deleteTreatment(id){if(!canEdit())return;if(!await confirmDialog(
 function openUserModal(editId){
   const u=editId?state.users.find(u=>u.id===editId):null;
   const roleOpts=[["admin",t.roleAdmin],["satis",t.roleSales],["okuyucu",t.roleReader]].map(([v,l])=>`<option value="${v}"${u?.role===v?" selected":""}>${l}</option>`).join("");
+  const roleDesc={
+    admin:"Tüm ekranlar, tüm işlemler, kullanıcı yönetimi, raporlar, katalog düzenleme.",
+    satis:"Hasta ekleme/düzenleme, tedavi planı, konaklama, transfer, teklif PDF. Raporlar ve katalog erişimi yok.",
+    okuyucu:"Sadece görüntüleme. Finansal bilgiler, raporlar ve düzenleme butonları gizlenir."
+  };
   const body=`
     <div class="field"><label>${t.fdisplayName}</label><input id="u-displayName" value="${u?.display_name||""}"/></div>
     <div class="field"><label>${t.loginUser}</label><input id="u-username" value="${u?.username||""}" ${editId?"readonly style='opacity:.5;cursor:not-allowed'":""}/></div>
     <div class="field"><label>${editId?t.fnewPass:t.fpassword}</label><input id="u-password" type="password" placeholder="${editId?t.fnewPassHint:"••••••••"}"/>${editId?`<div style="font-size:10px;color:#3d5270;margin-top:3px">${t.fnewPassHint}</div>`:""}</div>
-    <div class="field"><label>${t.fRole}</label><select id="u-role">${roleOpts}</select></div>`;
+    <div class="field"><label>${t.fRole}</label><select id="u-role" onchange="document.getElementById('role-desc').textContent=({admin:'${roleDesc.admin}',satis:'${roleDesc.satis}',okuyucu:'${roleDesc.okuyucu}'})[this.value]||''">${roleOpts}</select>
+      <div id="role-desc" style="margin-top:6px;font-size:11px;color:#4a607d;line-height:1.5">${roleDesc[u?.role||'satis']||''}</div>
+    </div>`;
   makeModal(editId?t.editUser:t.newUser,body,`saveUser(${editId||0})`);
 }
 async function saveUser(editId){
