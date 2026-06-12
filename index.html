@@ -238,7 +238,6 @@ nav button:hover:not(.active){color:#94a3b8}
       <div id="pt-name" style="font-size:15px;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis"></div>
       <div id="pt-meta" style="font-size:11px;color:#4a607d;margin-top:1px"></div>
     </div>
-    <div id="pt-status-badge"></div>
     <button id="btn-save-patient" class="btn" style="font-size:12px" onclick="saveCurrentPatient()">💾 Kaydet</button>
   </div>
   <div class="pt-tabs" id="pt-tabs"></div>
@@ -1960,7 +1959,7 @@ function renderPtNotes(p){
     <div class="card" style="margin-bottom:14px">
       <div style="display:flex;gap:9px">
         <input id="new-note-text" placeholder="${t.addNote}..." style="flex:1;background:#131b2a;border:1px solid #1a2236;border-radius:8px;padding:8px 11px;color:#dde4ef;font-size:13px;outline:none"/>
-        <button class="btn" onclick="addPatientNote()">+ ${t.note}</button>
+        <button class="btn" onclick="addPatientNote()">+ ${t.addBtn}</button>
       </div>
     </div>
     ${notes.length===0?`<div class="empty">${t.noNotes}</div>`:notes.map(n=>`
