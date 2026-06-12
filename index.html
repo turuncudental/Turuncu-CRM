@@ -1011,7 +1011,7 @@ function renderDashboard(){
   const conv=total?Math.round(booked/total*100):0;
   const today=new Date().toISOString().slice(0,10);
   const upcomingEvts=state.events.filter(e=>e.active&&(e.dateEnd||e.dateStart||e.date||"")>=today).length;
-  const totalRev=state.patients.filter(p=>p.status==="booked").reduce((s,p)=>s+bookingTotal(p),0);
+  const totalRev=state.patients.filter(p=>p.status==="booked").reduce((s,p)=>s+patientActivePlanTotal(p),0);
 
   // find next upcoming event for live stats
   const nextEvt=state.events.filter(e=>e.active&&(e.dateEnd||e.dateStart||e.date||"")>=today).sort((a,b)=>(a.dateStart||a.date||"").localeCompare(b.dateStart||b.date||""))[0]||state.events[0];
@@ -1023,7 +1023,7 @@ function renderDashboard(){
     {label:t.waitingDentist,val:evtPats.filter(p=>p.status==="assessed").length,color:"#a78bfa"},
     {label:t.pricingPending,val:evtPats.filter(p=>p.status==="pricing").length,color:"#f59e0b"},
     {label:t.bookedToday,val:evtPats.filter(p=>p.status==="booked").length,color:"#34d399"},
-    {label:t.revenueToday,val:`${currSym()}${evtPats.filter(p=>p.status==="booked").reduce((s,p)=>s+bookingTotal(p),0).toLocaleString()}`,color:"#f97316"}
+    {label:t.revenueToday,val:`${currSym()}${evtPats.filter(p=>p.status==="booked").reduce((s,p)=>s+patientActivePlanTotal(p),0).toLocaleString()}`,color:"#f97316"}
   ]:[];
 
   const recent=[...state.patients].sort((a,b)=>(b.createdAt||"").localeCompare(a.createdAt||"")).slice(0,8);
@@ -1086,7 +1086,7 @@ function renderPatients(){
       else if(patientSortKey==='country'){av=a.country||"";bv=b.country||"";}
       else if(patientSortKey==='event'){av=getEvent(a.eventId)?.name||"";bv=getEvent(b.eventId)?.name||"";}
       else if(patientSortKey==='status'){av=a.status||"";bv=b.status||"";}
-      else if(patientSortKey==='quote'){av=bookingTotal(a);bv=bookingTotal(b);return(av-bv)*patientSortDir;}
+      else if(patientSortKey==='quote'){av=patientActivePlanTotal(a);bv=patientActivePlanTotal(b);return(av-bv)*patientSortDir;}
       return av.localeCompare(bv)*patientSortDir;
     });
     const thStyle="cursor:pointer;user-select:none;white-space:nowrap";
@@ -1098,7 +1098,7 @@ function renderPatients(){
         <thead><tr>${th('name',t.aptPatient)}${th('country',t.fcountry)}${th('event',t.eventSingle)}${th('status',t.fstatus)}${th('quote',t.quote)}<th></th></tr></thead>
         <tbody>${sortedList.map(p=>{
           const evt=getEvent(p.eventId);
-          const quote=bookingTotal(p);
+          const quote=patientActivePlanTotal(p);
           return`<tr style="cursor:pointer" onclick="openPatient(${p.id})">
             <td>
               <div style="font-weight:700;font-size:13px">${p.name}</div>
@@ -1119,7 +1119,7 @@ function renderPatients(){
     <div class="grid3">${filtered.map(p=>{
       const sc=STATUS_COLORS[p.status]||"#4a607d";
       const evt=getEvent(p.eventId);
-      const quote=bookingTotal(p);
+      const quote=patientActivePlanTotal(p);
       return`<div class="card" style="cursor:pointer;transition:border-color .15s;border-color:#1a2236" onclick="openPatient(${p.id})" onmouseover="this.style.borderColor='#f97316'" onmouseout="this.style.borderColor='#1a2236'">
         <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px">
           <div style="width:42px;height:42px;border-radius:50%;background:${sc}22;display:flex;align-items:center;justify-content:center;font-size:17px;font-weight:800;color:${sc};border:2px solid ${sc}44;flex-shrink:0">${p.name[0]}</div>
@@ -2223,6 +2223,7 @@ function renderEvents(){
     const totalQuote=pats.reduce((s,p)=>s+patientActivePlanTotal(p),0);
     const totalDeposit=pats.reduce((s,p)=>s+(p.booking?.deposit||0),0);
     const earned=pats.filter(p=>p.status==="booked").reduce((s,p)=>s+patientActivePlanTotal(p),0);
+
     return`<div class="card" style="cursor:pointer;transition:border-color .15s;border-color:#1a2236" onclick="currentEventDetailId=${e.id};render()" onmouseover="this.style.borderColor='#f97316'" onmouseout="this.style.borderColor='#1a2236'">
       <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px">
         <div>
@@ -2340,7 +2341,7 @@ function renderTreatments(){
 function renderReports(){
   const total=state.patients.length;
   const booked=state.patients.filter(p=>p.status==="booked").length;
-  const totalRev=state.patients.filter(p=>p.status==="booked").reduce((s,p)=>s+bookingTotal(p),0);
+  const totalRev=state.patients.filter(p=>p.status==="booked").reduce((s,p)=>s+patientActivePlanTotal(p),0);
   const avg=booked?Math.round(totalRev/booked):0;
   return`<div style="display:flex;flex-direction:column;gap:18px">
     <div class="grid2">
