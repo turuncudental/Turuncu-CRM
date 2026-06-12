@@ -1192,7 +1192,7 @@ function openPatient(id){
   const _op=getPatient(id);activePlan=_op?.assessment?.activePlan||'treatmentPlan';
   const overlay=document.getElementById("patient-overlay");
   overlay.style.display="flex";
-  const _db=document.getElementById("btn-delete-patient");if(_db)_db.style.display=canEdit()?"":"none";
+  const _db=document.getElementById("btn-delete-patient");if(_db)_db.style.display=isSuperAdmin()?"":"none";
   renderPatientOverlay();
 }
 function closePatient(){
@@ -2292,7 +2292,7 @@ function renderEvents(){
         <div style="display:flex;justify-content:space-between;font-size:11px"><span style="color:#4a607d">${t.receivedDeposit}</span><span style="color:#60a5fa;font-weight:700">${totalDeposit>0?currSym()+totalDeposit.toLocaleString():"—"}</span></div>
         <div style="display:flex;justify-content:space-between;font-size:11px"><span style="color:#4a607d">${t.earnedLabel}</span><span style="color:#34d399;font-weight:700">${earned>0?currSym()+earned.toLocaleString():"—"}</span></div>
       </div>
-      ${canEdit()?`<div style="display:flex;gap:6px;margin-top:9px" onclick="event.stopPropagation()"><button class="sm-btn" onclick="openEventModal(${e.id})">${t.editBtn}</button><button class="sm-btn danger" onclick="deleteEvent(${e.id})">✕</button></div>`:""}
+      ${canEdit()?`<div style="display:flex;gap:6px;margin-top:9px" onclick="event.stopPropagation()"><button class="sm-btn" onclick="openEventModal(${e.id})">${t.editBtn}</button>${isSuperAdmin()?`<button class="sm-btn danger" onclick="deleteEvent(${e.id})">✕</button>`:""}</div>`:""}
     </div>`;
   }).join("")}</div>`;
 }
@@ -2730,7 +2730,7 @@ async function saveEvent(editId){
   else{state.events.push({...item,id:Date.now()});}
   await persist("deals");toast("✅ "+t.saved);closeModal();render();
 }
-async function deleteEvent(id){if(!canEdit())return;if(!await confirmDialog(t.confirmDeleteEvent,true))return;await takeSnapshot('deals',state.events);state.events=state.events.map(e=>e.id===id?{...e,deleted:true}:e);await persist("deals");toast(t.eventDeleted,"warn");render();}
+async function deleteEvent(id){if(!isSuperAdmin())return;if(!await confirmDialog(t.confirmDeleteEvent,true))return;await takeSnapshot('deals',state.events);state.events=state.events.map(e=>e.id===id?{...e,deleted:true}:e);await persist("deals");toast(t.eventDeleted,"warn");render();}
 
 // ── APPOINTMENTS
 function openAppointmentModal(){
@@ -2801,7 +2801,7 @@ async function saveTreatment(editId,type){
   await persist("history");toast("✅ "+t.saved);closeModal();render();
 }
 async function deleteTreatment(id){if(!canEdit())return;if(!await confirmDialog(t.confirmDeleteTx,true))return;await takeSnapshot('history',state.treatments);state.treatments=state.treatments.map(tr=>tr.id===id?{...tr,deleted:true}:tr);await persist("history");toast(t.recordDeleted,"warn");render();}
-async function deletePatient(id){if(!canEdit())return;if(!await confirmDialog(t.confirmDeletePatient||'Bu hastayı silmek istediğinizden emin misiniz?',true))return;await takeSnapshot('customers',state.patients);state.patients=state.patients.map(p=>p.id===id?{...p,deleted:true}:p);await persist("customers");toast(t.patientDeleted||'Hasta silindi',"warn");closePatient();render();}
+async function deletePatient(id){if(!isSuperAdmin())return;if(!await confirmDialog(t.confirmDeletePatient||'Bu hastayı silmek istediğinizden emin misiniz?',true))return;await takeSnapshot('customers',state.patients);state.patients=state.patients.map(p=>p.id===id?{...p,deleted:true}:p);await persist("customers");toast(t.patientDeleted||'Hasta silindi',"warn");closePatient();render();}
 async function restoreFromTrash(type,id){
   if(type==='patient'){state.patients=state.patients.map(p=>p.id==id?{...p,deleted:false}:p);await persist('customers');}
   else if(type==='event'){state.events=state.events.map(e=>e.id==id?{...e,deleted:false}:e);await persist('deals');}
