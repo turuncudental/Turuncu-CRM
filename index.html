@@ -2518,13 +2518,13 @@ function renderLogs(){
   if(!canSeeLogs())return`<div class="empty">${t.accessDenied}</div>`;
   if(!state.logs.length)return`<div class="empty" style="padding:40px 0"><div style="font-size:32px;margin-bottom:12px">📋</div><div style="font-size:14px;color:#3d5270">${t.logNoLogs||"Henüz aktivite yok"}</div></div>`;
   const actionLabels={login:t.actLogin,logout:t.actLogout,patient_add:t.actPatientAdd,patient_edit:t.actPatientEdit,patient_save:t.actPatientSave,plan_save:t.actPlanSave,status_change:t.actStatusChange,note_add:t.actNoteAdd,note_delete:t.actNoteDelete,file_upload:t.actFileUpload,file_delete:t.actFileDelete,quote_download:t.actQuoteDownload,event_add:t.actEventAdd,event_edit:t.actEventEdit,event_delete:t.actEventDelete,apt_add:t.actAptAdd,apt_status:t.actAptStatus,apt_delete:t.actAptDelete,catalog_add:t.actCatalogAdd,catalog_edit:t.actCatalogEdit,catalog_delete:t.actCatalogDelete,user_add:t.actUserAdd,user_edit:t.actUserEdit,user_delete:t.actUserDelete,company_add:t.actCompanyAdd,company_edit:t.actCompanyEdit,company_delete:t.actCompanyDelete,patient_delete:t.actPatientDelete,discount_applied:t.actDiscountApplied};
-  const rows=state.logs.map(l=>{
+  const rows=state.logs.map((l,i)=>{
     const d=new Date(l.created_at);
     const dateStr=d.toLocaleDateString('tr-TR',{day:'2-digit',month:'2-digit',year:'numeric'})+' '+d.toLocaleTimeString('tr-TR',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
     const actionLabel=actionLabels[l.action]||l.action;
     const shortDetail=(l.detail||'').length>60?(l.detail||'').substring(0,57)+'…':(l.detail||'');
     const hasMore=(l.detail||'').length>60;
-    return`<tr style="cursor:${hasMore?'pointer':'default'}" ${hasMore?`onclick="showLogDetail(${JSON.stringify(JSON.stringify({time:dateStr,company:l.company_name,user:l.display_name||l.username,action:actionLabel,detail:l.detail}))})"`:''}>
+    return`<tr style="cursor:${hasMore?'pointer':'default'}" ${hasMore?`onclick="showLogDetail(${i})"`:''}>
       <td style="font-size:11px;color:#4a607d;white-space:nowrap">${dateStr}</td>
       <td><span style="background:#1a2236;padding:2px 8px;border-radius:12px;font-size:11px;color:#60a5fa">${l.company_name||'—'}</span></td>
       <td style="font-weight:600;font-size:12px">${l.display_name||l.username}</td>
@@ -2550,19 +2550,19 @@ function renderLogs(){
     </div>
   </div>`;
 }
-function showLogDetail(jsonStr){
-  try{
-    const l=JSON.parse(JSON.parse(jsonStr));
-    const body=`<div style="display:flex;flex-direction:column;gap:10px">
-      <div style="display:flex;gap:8px;flex-wrap:wrap">
-        <span style="background:#1a2236;padding:3px 10px;border-radius:12px;font-size:12px;color:#60a5fa">${l.company}</span>
-        <span style="background:#0d1320;padding:3px 10px;border-radius:12px;font-size:12px;color:#f97316;font-weight:700">${l.action}</span>
-        <span style="font-size:11px;color:#4a607d;padding-top:3px">${l.user} · ${l.time}</span>
-      </div>
-      <div style="background:#0d1320;border:1px solid #1a2236;border-radius:8px;padding:12px;font-size:13px;color:#dde4ef;line-height:1.6;word-break:break-word">${l.detail}</div>
-    </div>`;
-    makeModal('📋 İşlem Detayı',body,null,'Kapat');
-  }catch{}
+function showLogDetail(i){
+  const l=state.logs[i];if(!l)return;
+  const d=new Date(l.created_at);
+  const dateStr=d.toLocaleDateString('tr-TR',{day:'2-digit',month:'2-digit',year:'numeric'})+' '+d.toLocaleTimeString('tr-TR',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
+  const body=`<div style="display:flex;flex-direction:column;gap:10px">
+    <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+      <span style="background:#1a2236;padding:3px 10px;border-radius:12px;font-size:12px;color:#60a5fa">${l.company_name||'—'}</span>
+      <span style="background:#0d1320;padding:3px 10px;border-radius:12px;font-size:12px;color:#f97316;font-weight:700">${l.action}</span>
+      <span style="font-size:11px;color:#4a607d">${l.display_name||l.username} · ${dateStr}</span>
+    </div>
+    <div style="background:#0d1320;border:1px solid #1a2236;border-radius:8px;padding:14px;font-size:13px;color:#dde4ef;line-height:1.7;word-break:break-word">${l.detail||'—'}</div>
+  </div>`;
+  makeModal('📋 İşlem Detayı',body,null,null);
 }
 function renderTrash(){
   if(!canManageUsers())return`<div class="empty">${t.accessDenied}</div>`;
