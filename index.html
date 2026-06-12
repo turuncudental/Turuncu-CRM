@@ -1086,7 +1086,7 @@ function renderPatientOverlay(){
   const p=getPatient(currentPatientId);if(!p)return;
   document.getElementById("pt-name").textContent=p.name;
   document.getElementById("pt-meta").textContent=`${flag(p.country)} ${p.country||""} · ${getEvent(p.eventId)?.name||"—"} · ${p.phone||""}`;
-  document.getElementById("pt-status-badge").innerHTML=statusBadge(p.status);
+  const _psb=document.getElementById("pt-status-badge");if(_psb)_psb.innerHTML=statusBadge(p.status);
   const tabs=["consultation","assessment","notes","files"];
   document.getElementById("pt-tabs").innerHTML=tabs.map(tab=>`<button class="pt-tab${currentPtTab===tab?" active":""}" onclick="setPtTab('${tab}')">${t["tab"+tab.charAt(0).toUpperCase()+tab.slice(1)]}</button>`).join("");
   renderPtBody();
