@@ -1155,6 +1155,9 @@ function renderPtAssessment(p){
   const jawTxMap=(a.jawTx||{})[activePlan]||{};
   const jawRows=Object.entries(jawTxMap).map(([jaw,txId])=>({jaw,txId:+txId,tx:allTxCatalog.find(t=>t.id===+txId)})).filter(r=>r.tx);
   const b=p.booking||{};
+  const twoVisitMode=p.booking?.twoVisit===true||hasImplantInPlan(p);
+  const visits=b.visits||(twoVisitMode?[{nights:null},{nights:null}]:[]);
+  const visitWarning=twoVisitMode&&visits.some(v=>!v||!v.nights);
   const activeAc=getCatalogByType("accommodation");
   const activeTrv=getCatalogByType("travel");
   const jawSub=jawRows.reduce((s,r)=>s+getEffectivePrice(r.tx),0);
@@ -1256,9 +1259,71 @@ function renderPtAssessment(p){
         </tbody>
       </table>`:`<div style="font-size:12px;color:#3d5270;padding:6px 0">Yukarıdan tedavi seçip dişe tıklayın</div>`}
     </div>
+    ${twoVisitMode?`<div class="card" style="${visitWarning?'border-color:#ef444466;':''}">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;flex-wrap:wrap">
+        <div class="section-title" style="margin-bottom:0">🏥 Visit Planlaması</div>
+        <span style="font-size:11px;background:#0a1a2e;padding:2px 8px;border-radius:12px;color:#60a5fa;border:1px solid #1a3040">İmplant → 2 Visit</span>
+        ${visitWarning?`<span style="font-size:11px;color:#ef4444;font-weight:700">⚠ Gece sayısı girilmedi!</span>`:''}
+      </div>
+      ${[0,1].map(i=>{const v=(visits||[])[i]||{nights:null};return`
+        <div style="display:flex;align-items:center;gap:10px;padding:10px;background:${v.nights?'#0a2a1a':'#131b2a'};border:1px solid ${v.nights?'#22c55e44':'#1a2236'};border-radius:8px;margin-bottom:8px;flex-wrap:wrap">
+          <div style="font-size:12px;font-weight:700;color:${i===0?'#60a5fa':'#34d399'};min-width:60px">${i+1}. Visit</div>
+          <div style="display:flex;flex-wrap:wrap;gap:6px">
+            ${[3,4,5,6,7,10].map(n=>`<button onclick="setVisitNights(${i},${n})" style="padding:3px 9px;border-radius:14px;border:1px solid ${v.nights===n?'#f97316':'#1a2236'};background:${v.nights===n?'#f9731622':'#131b2a'};color:${v.nights===n?'#f97316':'#4a607d'};font-size:11px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif">${n} gece</button>`).join('')}
+            <input type="number" min="1" max="30" placeholder="?" value="${v.nights||''}" onchange="setVisitNights(${i},this.value)" style="width:52px;background:#131b2a;border:1px solid #1a2236;border-radius:6px;padding:3px 6px;color:#dde4ef;font-size:12px;text-align:center"/>
+          </div>
+          <div style="font-size:12px;font-weight:700;color:${v.nights?'#22c55e':'#ef4444'}">${v.nights?v.nights+' gece ✓':'Girilmedi ✕'}</div>
+        </div>`;}).join('')}
+      ${visitWarning?`<div style="background:#2b0f0f;border:1px solid #ef444444;border-radius:8px;padding:10px 12px;font-size:12px;color:#ef4444;font-weight:600;margin-top:4px">⚠️ İmplant tedavisi olan hastalar en az 2 visit gelmeli. Her iki visit için gece sayısını seçin!</div>`:''}
+    </div>`:''}
+
     <div class="card">
-      <div class="section-title">🏨 ${t.bookingAccommodation}</div>
-      <div style="display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:8px">
+        <div class="section-title" style="margin-bottom:0">🏨 ${t.bookingAccommodation}</div>
+        <button onclick="toggleTwoVisit()" style="padding:4px 12px;border-radius:16px;border:1px solid ${twoVisitMode?'#f97316':'#1a2236'};background:${twoVisitMode?'#f9731622':'#131b2a'};color:${twoVisitMode?'#f97316':'#4a607d'};font-size:11px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif">${twoVisitMode?'✅ 2 Visit':'⬜ 2 Visit'}</button>
+      </div>
+      ${twoVisitMode?(()=>{
+        const viColors=['#60a5fa','#34d399'];
+        const sections=[0,1].map(vi=>{
+          const vn=(b.visits||[])[vi]?.nights;
+          const viColor=viColors[vi];
+          const vEntries=(b.accommodations||[]).map((a,i)=>({a,i})).filter(({a})=>(a.visit??0)===vi);
+          const viMissing=vEntries.length===0;
+          return`<div style="margin-bottom:12px;border:1px solid ${viMissing?'#ef444444':'#1a3040'};border-radius:10px;padding:12px;background:${viMissing?'#16080a':'#080f1c'}">
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;flex-wrap:wrap">
+              <span style="font-size:13px;font-weight:800;color:${viColor}">${vi+1}. Visit Konaklama</span>
+              ${vn?`<span style="font-size:11px;background:#0a1525;padding:2px 8px;border-radius:12px;color:#4a8aaf;border:1px solid #1a3040">Planlanan: ${vn} gece</span>`:''}
+              ${viMissing?`<span style="font-size:11px;color:#ef4444;font-weight:700">⚠ Tesis eklenmedi</span>`:`<span style="font-size:11px;color:${viColor}">${vEntries.reduce((s,{a})=>s+(a.nights||1),0)} gece ✓</span>`}
+            </div>
+            <div style="display:flex;gap:8px;margin-bottom:8px;flex-wrap:wrap">
+              <select id="pb-accom-sel-${vi}" style="background:#131b2a;border:1px solid #1a2236;border-radius:8px;padding:6px 10px;color:#dde4ef;font-size:12px;outline:none;flex:1;min-width:180px">
+                <option value="">— Tesis Seçin —</option>
+                ${activeAc.map(a=>`<option value="${a.id}">${a.name} (${a.category}) — ${currSym()}${a.salePrice}/gece</option>`).join("")}
+              </select>
+              <div style="display:flex;align-items:center;gap:6px">
+                <input type="number" id="pb-accom-nights-${vi}" min="1" value="${vn||3}" style="${inStyle};width:54px"/>
+                <span style="font-size:12px;color:#4a607d">${t.nights}</span>
+              </div>
+              <button class="sm-btn success" onclick="addBookingAccommodation(${vi})">+ Ekle</button>
+            </div>
+            ${vEntries.length?`<table class="data-table" style="width:100%">
+              <thead><tr><th>${t.aname}</th><th>${t.nights}</th><th>${t.pricePerNight}</th><th>Toplam</th><th></th></tr></thead>
+              <tbody>${vEntries.map(({a,i})=>`<tr>
+                <td style="font-weight:600">🏨 ${a.name}</td>
+                <td><input type="number" min="1" value="${a.nights||1}" onchange="updateBookingQty('accommodations',${i},+this.value,'nights')" style="${inStyle}"/></td>
+                <td>${currSym()}${(a.pricePerNight||0).toLocaleString()}</td>
+                <td style="font-weight:700;color:${viColor}">${currSym()}${((a.nights||1)*(a.pricePerNight||0)).toLocaleString()}</td>
+                <td><button class="sm-btn danger" onclick="removeBookingItem('accommodations',${i})">✕</button></td>
+              </tr>`).join("")}</tbody>
+            </table>`:''}
+          </div>`;
+        });
+        const totalNights=(b.accommodations||[]).reduce((s,a)=>s+(a.nights||1),0);
+        return sections.join('')+`<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 14px;background:#0a1525;border-radius:8px;border:1px solid #1a3040;margin-top:4px">
+          <span style="font-size:12px;font-weight:700;color:#dde4ef">🏨 Toplam Konaklama</span>
+          <span style="font-size:14px;font-weight:900;color:#f97316">${totalNights} Gece</span>
+        </div>`;
+      })():`<div style="display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap">
         <select id="pb-accom-sel" style="background:#131b2a;border:1px solid #1a2236;border-radius:8px;padding:6px 10px;color:#dde4ef;font-size:12px;outline:none;flex:1;min-width:180px">
           <option value="">— Tesis Seçin —</option>
           ${activeAc.map(ac=>`<option value="${ac.id}">${ac.name} (${ac.category}) — ${currSym()}${ac.salePrice}/gece</option>`).join("")}
@@ -1278,7 +1343,7 @@ function renderPtAssessment(p){
           <td style="font-weight:700;color:#60a5fa">${currSym()}${((ac.nights||1)*(ac.pricePerNight||0)).toLocaleString()}</td>
           <td><button class="sm-btn danger" onclick="removeBookingItem('accommodations',${i})">✕</button></td>
         </tr>`).join("")}</tbody>
-      </table>`:""}
+      </table>`:''}`}
     </div>
     <div class="card">
       <div class="section-title">🚐 ${t.bookingTravel}</div>
@@ -1325,6 +1390,12 @@ function renderPtAssessment(p){
         <div style="border-top:2px solid #1a2236;margin:6px 0"></div>
         <div class="stat-row"><span style="font-weight:700;color:#dde4ef">💵 Nakit Ödeme Toplamı</span><span style="font-weight:800;color:#f97316;font-size:16px">${currSym()}${balance.toLocaleString()}</span></div>
         <div class="stat-row"><span style="font-size:12px;color:#60a5fa">💳 Kart ile Ödeme (+%2)</span><span style="font-weight:700;color:#60a5fa;font-size:14px">${currSym()}${cardBalance.toLocaleString()}</span></div>
+        ${twoVisitMode?`<div style="border-top:1px solid #1a2236;margin:10px 0 6px"></div>
+        <div style="font-size:10px;color:#4a607d;font-weight:700;margin-bottom:6px;letter-spacing:.5px">2 VİSİT ÖDEME PLANI</div>
+        <div class="stat-row" style="background:#0d2b1a;border-radius:6px;padding:6px 10px;margin-bottom:4px"><span style="font-size:12px;font-weight:700;color:#34d399">1. Visit (%60) — Nakit</span><span style="font-weight:800;color:#34d399">${currSym()}${Math.round(balance*0.6).toLocaleString()}</span></div>
+        <div class="stat-row" style="background:#0a1a2e;border-radius:6px;padding:6px 10px;margin-bottom:4px"><span style="font-size:11px;color:#60a5fa">1. Visit (%60) — Kart</span><span style="font-weight:700;color:#60a5fa">${currSym()}${Math.round(balance*0.6*1.02).toLocaleString()}</span></div>
+        <div class="stat-row" style="background:#0d2b1a;border-radius:6px;padding:6px 10px;margin-bottom:4px"><span style="font-size:12px;font-weight:700;color:#34d399">2. Visit (%40) — Nakit</span><span style="font-weight:800;color:#34d399">${currSym()}${Math.round(balance*0.4).toLocaleString()}</span></div>
+        <div class="stat-row" style="background:#0a1a2e;border-radius:6px;padding:6px 10px;margin-bottom:4px"><span style="font-size:11px;color:#60a5fa">2. Visit (%40) — Kart</span><span style="font-weight:700;color:#60a5fa">${currSym()}${Math.round(balance*0.4*1.02).toLocaleString()}</span></div>`:''}
       </div>
       <div class="field" style="margin-top:12px"><label>${t.bookingNotes}</label><textarea id="pb-notes" rows="2">${b.notes||""}</textarea></div>
     </div>
