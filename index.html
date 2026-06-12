@@ -851,6 +851,22 @@ async function loadUsers(){
     }
   }catch{}
 }
+function buildPlanDetail(p){
+  if(!p)return'';
+  const a=p.assessment||{};const planKey=a.activePlan||'treatmentPlan';const allTx=state.treatments;
+  const jawMap=(a.jawTx||{})[planKey]||{};
+  const jawParts=Object.entries(jawMap).map(([jaw,txId])=>{const tx=allTx.find(t=>t.id===+txId);return tx?`${tx.name}(${jaw==='upper'?'üst':'alt'})`:'';}).filter(Boolean);
+  const toothMap=(a.toothTx||{})[planKey]||{};
+  const grp={};Object.values(toothMap).forEach(id=>{grp[+id]=(grp[+id]||0)+1;});
+  const toothParts=Object.entries(grp).map(([id,cnt])=>{const tx=allTx.find(t=>t.id===+id);return tx?`${tx.name}×${cnt}`:'';}).filter(Boolean);
+  const extras=((a.planExtras||{})[planKey]||[]).map(e=>e.customName?`${e.customName}(${e.qty||1}×${currSym()}${e.price||0})`:(allTx.find(t=>t.id===e.txId)?.name||'')+`×${e.qty||1}`).filter(Boolean);
+  const parts=[...jawParts,...toothParts,...extras];
+  const total=patientActivePlanTotal(p);const discount=p.booking?.discount||0;
+  let d=`${p.name} — ${currSym()}${total.toLocaleString()}`;
+  if(parts.length)d+=` | ${parts.slice(0,6).join(', ')}${parts.length>6?` +${parts.length-6} daha`:''}`;
+  if(discount>0)d+=` | İndirim: ${currSym()}${discount}`;
+  return d;
+}
 async function logAction(action,detail=''){
   if(!currentUser||!activeCompanyId)return;
   try{await fetch(`${SUPA_URL}/rest/v1/crm_logs`,{method:'POST',headers:{...H,'Prefer':'return=minimal'},body:JSON.stringify({company_id:activeCompanyId,company_name:currentUser.company_name||'—',username:currentUser.username,display_name:currentUser.display_name||currentUser.username,action,detail:String(detail).substring(0,200)})});}catch{}
@@ -1716,7 +1732,7 @@ function addManualTreatment(){
   if(!p.assessment.planExtras)p.assessment.planExtras={};
   if(!p.assessment.planExtras[activePlan])p.assessment.planExtras[activePlan]=[];
   p.assessment.planExtras[activePlan].push({customName:name,price,qty:1});
-  persist("customers");renderPtBody();
+  logAction('plan_save',buildPlanDetail(p));persist("customers");renderPtBody();
 }
 function applyTxToTooth(num,txId){
   document.querySelectorAll(".tooth-popup").forEach(p=>p.remove());
@@ -1773,10 +1789,11 @@ function removeTxGroup(txId){
   const p=getPatient(currentPatientId);if(!p)return;
   const plan=p.assessment?.toothTx?.[activePlan];
   if(!plan)return;
+  const _txName=state.treatments.find(t=>t.id===+txId)?.name||'?';
   Object.keys(plan).forEach(num=>{
     if(plan[num]===+txId){delete plan[num];if(p.assessment[activePlan])delete p.assessment[activePlan][num];}
   });
-  persist("customers");renderPtBody();
+  logAction('plan_save',`${p.name} — ${_txName} kaldırıldı | ${currSym()}${patientActivePlanTotal(p).toLocaleString()}`);persist("customers");renderPtBody();
 }
 function setActivePlan(pl){activePlan=pl;renderPtBody();}
 function setPatientActivePlan(pl){const p=getPatient(currentPatientId);if(!p)return;if(!p.assessment)p.assessment={};p.assessment.activePlan=pl||null;persist("customers");renderPtBody();}
@@ -1791,8 +1808,10 @@ function setTxOverride(plan,num,cond,txId){
 }
 function removeExtraTreatment(idx){
   const p=getPatient(currentPatientId);if(!p?.assessment?.planExtras?.[activePlan])return;
+  const _rem=p.assessment.planExtras[activePlan][idx];
+  const _remName=_rem?.customName||(state.treatments.find(t=>t.id===_rem?.txId)?.name||'?');
   p.assessment.planExtras[activePlan].splice(idx,1);
-  persist("customers");renderPtBody();
+  logAction('plan_save',`${p.name} — ${_remName} kaldırıldı | ${currSym()}${patientActivePlanTotal(p).toLocaleString()}`);persist("customers");renderPtBody();
 }
 function updateExtraTxQty(idx,qty){
   const p=getPatient(currentPatientId);if(!p?.assessment?.planExtras?.[activePlan]?.[idx])return;
@@ -2631,7 +2650,7 @@ async function saveCurrentPatient(){
   ptFormDirty=false;
   const _sp=getPatient(currentPatientId);
   const _logAct=currentPtTab==="assessment"?'plan_save':'patient_save';
-  const _logDetail=currentPtTab==="assessment"?`${_sp?.name||''} — ${currSym()}${patientActivePlanTotal(_sp||{}).toLocaleString()}`:(_sp?.name||'');
+  const _logDetail=currentPtTab==="assessment"?buildPlanDetail(_sp):(_sp?.name||'');
   await persist("customers");logAction(_logAct,_logDetail);toast("✅ "+t.saved);
   renderPatientOverlay();
 }
