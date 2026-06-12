@@ -1475,12 +1475,24 @@ function updateExtraTxQty(idx,qty){
   persist("customers");renderPtBody();
 }
 async function resetActivePlan(){
-  if(!await confirmDialog("Tüm seçimleri sıfırlamak istediğinizden emin misiniz?"))return;
+  if(!await confirmDialog("Tedavi planı, konaklama ve transfer seçimleri silinecek. Emin misiniz?",true))return;
   const p=getPatient(currentPatientId);if(!p)return;
   if(!p.assessment)p.assessment={currentCondition:{},treatmentPlan:{},dentistNotes:""};
+  // Clear plan selections
   p.assessment[activePlan]={};
   if(!p.assessment.toothTx)p.assessment.toothTx={};
   p.assessment.toothTx[activePlan]={};
+  if(!p.assessment.jawTx)p.assessment.jawTx={};
+  p.assessment.jawTx[activePlan]={};
+  if(!p.assessment.planExtras)p.assessment.planExtras={};
+  p.assessment.planExtras[activePlan]=[];
+  // Clear booking data
+  if(!p.booking)p.booking={};
+  p.booking.treatments=[];
+  p.booking.accommodations=[];
+  p.booking.travels=[];
+  p.booking.visits=[{nights:null},{nights:null}];
+  p.booking.twoVisit=false;
   persist("customers");renderPtBody();
 }
 function setToothCond(num,cond){
