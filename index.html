@@ -1827,7 +1827,7 @@ function addManualTreatment(){
   if(!p.assessment.planExtras)p.assessment.planExtras={};
   if(!p.assessment.planExtras[activePlan])p.assessment.planExtras[activePlan]=[];
   p.assessment.planExtras[activePlan].push({customName:name,price,qty:1});
-  logAction('plan_save',buildPlanDetail(p));persist("customers");renderPtBody();
+  logAction('plan_save',buildPlanDetail(p));markPtDirty();persist("customers");renderPtBody();
 }
 function applyTxToTooth(num,txId){
   document.querySelectorAll(".tooth-popup").forEach(p=>p.remove());
@@ -1852,7 +1852,7 @@ function applyTxToTooth(num,txId){
       plan.all.forEach(n=>{delete p.assessment.toothTx[activePlan][n];p.assessment[activePlan][n]='missing';});
       plan.implant.forEach(n=>{p.assessment[activePlan][n]='implant';});
     }
-    persist("customers");renderPtBody();return;
+    markPtDirty();persist("customers");renderPtBody();return;
   }
   const tx=getTreatment(txId);if(!tx)return;
   if(p.assessment.toothTx[activePlan][num]===txId){
@@ -1864,7 +1864,7 @@ function applyTxToTooth(num,txId){
     if(cond)p.assessment[activePlan][num]=cond;
     else delete p.assessment[activePlan][num];
   }
-  persist("customers");renderPtBody();
+  markPtDirty();persist("customers");renderPtBody();
 }
 function removeJawTx(jaw){
   const p=getPatient(currentPatientId);if(!p)return;
@@ -1878,7 +1878,7 @@ function removeJawTx(jaw){
     });
   }
   delete jawTxPlan[jaw];
-  persist("customers");renderPtBody();
+  markPtDirty();persist("customers");renderPtBody();
 }
 function removeTxGroup(txId){
   const p=getPatient(currentPatientId);if(!p)return;
@@ -1888,7 +1888,7 @@ function removeTxGroup(txId){
   Object.keys(plan).forEach(num=>{
     if(plan[num]===+txId){delete plan[num];if(p.assessment[activePlan])delete p.assessment[activePlan][num];}
   });
-  logAction('plan_save',`${p.name} — ${_txName} kaldırıldı | ${currSym()}${patientActivePlanTotal(p).toLocaleString()}`);persist("customers");renderPtBody();
+  logAction('plan_save',`${p.name} — ${_txName} kaldırıldı | ${currSym()}${patientActivePlanTotal(p).toLocaleString()}`);markPtDirty();persist("customers");renderPtBody();
 }
 function setActivePlan(pl){activePlan=pl;renderPtBody();}
 function setPatientActivePlan(pl){const p=getPatient(currentPatientId);if(!p)return;if(!p.assessment)p.assessment={};p.assessment.activePlan=pl||null;persist("customers");renderPtBody();}
@@ -1906,12 +1906,12 @@ function removeExtraTreatment(idx){
   const _rem=p.assessment.planExtras[activePlan][idx];
   const _remName=_rem?.customName||(state.treatments.find(t=>t.id===_rem?.txId)?.name||'?');
   p.assessment.planExtras[activePlan].splice(idx,1);
-  logAction('plan_save',`${p.name} — ${_remName} kaldırıldı | ${currSym()}${patientActivePlanTotal(p).toLocaleString()}`);persist("customers");renderPtBody();
+  logAction('plan_save',`${p.name} — ${_remName} kaldırıldı | ${currSym()}${patientActivePlanTotal(p).toLocaleString()}`);markPtDirty();persist("customers");renderPtBody();
 }
 function updateExtraTxQty(idx,qty){
   const p=getPatient(currentPatientId);if(!p?.assessment?.planExtras?.[activePlan]?.[idx])return;
   p.assessment.planExtras[activePlan][idx].qty=Math.max(1,qty||1);
-  persist("customers");renderPtBody();
+  markPtDirty();persist("customers");renderPtBody();
 }
 async function resetActivePlan(){
   if(!await confirmDialog(t.resetPlanConfirm,true))return;
