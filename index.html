@@ -229,6 +229,7 @@ nav button:hover:not(.active){color:#94a3b8}
         <div class="user-name" id="user-name">Admin</div>
         <div class="user-role" id="user-role">admin</div>
       </div>
+      <button id="btn-change-pwd" class="logout-btn" onclick="openChangePasswordModal()" title="Şifre Değiştir" style="font-size:13px">🔑</button>
       <button id="btn-logout" class="logout-btn" onclick="doLogout()" title="Çıkış">⏻</button>
     </div>
     <nav id="nav">
@@ -464,7 +465,7 @@ tr:{
   addCompany:"+ Firma Ekle",newCompany:"Yeni Firma",editCompany:"Firma Düzenle",noCompanies:"Henüz firma yok",confirmDeleteCompany:"Bu firmayı silmek istediğinizden emin misiniz?",companyDeleted:"Firma silindi",companyAdded:"Firma eklendi",companyUpdated:"Firma güncellendi",selectFirm:"Firma Seç",
   fdisplayName:"Ad Soyad",fpassword:"Şifre",fnewPass:"Yeni Şifre",fRole:"Yetki",fnewPassHint:"(boş bırakırsanız değişmez)",
   noUsers:"Kullanıcı bulunamadı",userAdded:"Kullanıcı eklendi",userUpdated:"Kullanıcı güncellendi",userDeleted:"Kullanıcı silindi",
-  cantDeleteSelf:"Kendi hesabınızı silemezsiniz",usernameExists:"Bu kullanıcı adı kullanımda",passRequired:"Şifre zorunludur",usernameRequired:"Kullanıcı adı zorunludur",
+  cantDeleteSelf:"Kendi hesabınızı silemezsiniz",usernameExists:"Bu kullanıcı adı kullanımda",passRequired:"Şifre zorunludur",usernameRequired:"Kullanıcı adı zorunludur",changePassword:"Şifre Değiştir",changePasswordFor:"Kullanıcı Şifresini Değiştir",currentPassword:"Mevcut Şifre",newPassword:"Yeni Şifre",confirmPassword:"Yeni Şifre (Tekrar)",passwordMismatch:"Şifreler eşleşmiyor",wrongCurrentPassword:"Mevcut şifre yanlış",passwordChanged:"Şifre başarıyla değiştirildi",
   cancel:"İptal",save:"Kaydet",saved:"Kaydedildi",deleted:"Silindi",added:"Eklendi",updated:"Güncellendi",
   navTrash:"Çöp Kutusu",navSnapshots:"Yedekler",trashEmpty:"Çöp kutusu boş",noSnapshots:"Henüz yedek yok",restore:"Geri Yükle",permanent:"Kalıcı Sil",confirmPermanentDelete:"Kalıcı olarak silinecek, geri alınamaz. Emin misiniz?",confirmRestoreSnapshot:"Bu yedeğe dönmek istediğinize emin misiniz? Mevcut veriler değişecek.",snapshotRestored:"Yedek geri yüklendi",deletePatientBtn:"Sil",confirmDeletePatient:"Bu hastayı çöp kutusuna taşımak istediğinizden emin misiniz?",patientDeleted:"Hasta çöp kutusuna taşındı",
   loginSub:"Diş Turizmi Yönetim Sistemi",loginUser:"Kullanıcı Adı",loginPass:"Şifre",loginBtn:"Giriş Yap",loginErr:"Hatalı kullanıcı adı veya şifre",loginLoading:"Giriş yapılıyor...",loginAttemptsLeft:"Yanlış şifre. {n} deneme hakkınız kaldı.",loginLocked:"Hesap {m} dakika kilitlendi. Lütfen bekleyin.",
@@ -575,7 +576,7 @@ en:{
   addCompany:"+ Add Company",newCompany:"New Company",editCompany:"Edit Company",noCompanies:"No companies yet",confirmDeleteCompany:"Are you sure you want to delete this company?",companyDeleted:"Company deleted",companyAdded:"Company added",companyUpdated:"Company updated",selectFirm:"Select Company",
   fdisplayName:"Full Name",fpassword:"Password",fnewPass:"New Password",fRole:"Role",fnewPassHint:"(leave blank to keep)",
   noUsers:"No users found",userAdded:"User added",userUpdated:"User updated",userDeleted:"User deleted",
-  cantDeleteSelf:"Cannot delete your own account",usernameExists:"Username already taken",passRequired:"Password required",usernameRequired:"Username required",
+  cantDeleteSelf:"Cannot delete your own account",usernameExists:"Username already taken",passRequired:"Password required",usernameRequired:"Username required",changePassword:"Change Password",changePasswordFor:"Change User Password",currentPassword:"Current Password",newPassword:"New Password",confirmPassword:"Confirm New Password",passwordMismatch:"Passwords do not match",wrongCurrentPassword:"Current password is incorrect",passwordChanged:"Password changed successfully",
   cancel:"Cancel",save:"Save",saved:"Saved",deleted:"Deleted",added:"Added",updated:"Updated",
   navTrash:"Recycle Bin",navSnapshots:"Backups",trashEmpty:"Recycle bin is empty",noSnapshots:"No backups yet",restore:"Restore",permanent:"Delete Permanently",confirmPermanentDelete:"This will be permanently deleted and cannot be recovered. Are you sure?",confirmRestoreSnapshot:"Are you sure you want to restore this backup? Current data will be replaced.",snapshotRestored:"Backup restored",deletePatientBtn:"Delete",confirmDeletePatient:"Move this patient to the recycle bin?",patientDeleted:"Patient moved to recycle bin",
   loginSub:"Dental Tourism Management System",loginUser:"Username",loginPass:"Password",loginBtn:"Login",loginErr:"Invalid username or password",loginLoading:"Logging in...",loginAttemptsLeft:"Wrong password. {n} attempts remaining.",loginLocked:"Account locked for {m} minutes. Please wait.",
@@ -2484,6 +2485,7 @@ function renderUsers(){
         <span class="badge" style="background:${color}18;color:${color}">${rl}</span>
         <div style="display:flex;gap:6px">
           <button class="sm-btn" onclick="openUserModal(${u.id})">${t.editBtn}</button>
+          ${isSuperAdmin()?`<button class="sm-btn" onclick="openChangePasswordModal(${u.id})" title="${t.changePassword||'Şifre Değiştir'}">🔑</button>`:""}
           ${!isMe?`<button class="sm-btn danger" onclick="deleteUser(${u.id})">✕</button>`:""}
         </div>
       </div>`;
@@ -2930,6 +2932,43 @@ async function saveUser(editId){
     try{const r=await fetch(`${SUPA_URL}/rest/v1/crm_users`,{method:"POST",headers:{...H,"Prefer":"return=representation"},body:JSON.stringify({username,password:await bcrypt.hash(password,10),role,display_name:displayName,company_id:companyId,company_name:companyName})});if(!r.ok){toast(t.addFailed,"err");return;}const added=(await r.json());state.users.push({id:(Array.isArray(added)?added[0]:added).id,username,role,display_name:displayName,company_id:companyId,company_name:companyName});logAction('user_add',`${displayName||username} (${companyName})`);toast(t.userAdded);}catch{toast(t.errorMsg,"err");return;}
   }
   closeModal();render();
+}
+function openChangePasswordModal(targetUserId){
+  const isOwn=!targetUserId||targetUserId===currentUser.id;
+  const title=isOwn?(t.changePassword||'Şifre Değiştir'):(t.changePasswordFor||'Şifre Değiştir');
+  const uid=targetUserId||currentUser.id;
+  const body=`<div style="display:flex;flex-direction:column;gap:12px">
+    ${isOwn?`<div class="field"><label>${t.currentPassword||'Mevcut Şifre'}</label><input id="cp-current" type="password" placeholder="••••••••"/></div>`:''}
+    <div class="field"><label>${t.newPassword||'Yeni Şifre'}</label><input id="cp-new" type="password" placeholder="••••••••"/></div>
+    <div class="field"><label>${t.confirmPassword||'Yeni Şifre (Tekrar)'}</label><input id="cp-confirm" type="password" placeholder="••••••••"/></div>
+  </div>`;
+  makeModal(title,body,`saveChangePassword(${uid},${isOwn})`);
+}
+async function saveChangePassword(uid,isOwn){
+  const newPwd=document.getElementById('cp-new')?.value;
+  const confirmPwd=document.getElementById('cp-confirm')?.value;
+  if(!newPwd){toast(t.passRequired||'Şifre zorunludur','err');return;}
+  if(newPwd!==confirmPwd){toast(t.passwordMismatch||'Şifreler eşleşmiyor','err');return;}
+  if(isOwn){
+    const currentPwd=document.getElementById('cp-current')?.value;
+    if(!currentPwd){toast(t.passRequired||'Mevcut şifre zorunludur','err');return;}
+    try{
+      const r=await fetch(`${SUPA_URL}/rest/v1/crm_users?id=eq.${uid}&select=password`,{headers:H});
+      if(r.ok){
+        const data=await r.json();
+        const stored=data?.[0]?.password||'';
+        const ok=await bcrypt.compare(currentPwd,stored);
+        if(!ok){toast(t.wrongCurrentPassword||'Mevcut şifre yanlış','err');return;}
+      }
+    }catch{toast(t.errorMsg||'Hata','err');return;}
+  }
+  try{
+    const hashed=await bcrypt.hash(newPwd,10);
+    const r=await fetch(`${SUPA_URL}/rest/v1/crm_users?id=eq.${uid}`,{method:'PATCH',headers:{...H,'Prefer':'return=minimal'},body:JSON.stringify({password:hashed})});
+    if(!r.ok){toast(t.updateFailed||'Güncelleme başarısız','err');return;}
+    logAction('user_edit',`Şifre değiştirildi — kullanıcı #${uid}`);
+    toast(t.passwordChanged||'Şifre başarıyla değiştirildi ✅');closeModal();
+  }catch{toast(t.errorMsg||'Hata','err');}
 }
 async function deleteUser(id){
   if(!canManageUsers())return;if(id===currentUser.id){toast(t.cantDeleteSelf,"err");return;}
