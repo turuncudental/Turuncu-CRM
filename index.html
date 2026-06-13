@@ -789,6 +789,7 @@ function getJaw(num){return(num>=11&&num<=28)?'upper':(num>=31&&num<=48)?'lower'
 function flag(c){const m={"United Kingdom":"🇬🇧","UK":"🇬🇧","UAE":"🇦🇪","United Arab Emirates":"🇦🇪","Russia":"🇷🇺","Ireland":"🇮🇪","Spain":"🇪🇸","Germany":"🇩🇪","France":"🇫🇷","USA":"🇺🇸","United States":"🇺🇸","Australia":"🇦🇺","Turkey":"🇹🇷","Türkiye":"🇹🇷","Netherlands":"🇳🇱","Belgium":"🇧🇪","Sweden":"🇸🇪","Norway":"🇳🇴","Denmark":"🇩🇰","Italy":"🇮🇹","Poland":"🇵🇱","Canada":"🇨🇦","Kuwait":"🇰🇼","Saudi Arabia":"🇸🇦","Qatar":"🇶🇦","Bahrain":"🇧🇭","Jordan":"🇯🇴","Romania":"🇷🇴","Bulgaria":"🇧🇬","Ukraine":"🇺🇦","Israel":"🇮🇱"};return m[c]||"🌍";}
 function statusLabel(s){return{walkin:t.statusWalkin,consultation:t.statusConsultation,assessed:t.statusAssessed,pricing:t.statusPricing,booked:t.statusBooked,cancelled:t.statusCancelled}[s]||s;}
 function statusBadge(s){const c=STATUS_COLORS[s]||"#4a607d";return`<span class="badge" style="background:${c}22;color:${c}">${statusLabel(s)}</span>`;}
+function roleLabel(role){return{superadmin:t.roleSuper||'Süper Admin',admin:t.roleAdmin,satis:t.roleSales,okuyucu:t.roleReader}[role]||role;}
 function toast(msg,type="ok"){const el=document.createElement("div");el.className=`toast ${type}`;el.textContent=msg;document.getElementById("toast-container").appendChild(el);setTimeout(()=>el.remove(),3500);}
 function confirmDialog(msg,danger=false){return new Promise(resolve=>{const ov=document.createElement("div");ov.className="confirm-overlay";ov.innerHTML=`<div class="confirm-box"><div style="font-size:28px">${danger?"🗑️":"💾"}</div><div class="conf-msg">${msg}</div><div class="conf-btns"><button class="conf-no">${t.no}</button><button class="conf-yes${danger?" danger":""}">${t.yes}</button></div></div>`;document.body.appendChild(ov);ov.querySelector(".conf-yes").onclick=()=>{ov.remove();resolve(true);};ov.querySelector(".conf-no").onclick=()=>{ov.remove();resolve(false);};});}
 function matches(fields){if(!searchQuery)return true;return fields.some(f=>f&&String(f).toLowerCase().includes(searchQuery.toLowerCase()));}
@@ -993,7 +994,7 @@ async function showApp(){
   document.getElementById("user-avatar").textContent=(currentUser.display_name||currentUser.username)[0].toUpperCase();
   document.getElementById("user-avatar").style.color=color;
   document.getElementById("user-name").textContent=currentUser.display_name||currentUser.username;
-  document.getElementById("user-role").textContent=currentUser.role;
+  document.getElementById("user-role").textContent=roleLabel(currentUser.role);
   document.getElementById("user-role").style.color=color;
   await loadAll();
   const _bb2=document.getElementById("btn-back");if(_bb2)_bb2.textContent=t.backBtn;
@@ -1066,6 +1067,7 @@ function setLang(l){
   const _lc=document.getElementById("logo-sub-crm");if(_lc)_lc.textContent=t.logoCRM;
   const _sl=document.getElementById("syncing-label");if(_sl)_sl.textContent=t.saving;
   const _lo=document.getElementById("btn-logout");if(_lo)_lo.title=t.logout;
+  const _ur=document.getElementById("user-role");if(_ur&&currentUser)_ur.textContent=roleLabel(currentUser.role);
   if(currentUser){document.getElementById("page-title").textContent=t[currentTab]||currentTab;updateFooter();render();}
 }
 function setLoginLang(l){
@@ -3023,7 +3025,7 @@ async function saveUser(editId){
     const upd={display_name:displayName,role};if(password)upd.password=await bcrypt.hash(password,10);
     try{const r=await fetch(`${SUPA_URL}/rest/v1/crm_users?id=eq.${editId}`,{method:"PATCH",headers:{...H,"Prefer":"return=minimal"},body:JSON.stringify(upd)});if(!r.ok){toast(t.updateFailed,"err");return;}
     state.users=state.users.map(u=>u.id===editId?{...u,...upd}:u);
-    if(editId===currentUser.id){currentUser={...currentUser,display_name:displayName,role};sessionStorage.setItem("crm_user",JSON.stringify(currentUser));const color=ROLE_COLORS[role]||"#f97316";document.getElementById("user-name").textContent=displayName||username;document.getElementById("user-avatar").textContent=(displayName||username)[0].toUpperCase();document.getElementById("user-role").textContent=role;document.getElementById("user-role").style.color=color;}
+    if(editId===currentUser.id){currentUser={...currentUser,display_name:displayName,role};sessionStorage.setItem("crm_user",JSON.stringify(currentUser));const color=ROLE_COLORS[role]||"#f97316";document.getElementById("user-name").textContent=displayName||username;document.getElementById("user-avatar").textContent=(displayName||username)[0].toUpperCase();document.getElementById("user-role").textContent=roleLabel(role);document.getElementById("user-role").style.color=color;}
     logAction('user_edit',displayName||username);toast(t.userUpdated);}catch{toast(t.errorMsg,"err");return;}
   } else {
     if(state.users.some(u=>u.username===username)){toast(t.usernameExists,"err");return;}
