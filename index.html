@@ -1532,8 +1532,6 @@ function renderPtAssessment(p){
   const jawRows=Object.entries(jawTxMap).map(([jaw,txId])=>({jaw,txId:+txId,tx:allTxCatalog.find(t=>t.id===+txId)})).filter(r=>r.tx);
   const b=p.booking||{};
   const twoVisitMode=p.booking?.twoVisit===true||hasImplantInPlan(p);
-  const visits=b.visits||(twoVisitMode?[{nights:null},{nights:null}]:[]);
-  const visitWarning=twoVisitMode&&visits.some(v=>!v||!v.nights);
   const activeAc=getCatalogByType("accommodation");
   const activeTrv=getCatalogByType("travel");
   const jawSub=jawRows.reduce((s,r)=>s+getEffectivePrice(r.tx),0);
@@ -1635,23 +1633,6 @@ function renderPtAssessment(p){
         </tbody>
       </table>`:`<div style="font-size:12px;color:#3d5270;padding:6px 0">${t.selectTxFromAbove}</div>`}
     </div>
-    ${twoVisitMode?`<div class="card" style="${visitWarning?'border-color:#ef444466;':''}">
-      <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;flex-wrap:wrap">
-        <div class="section-title" style="margin-bottom:0">${t.visitPlanning}</div>
-        <span style="font-size:11px;background:#0a1a2e;padding:2px 8px;border-radius:12px;color:#60a5fa;border:1px solid #1a3040">${t.implant2Visit}</span>
-        ${visitWarning?`<span style="font-size:11px;color:#ef4444;font-weight:700">${t.nightsNotEntered}</span>`:''}
-      </div>
-      ${[0,1].map(i=>{const v=(visits||[])[i]||{nights:null};return`
-        <div style="display:flex;align-items:center;gap:10px;padding:10px;background:${v.nights?'#0a2a1a':'#131b2a'};border:1px solid ${v.nights?'#22c55e44':'#1a2236'};border-radius:8px;margin-bottom:8px;flex-wrap:wrap">
-          <div style="font-size:12px;font-weight:700;color:${i===0?'#60a5fa':'#34d399'};min-width:60px">${i+1}. Visit</div>
-          <div style="display:flex;flex-wrap:wrap;gap:6px">
-            ${[3,4,5,6,7,10].map(n=>`<button onclick="setVisitNights(${i},${n})" style="padding:3px 9px;border-radius:14px;border:1px solid ${v.nights===n?'#f97316':'#1a2236'};background:${v.nights===n?'#f9731622':'#131b2a'};color:${v.nights===n?'#f97316':'#4a607d'};font-size:11px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif">${n} ${t.nights.toLowerCase()}</button>`).join('')}
-            <input type="number" min="1" max="30" placeholder="?" value="${v.nights||''}" onchange="setVisitNights(${i},this.value)" style="width:52px;background:#131b2a;border:1px solid #1a2236;border-radius:6px;padding:3px 6px;color:#dde4ef;font-size:12px;text-align:center"/>
-          </div>
-          <div style="font-size:12px;font-weight:700;color:${v.nights?'#22c55e':'#ef4444'}">${v.nights?v.nights+' '+t.nights.toLowerCase()+' ✓':t.notEntered}</div>
-        </div>`;}).join('')}
-      ${visitWarning?`<div style="background:#2b0f0f;border:1px solid #ef444444;border-radius:8px;padding:10px 12px;font-size:12px;color:#ef4444;font-weight:600;margin-top:4px">${t.implantVisitWarning}</div>`:''}
-    </div>`:''}
 
     <div class="card">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:8px">
@@ -1661,14 +1642,12 @@ function renderPtAssessment(p){
       ${twoVisitMode?(()=>{
         const viColors=['#60a5fa','#34d399'];
         const sections=[0,1].map(vi=>{
-          const vn=(b.visits||[])[vi]?.nights;
           const viColor=viColors[vi];
           const vEntries=(b.accommodations||[]).map((a,i)=>({a,i})).filter(({a})=>(a.visit??0)===vi);
           const viMissing=vEntries.length===0;
           return`<div style="margin-bottom:12px;border:1px solid ${viMissing?'#ef444444':'#1a3040'};border-radius:10px;padding:12px;background:${viMissing?'#16080a':'#080f1c'}">
             <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;flex-wrap:wrap">
               <span style="font-size:13px;font-weight:800;color:${viColor}">${vi+1}${t.visitAccom}</span>
-              ${vn?`<span style="font-size:11px;background:#0a1525;padding:2px 8px;border-radius:12px;color:#4a8aaf;border:1px solid #1a3040">${t.plannedNights}: ${vn} ${t.nights}</span>`:''}
               ${viMissing?`<span style="font-size:11px;color:#ef4444;font-weight:700">${t.facilityNotAdded}</span>`:`<span style="font-size:11px;color:${viColor}">${vEntries.reduce((s,{a})=>s+(a.nights||1),0)} ${t.nights.toLowerCase()} ✓</span>`}
             </div>
             <div style="display:flex;gap:8px;margin-bottom:8px;flex-wrap:wrap">
@@ -1677,7 +1656,7 @@ function renderPtAssessment(p){
                 ${activeAc.map(a=>`<option value="${a.id}">${a.name} (${a.category}) — ${currSym()}${a.salePrice}${t.perNight}</option>`).join("")}
               </select>
               <div style="display:flex;align-items:center;gap:6px">
-                <input type="number" id="pb-accom-nights-${vi}" min="1" value="${vn||3}" style="${inStyle};width:54px"/>
+                <input type="number" id="pb-accom-nights-${vi}" min="1" value="3" style="${inStyle};width:54px"/>
                 <span style="font-size:12px;color:#4a607d">${t.nights}</span>
               </div>
               <button class="sm-btn success" onclick="addBookingAccommodation(${vi})">+ ${t.addBtn}</button>
@@ -2046,8 +2025,6 @@ function renderPtBooking(p){
   const balance=total-(b.deposit||0);
   const cardBalance=Math.round(balance*1.02);
   const isImplant=p.booking?.twoVisit===true||hasImplantInPlan(p);
-  const visits=b.visits||(isImplant?[{nights:null},{nights:null}]:[]);
-  const visitWarning=isImplant&&visits.some(v=>!v||!v.nights);
   const activeTx=getCatalogByType("treatment");
   const activeAc=getCatalogByType("accommodation");
   const activeTr=getCatalogByType("travel");
@@ -2073,22 +2050,6 @@ function renderPtBooking(p){
       </table>`:`<div style="font-size:12px;color:#3d5270;padding:4px 0">${t.noTreatmentSelected}</div>`}
     </div>
 
-    ${(isImplant||visits.length>0)?`<div class="card" style="${visitWarning?'border-color:#ef444466;':''}">
-      <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;flex-wrap:wrap">
-        <div class="section-title" style="margin-bottom:0">${t.visitPlanning}</div>
-        ${isImplant?`<span style="font-size:10px;background:#60a5fa22;border:1px solid #60a5fa44;color:#60a5fa;padding:2px 8px;border-radius:20px;font-weight:700">${t.implant2Visit}</span>`:''}
-        ${visitWarning?`<span style="font-size:10px;background:#ef444422;border:1px solid #ef444444;color:#ef4444;padding:2px 8px;border-radius:20px;font-weight:700">${t.nightsNotEntered}</span>`:''}
-      </div>
-      ${(isImplant?[0,1]:[0]).map(i=>{const v=(b.visits||[])[i]||{nights:null};return`<div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;padding:10px 12px;background:${v.nights?'#0a2a1a':'#131b2a'};border:1px solid ${v.nights?'#22c55e44':'#1a2236'};border-radius:8px;flex-wrap:wrap">
-        <div style="font-size:12px;font-weight:800;color:#dde4ef;min-width:65px">${i+1}. Visit</div>
-        <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center">
-          ${[3,4,5,6,7,10].map(n=>`<button onclick="setVisitNights(${i},${n})" style="padding:4px 11px;border-radius:16px;border:1px solid ${v.nights===n?'#22c55e':'#1a2236'};background:${v.nights===n?'#22c55e22':'#0d1320'};color:${v.nights===n?'#22c55e':'#4a607d'};font-size:11px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif">${n} ${t.nights.toLowerCase()}</button>`).join('')}
-          <input type="number" min="1" value="${v.nights||''}" placeholder="?" onchange="setVisitNights(${i},this.value)" style="width:54px;background:#0d1320;border:1px solid #1a2236;border-radius:6px;padding:4px 6px;color:#dde4ef;font-size:12px;text-align:center"/>
-        </div>
-        <div style="margin-left:auto;font-size:11px;font-weight:700;color:${v.nights?'#22c55e':'#ef4444'}">${v.nights?v.nights+' '+t.nights.toLowerCase()+' ✓':t.notEntered}</div>
-      </div>`;}).join('')}
-      ${visitWarning?`<div style="background:#2b0f0f;border:1px solid #ef444444;border-radius:8px;padding:10px 12px;font-size:12px;color:#ef4444;font-weight:600;margin-top:4px">${t.implantVisitWarning}</div>`:''}
-    </div>`:''}
 
     <div class="card">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:8px">
@@ -2098,14 +2059,12 @@ function renderPtBooking(p){
       ${isImplant?(()=>{
         const viColors=['#60a5fa','#34d399'];
         const sections=[0,1].map(vi=>{
-          const vn=(b.visits||[])[vi]?.nights;
           const viColor=viColors[vi];
           const vEntries=(b.accommodations||[]).map((a,i)=>({a,i})).filter(({a})=>(a.visit??0)===vi);
           const viMissing=vEntries.length===0;
           return`<div style="margin-bottom:12px;border:1px solid ${viMissing?'#ef444444':'#1a3040'};border-radius:10px;padding:12px;background:${viMissing?'#16080a':'#080f1c'}">
             <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;flex-wrap:wrap">
               <span style="font-size:13px;font-weight:800;color:${viColor}">${vi+1}${t.visitAccom}</span>
-              ${vn?`<span style="font-size:11px;background:#0a1525;padding:2px 8px;border-radius:12px;color:#4a8aaf;border:1px solid #1a3040">${t.plannedNights}: ${vn} ${t.nights}</span>`:''}
               ${viMissing?`<span style="font-size:11px;color:#ef4444;font-weight:700">${t.facilityNotAdded}</span>`:`<span style="font-size:11px;color:${viColor}">${vEntries.reduce((s,{a})=>s+(a.nights||1),0)} ${t.nights.toLowerCase()} ✓</span>`}
             </div>
             <div style="display:flex;gap:8px;margin-bottom:8px;flex-wrap:wrap">
@@ -2114,7 +2073,7 @@ function renderPtBooking(p){
                 ${activeAc.map(a=>`<option value="${a.id}">${a.name} (${a.category}) — ${currSym()}${a.salePrice}${t.perNight}</option>`).join("")}
               </select>
               <div style="display:flex;align-items:center;gap:6px">
-                <input type="number" id="pb-accom-nights-${vi}" min="1" value="${vn||3}" style="${inStyle};width:54px"/>
+                <input type="number" id="pb-accom-nights-${vi}" min="1" value="3" style="${inStyle};width:54px"/>
                 <span style="font-size:12px;color:#4a607d">${t.nights}</span>
               </div>
               <button class="sm-btn success" onclick="addBookingAccommodation(${vi})">+ ${t.addBtn}</button>
