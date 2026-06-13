@@ -229,7 +229,6 @@ nav button:hover:not(.active){color:#94a3b8}
         <div class="user-name" id="user-name">Admin</div>
         <div class="user-role" id="user-role">admin</div>
       </div>
-      <button id="btn-undo" class="logout-btn" onclick="undoLastAction()" title="Geri Al" style="font-size:15px;display:none;color:#60a5fa">↩</button>
       <button id="btn-change-pwd" class="logout-btn" onclick="openChangePasswordModal()" title="Şifre Değiştir" style="font-size:13px">🔑</button>
       <button id="btn-logout" class="logout-btn" onclick="doLogout()" title="Çıkış">⏻</button>
     </div>
@@ -262,6 +261,7 @@ nav button:hover:not(.active){color:#94a3b8}
         <button class="search-clear" id="search-clear" style="display:none" onclick="clearSearch()">✕</button>
       </div>
       <div style="flex:1"></div>
+      <button id="btn-undo-topbar" onclick="undoLastAction()" title="Geri Al" style="display:none;background:#0a1a2e;border:1.5px solid #60a5fa;border-radius:8px;color:#60a5fa;font-size:12px;font-weight:700;padding:5px 12px;cursor:pointer;font-family:'DM Sans',sans-serif">↩ Geri Al</button>
       <div id="topbar-actions"></div>
     </div>
     <div id="content"><div class="loading"><div class="spinner">🦷</div></div></div>
@@ -275,6 +275,7 @@ nav button:hover:not(.active){color:#94a3b8}
       <div id="pt-meta" style="font-size:11px;color:#4a607d;margin-top:1px"></div>
     </div>
     <button id="btn-delete-patient" class="btn" style="font-size:12px;background:#7f1d1d;display:none" onclick="deletePatient(currentPatientId)">🗑 Sil</button>
+    <button id="btn-undo" class="btn" onclick="undoLastAction()" title="Geri Al" style="font-size:12px;background:#0a1a2e;border:1.5px solid #60a5fa;color:#60a5fa;display:none">↩ Geri Al</button>
     <button id="btn-save-patient" class="btn" style="font-size:12px" onclick="saveCurrentPatient()">💾 Kaydet</button>
   </div>
   <div class="pt-tabs" id="pt-tabs"></div>
@@ -1034,10 +1035,13 @@ function pushUndo(stateKey,label){
   updateUndoBtn();
 }
 function updateUndoBtn(){
-  const btn=document.getElementById('btn-undo');if(!btn)return;
   const last=undoStack[undoStack.length-1];
-  if(last){btn.style.display='';btn.title=`↩ ${last.label}`;}
-  else{btn.style.display='none';}
+  const label=last?`↩ Geri Al: ${last.label}`:'';
+  const overlayOpen=document.getElementById('patient-overlay')?.style.display!=='none';
+  const btn=document.getElementById('btn-undo');
+  if(btn){if(last){btn.style.display='';btn.title=label;}else btn.style.display='none';}
+  const btnT=document.getElementById('btn-undo-topbar');
+  if(btnT){if(last&&!overlayOpen){btnT.style.display='';btnT.title=label;}else btnT.style.display='none';}
 }
 async function undoLastAction(){
   const last=undoStack.pop();if(!last){toast('Geri alınacak işlem yok','err');return;}
@@ -1253,14 +1257,14 @@ function setFilterStatus(s){filterStatus=s;render();}
 function openPatient(id){
   currentPatientId=id;currentPtTab="consultation";ptFormDirty=false;
   const _op=getPatient(id);activePlan=_op?.assessment?.activePlan||'treatmentPlan';
-  const overlay=document.getElementById("patient-overlay");
+  const overlay=document.getElementById("patient-overlay");updateUndoBtn();
   overlay.style.display="flex";
   const _db=document.getElementById("btn-delete-patient");if(_db)_db.style.display=isSuperAdmin()?"":"none";
   renderPatientOverlay();
 }
 function closePatient(){
   document.getElementById("patient-overlay").style.display="none";
-  currentPatientId=null;
+  currentPatientId=null;updateUndoBtn();
 }
 function renderPatientOverlay(){
   const p=getPatient(currentPatientId);if(!p)return;
