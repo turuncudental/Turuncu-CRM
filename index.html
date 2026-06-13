@@ -2805,7 +2805,7 @@ function addBookingItem(type,treatmentId){
   const existing=p.booking.treatments.find(bt=>bt.treatmentId===treatmentId);
   if(existing)existing.qty=(existing.qty||1)+1;
   else p.booking.treatments.push({treatmentId:tr.id,name:tr.name,qty:1,price:getEffectivePrice(tr)});
-  renderPtBody();
+  markPtDirty();persist("customers");renderPtBody();
 }
 function addBookingAccommodation(visitIdx){
   const p=getPatient(currentPatientId);if(!p)return;
@@ -2818,7 +2818,7 @@ function addBookingAccommodation(visitIdx){
   ensureBooking(p);
   const visitTag=isImpl&&visitIdx!=null?visitIdx:undefined;
   p.booking.accommodations.push({providerId:prov.id,name:prov.name,nights,pricePerNight:getEffectivePrice(prov),...(visitTag!=null?{visit:visitTag}:{})});
-  persist("customers");renderPtBody();
+  markPtDirty();persist("customers");renderPtBody();
 }
 function addBookingTravel(){
   const p=getPatient(currentPatientId);if(!p)return;
@@ -2827,12 +2827,12 @@ function addBookingTravel(){
   const prov=getTreatment(id);if(!prov)return;
   ensureBooking(p);
   p.booking.travels.push({providerId:prov.id,name:prov.name,persons,price:getEffectivePrice(prov)});
-  persist("customers");renderPtBody();
+  markPtDirty();persist("customers");renderPtBody();
 }
-function removeBookingItem(arr,idx){const p=getPatient(currentPatientId);if(!p?.booking)return;p.booking[arr].splice(idx,1);persist("customers");renderPtBody();}
+function removeBookingItem(arr,idx){const p=getPatient(currentPatientId);if(!p?.booking)return;p.booking[arr].splice(idx,1);markPtDirty();persist("customers");renderPtBody();}
 function updateBookingQty(arr,idx,val,field="qty"){
   const p=getPatient(currentPatientId);if(!p?.booking?.[arr]?.[idx])return;
-  p.booking[arr][idx][field]=Math.max(1,val||1);persist("customers");renderPtBody();
+  p.booking[arr][idx][field]=Math.max(1,val||1);markPtDirty();persist("customers");renderPtBody();
 }
 function updateBookingDiscount(val){const p=getPatient(currentPatientId);if(!p?.booking)return;p.booking.discount=val||0;p.booking.discountRate=0;markPtDirty();renderPtBody();}
 function updateBookingDeposit(val){const p=getPatient(currentPatientId);if(!p?.booking)return;p.booking.deposit=val||0;markPtDirty();renderPtBody();}
