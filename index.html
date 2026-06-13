@@ -1028,7 +1028,7 @@ async function setCompany(cid){
 
 // ── LANG
 function setLang(l){
-  lang=l;t=T[l];
+  lang=l;t=T[l];localStorage.setItem('crm_lang',l);
   document.getElementById("lang-tr").className="lang-btn"+(l==="tr"?" active":"");
   document.getElementById("lang-en").className="lang-btn"+(l==="en"?" active":"");
   document.querySelectorAll(".nav-lbl").forEach(el=>el.textContent=t[el.dataset.key]||el.dataset.key);
@@ -3186,6 +3186,8 @@ async function downloadQuotePDF(patientId){
 }
 // ==INIT==
 (async()=>{
+  const savedLang=localStorage.getItem('crm_lang');
+  if(savedLang&&T[savedLang]){setLang(savedLang);setLoginLang(savedLang);}
   const saved=sessionStorage.getItem("crm_user");
   if(saved){try{currentUser=JSON.parse(saved);activeCompanyId=currentUser.role==='superadmin'?null:(currentUser.company_id||1);await showApp();}catch{sessionStorage.removeItem("crm_user");}}
 })();
