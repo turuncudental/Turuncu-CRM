@@ -229,6 +229,7 @@ nav button:hover:not(.active){color:#94a3b8}
         <div class="user-name" id="user-name">Admin</div>
         <div class="user-role" id="user-role">admin</div>
       </div>
+      <button id="btn-undo" class="logout-btn" onclick="undoLastAction()" title="Geri Al" style="font-size:15px;display:none;color:#60a5fa">↩</button>
       <button id="btn-change-pwd" class="logout-btn" onclick="openChangePasswordModal()" title="Şifre Değiştir" style="font-size:13px">🔑</button>
       <button id="btn-logout" class="logout-btn" onclick="doLogout()" title="Çıkış">⏻</button>
     </div>
@@ -647,6 +648,7 @@ en:{
 }};
 
 let lang="tr",t=T.tr;
+const undoStack=[];
 let currentUser=null;
 let currentTab="dashboard",searchQuery="",charts={};
 let currentPatientId=null,currentPtTab="consultation",ptFormDirty=false;
@@ -1026,6 +1028,25 @@ async function setCompany(cid){
   render();
 }
 
+// ── UNDO
+function pushUndo(stateKey,label){
+  undoStack.push({stateKey,data:JSON.parse(JSON.stringify(state[stateKey])),label});
+  updateUndoBtn();
+}
+function updateUndoBtn(){
+  const btn=document.getElementById('btn-undo');if(!btn)return;
+  const last=undoStack[undoStack.length-1];
+  if(last){btn.style.display='';btn.title=`↩ ${last.label}`;}
+  else{btn.style.display='none';}
+}
+async function undoLastAction(){
+  const last=undoStack.pop();if(!last){toast('Geri alınacak işlem yok','err');return;}
+  state[last.stateKey]=last.data;
+  const map={patients:'customers',events:'deals',appointments:'tasks',treatments:'history'};
+  await persist(map[last.stateKey]);
+  render();updateUndoBtn();
+  toast('↩ Geri alındı ✅');
+}
 // ── LANG
 function setLang(l){
   lang=l;t=T[l];localStorage.setItem('crm_lang',l);
@@ -2708,6 +2729,7 @@ async function savePatientModal(editId){
   if(!await confirmDialog(editId?t.confirmSavePatient:t.confirmAddPatient))return;
   const _nat=document.getElementById("pm-nationality").value;
   const item={name,phone:document.getElementById("pm-phone").value,email:document.getElementById("pm-email").value,country:_nat,nationality:_nat,status:document.getElementById("pm-status").value,eventId:+document.getElementById("pm-eventId").value||null};
+  pushUndo('patients',editId?(t.editPatient||'Hasta düzenle'):(t.newPatient||'Hasta ekle'));
   if(editId){state.patients=state.patients.map(p=>p.id==editId?{...p,...item}:p);logAction('patient_edit',name);toast("✅ "+t.updated);}
   else{state.patients.push({...item,id:Date.now(),assignee:currentUser.username,createdAt:new Date().toISOString(),consultation:{dentalConcerns:"",medicalHistory:"",allergies:"",medications:"",smoking:false,pregnant:false,bisphosphonate:false,heartDisease:false,diabetes:false,notes:""},assessment:{currentCondition:{},treatmentPlan:{},dentistNotes:""},booking:{treatments:[],accommodations:[],travels:[],discount:0,deposit:0,notes:""},notes:[]});logAction('patient_add',name);toast("✅ "+t.added);}
   await persist("customers");closeModal();render();
@@ -2717,7 +2739,7 @@ async function savePatientModal(editId){
 async function saveCurrentPatient(){
   const p=getPatient(currentPatientId);if(!p)return;
   if(!await confirmDialog(t.confirmSavePatient))return;
-  await takeSnapshot('customers',state.patients);
+  await takeSnapshot('customers',state.patients);pushUndo('patients',t.saveBtn||'Hasta kaydet');
   if(currentPtTab==="consultation"){
     const _oldStatus=p.status;
     p.name=document.getElementById("pc-name")?.value||p.name;
@@ -2849,11 +2871,12 @@ async function saveEvent(editId){
   const dateStart=document.getElementById("em-date-start").value;
   const dateEnd=document.getElementById("em-date-end").value||dateStart;
   const item={name,city:document.getElementById("em-city").value,venue:document.getElementById("em-venue").value,dateStart,dateEnd,date:dateStart,active:document.getElementById("em-active").checked};
+  pushUndo('events',editId?(t.editEvent||'Etkinlik düzenle'):(t.newEvent||'Etkinlik ekle'));
   if(editId){state.events=state.events.map(e=>e.id==editId?{...e,...item}:e);logAction('event_edit',name);}
   else{state.events.push({...item,id:Date.now()});logAction('event_add',name);}
   await persist("deals");toast("✅ "+t.saved);closeModal();render();
 }
-async function deleteEvent(id){if(!isSuperAdmin())return;if(!await confirmDialog(t.confirmDeleteEvent,true))return;const _de=state.events.find(e=>e.id===id);await takeSnapshot('deals',state.events);state.events=state.events.map(e=>e.id===id?{...e,deleted:true}:e);await persist("deals");logAction('event_delete',_de?.name||'');toast(t.eventDeleted,"warn");render();}
+async function deleteEvent(id){if(!isSuperAdmin())return;if(!await confirmDialog(t.confirmDeleteEvent,true))return;const _de=state.events.find(e=>e.id===id);await takeSnapshot('deals',state.events);pushUndo('events',`Etkinlik sil: ${_de?.name||''}`);state.events=state.events.map(e=>e.id===id?{...e,deleted:true}:e);await persist("deals");logAction('event_delete',_de?.name||'');toast(t.eventDeleted,"warn");render();}
 
 // ── APPOINTMENTS
 function openAppointmentModal(){
@@ -2870,15 +2893,17 @@ async function saveAppointment(){
   if(!patientId||!eventId)return;
   const pat=getPatient(patientId);
   const _evtName=state.events.find(e=>e.id===eventId)?.name||'';
+  pushUndo('appointments',t.newAppointment||'Randevu ekle');
   state.appointments.push({id:Date.now(),eventId,patientId,patientName:pat?.name||"",time:document.getElementById("am-time").value,status:"scheduled"});
   await persist("tasks");logAction('apt_add',`${pat?.name||''} / ${_evtName}`);toast("✅ "+t.added);closeModal();render();
 }
 async function setAptStatus(id,status){
   const _apt=state.appointments.find(a=>a.id==id);
+  pushUndo('appointments',`Randevu durumu: ${_apt?.patientName||''}`);
   state.appointments=state.appointments.map(a=>a.id==id?{...a,status}:a);
   await persist("tasks");logAction('apt_status',`${_apt?.patientName||''} → ${status}`);toast("✅ "+t.saved);render();
 }
-async function deleteAppointment(id){if(!await confirmDialog(t.confirmDeleteApt,true))return;const _da=state.appointments.find(a=>a.id===id);await takeSnapshot('tasks',state.appointments);state.appointments=state.appointments.map(a=>a.id===id?{...a,deleted:true}:a);await persist("tasks");logAction('apt_delete',_da?.patientName||'');toast(t.aptDeleted,"warn");render();}
+async function deleteAppointment(id){if(!await confirmDialog(t.confirmDeleteApt,true))return;const _da=state.appointments.find(a=>a.id===id);await takeSnapshot('tasks',state.appointments);pushUndo('appointments',`Randevu sil: ${_da?.patientName||''}`);state.appointments=state.appointments.map(a=>a.id===id?{...a,deleted:true}:a);await persist("tasks");logAction('apt_delete',_da?.patientName||'');toast(t.aptDeleted,"warn");render();}
 
 // ── TREATMENTS
 function openTreatmentModal(editId,forcedType){
@@ -2921,12 +2946,13 @@ async function saveTreatment(editId,type){
   const name=document.getElementById("trm-name")?.value?.trim();if(!name)return;
   if(!await confirmDialog(editId?t.confirmSaveTx:t.confirmAddTx))return;
   const item={name,description:document.getElementById("trm-desc").value,category:document.getElementById("trm-cat").value,clinicCost:+document.getElementById("trm-clinicCost").value||0,salePrice:+document.getElementById("trm-salePrice").value||0,salePriceEUR:+document.getElementById("trm-salePriceEUR")?.value||0,salePriceUSD:+document.getElementById("trm-salePriceUSD")?.value||0,active:document.getElementById("trm-active").checked,type:type||"treatment"};
+  pushUndo('treatments',editId?(t.editTx||'Tedavi düzenle'):(t.addTx||'Tedavi ekle'));
   if(editId){state.treatments=state.treatments.map(tr=>tr.id==editId?{...tr,...item}:tr);logAction('catalog_edit',name);}
   else{state.treatments.push({...item,id:Date.now()});logAction('catalog_add',name);}
   await persist("history");toast("✅ "+t.saved);closeModal();render();
 }
-async function deleteTreatment(id){if(!canEdit())return;if(!await confirmDialog(t.confirmDeleteTx,true))return;const _dt=state.treatments.find(tr=>tr.id===id);await takeSnapshot('history',state.treatments);state.treatments=state.treatments.map(tr=>tr.id===id?{...tr,deleted:true}:tr);await persist("history");logAction('catalog_delete',_dt?.name||'');toast(t.recordDeleted,"warn");render();}
-async function deletePatient(id){if(!isSuperAdmin())return;if(!await confirmDialog(t.confirmDeletePatient||'Bu hastayı silmek istediğinizden emin misiniz?',true))return;const _dp=state.patients.find(p=>p.id===id);await takeSnapshot('customers',state.patients);state.patients=state.patients.map(p=>p.id===id?{...p,deleted:true}:p);await persist("customers");logAction('patient_delete',_dp?.name||'');toast(t.patientDeleted||'Hasta silindi',"warn");closePatient();render();}
+async function deleteTreatment(id){if(!canEdit())return;if(!await confirmDialog(t.confirmDeleteTx,true))return;const _dt=state.treatments.find(tr=>tr.id===id);await takeSnapshot('history',state.treatments);pushUndo('treatments',`Tedavi sil: ${_dt?.name||''}`);state.treatments=state.treatments.map(tr=>tr.id===id?{...tr,deleted:true}:tr);await persist("history");logAction('catalog_delete',_dt?.name||'');toast(t.recordDeleted,"warn");render();}
+async function deletePatient(id){if(!isSuperAdmin())return;if(!await confirmDialog(t.confirmDeletePatient||'Bu hastayı silmek istediğinizden emin misiniz?',true))return;const _dp=state.patients.find(p=>p.id===id);await takeSnapshot('customers',state.patients);pushUndo('patients',`Hasta sil: ${_dp?.name||''}`);state.patients=state.patients.map(p=>p.id===id?{...p,deleted:true}:p);await persist("customers");logAction('patient_delete',_dp?.name||'');toast(t.patientDeleted||'Hasta silindi',"warn");closePatient();render();}
 async function restoreFromTrash(type,id){
   if(type==='patient'){state.patients=state.patients.map(p=>p.id==id?{...p,deleted:false}:p);await persist('customers');}
   else if(type==='event'){state.events=state.events.map(e=>e.id==id?{...e,deleted:false}:e);await persist('deals');}
