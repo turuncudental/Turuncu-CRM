@@ -8,7 +8,32 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/bcryptjs@2.4.3/dist/bcrypt.min.js"></script>
+<script>
+// Password hashing via Web Crypto API (no CDN dependency)
+const bcrypt={
+  async hash(pwd,_){
+    const enc=new TextEncoder();
+    const salt=crypto.getRandomValues(new Uint8Array(16));
+    const key=await crypto.subtle.importKey("raw",enc.encode(pwd),{name:"PBKDF2"},false,["deriveBits"]);
+    const bits=await crypto.subtle.deriveBits({name:"PBKDF2",salt,iterations:100000,hash:"SHA-256"},key,256);
+    const h=btoa(String.fromCharCode(...salt))+'$'+btoa(String.fromCharCode(...new Uint8Array(bits)));
+    return'$pbkdf2$'+h;
+  },
+  async compare(pwd,stored){
+    if(!stored)return false;
+    if(!stored.startsWith('$pbkdf2$')){return pwd===stored;}
+    try{
+      const[,rest]=stored.split('$pbkdf2$');
+      const[saltB64,hashB64]=rest.split('$');
+      const salt=Uint8Array.from(atob(saltB64),c=>c.charCodeAt(0));
+      const enc=new TextEncoder();
+      const key=await crypto.subtle.importKey("raw",enc.encode(pwd),{name:"PBKDF2"},false,["deriveBits"]);
+      const bits=await crypto.subtle.deriveBits({name:"PBKDF2",salt,iterations:100000,hash:"SHA-256"},key,256);
+      return btoa(String.fromCharCode(...new Uint8Array(bits)))===hashB64;
+    }catch{return false;}
+  }
+};
+</script>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800;900&display=swap');
 *{box-sizing:border-box;margin:0;padding:0}
@@ -929,7 +954,7 @@ async function doLogin(){
       const data=await r.json();
       if(data&&data.length>0){
         const usr=data[0];let ok=false;
-        if(usr.password&&usr.password.startsWith('$2b$')){ok=await bcrypt.compare(password,usr.password);}
+        if(usr.password&&usr.password.startsWith('$pbkdf2$')){ok=await bcrypt.compare(password,usr.password);}
         else{ok=(usr.password===password);if(ok){const h=await bcrypt.hash(password,10);fetch(`${SUPA_URL}/rest/v1/crm_users?id=eq.${usr.id}`,{method:'PATCH',headers:{...H,'Prefer':'return=minimal'},body:JSON.stringify({password:h})}).catch(()=>{});}}
         if(ok){loginOk=true;clearAttempts(username);currentUser=usr;activeCompanyId=currentUser.role==='superadmin'?null:(currentUser.company_id||1);sessionStorage.setItem("crm_user",JSON.stringify(currentUser));await showApp();logAction('login','');btn.textContent=t.loginBtn;btn.disabled=false;return;}
       }
