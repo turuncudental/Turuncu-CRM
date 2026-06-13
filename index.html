@@ -535,6 +535,7 @@ tr:{
   noRecords:"Kayıt bulunamadı",accessDenied:"Erişim yetkiniz yok.",youLabel:"siz",
   startDate:"Başlangıç Tarihi",endDate:"Bitiş Tarihi",noEventsFound:"Etkinlik bulunamadı",
   unsavedChangesWarning:"Hasta Kayıt formunda kaydedilmemiş değişiklikler var. Kaydetmeden devam etmek istiyor musunuz?",
+  unsavedPlanWarning:"Planlama sekmesinde kaydedilmemiş değişiklikler var. Kaydetmek ister misiniz?",
 },
 en:{
   navDashboard:"Dashboard",navPatients:"Patients",navEvents:"Events",navAppointments:"Appointments",
@@ -646,6 +647,7 @@ en:{
   noRecords:"No records found",accessDenied:"Access denied.",youLabel:"you",
   startDate:"Start Date",endDate:"End Date",noEventsFound:"No events found",
   unsavedChangesWarning:"Patient Record has unsaved changes. Continue without saving?",
+  unsavedPlanWarning:"Planning tab has unsaved changes. Would you like to save?",
 }};
 
 let lang="tr",t=T.tr;
@@ -1279,7 +1281,21 @@ async function setPtTab(tab){
   if(currentPtTab==="consultation"&&ptFormDirty&&tab!=="consultation"){
     if(!await confirmDialog(t.unsavedChangesWarning))return;
   }
+  if(currentPtTab==="assessment"&&ptFormDirty&&tab!=="assessment"){
+    if(!await confirmDialog(t.unsavedPlanWarning))return;
+    await saveAssessmentSilent();
+  }
   ptFormDirty=false;currentPtTab=tab;renderPatientOverlay();
+}
+async function saveAssessmentSilent(){
+  const p=getPatient(currentPatientId);if(!p)return;
+  await takeSnapshot('customers',state.patients);pushUndo('patients',t.saveBtn||'Hasta kaydet');
+  if(!p.assessment)p.assessment={currentCondition:{},treatmentPlan:{},dentistNotes:""};
+  p.assessment.dentistNotes=document.getElementById("pa-dentistNotes")?.value??p.assessment.dentistNotes;
+  ensureBooking(p);
+  p.booking.notes=document.getElementById("pb-notes")?.value??p.booking.notes;
+  ptFormDirty=false;
+  await persist("customers");logAction('plan_save',buildPlanDetail(p));toast("✅ "+t.saved);
 }
 function renderPtBody(){
   const p=getPatient(currentPatientId);if(!p)return;
@@ -1745,7 +1761,7 @@ function renderPtAssessment(p){
           </div>
         </div>`:''}
       </div>
-      <div class="field" style="margin-top:12px"><label>${t.bookingNotes}</label><textarea id="pb-notes" rows="2">${b.notes||""}</textarea></div>
+      <div class="field" style="margin-top:12px"><label>${t.bookingNotes}</label><textarea id="pb-notes" rows="2" oninput="markPtDirty()">${b.notes||""}</textarea></div>
     </div>
     <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
       ${p.assessment?.activePlan===activePlan
@@ -1757,7 +1773,7 @@ function renderPtAssessment(p){
     ${!canSeeFinancials()?`<div style="padding:12px;background:#0d1320;border:1px solid #1a2236;border-radius:10px;color:#3d5270;font-size:12px;text-align:center">${t.financialHidden}</div>`:''}
     <div class="card">
       <div class="section-title">${t.dentistNotes}</div>
-      <div class="field"><textarea id="pa-dentistNotes" rows="4">${a.dentistNotes||""}</textarea></div>
+      <div class="field"><textarea id="pa-dentistNotes" rows="4" oninput="markPtDirty()">${a.dentistNotes||""}</textarea></div>
     </div>
   </div>`;
 }
@@ -2186,7 +2202,7 @@ function renderPtBooking(p){
         </div>`:''}
 
       </div>
-      <div class="field" style="margin-top:12px"><label>${t.bookingNotes}</label><textarea id="pb-notes" rows="2">${b.notes||""}</textarea></div>
+      <div class="field" style="margin-top:12px"><label>${t.bookingNotes}</label><textarea id="pb-notes" rows="2" oninput="markPtDirty()">${b.notes||""}</textarea></div>
     </div>
     <div style="display:flex;gap:10px">
       <button class="btn sec" onclick="downloadQuotePDF(${p.id})">📄 ${t.downloadPDF}</button>
@@ -2818,10 +2834,10 @@ function updateBookingQty(arr,idx,val,field="qty"){
   const p=getPatient(currentPatientId);if(!p?.booking?.[arr]?.[idx])return;
   p.booking[arr][idx][field]=Math.max(1,val||1);persist("customers");renderPtBody();
 }
-function updateBookingDiscount(val){const p=getPatient(currentPatientId);if(!p?.booking)return;p.booking.discount=val||0;p.booking.discountRate=0;renderPtBody();}
-function updateBookingDeposit(val){const p=getPatient(currentPatientId);if(!p?.booking)return;p.booking.deposit=val||0;renderPtBody();}
-function updateBookingDiscountRate(rate,sub){const p=getPatient(currentPatientId);if(!p?.booking)return;p.booking.discountRate=rate||0;p.booking.discount=rate>0?Math.round(sub*rate/100):0;if(rate>0)logAction('discount_applied',`${p.name} — %${rate} (${currSym()}${p.booking.discount})`);renderPtBody();}
-function updateBookingDiscountAmt(amt,sub){const p=getPatient(currentPatientId);if(!p?.booking)return;p.booking.discount=amt||0;p.booking.discountRate=sub>0?+((amt/sub)*100).toFixed(1):0;renderPtBody();}
+function updateBookingDiscount(val){const p=getPatient(currentPatientId);if(!p?.booking)return;p.booking.discount=val||0;p.booking.discountRate=0;markPtDirty();renderPtBody();}
+function updateBookingDeposit(val){const p=getPatient(currentPatientId);if(!p?.booking)return;p.booking.deposit=val||0;markPtDirty();renderPtBody();}
+function updateBookingDiscountRate(rate,sub){const p=getPatient(currentPatientId);if(!p?.booking)return;p.booking.discountRate=rate||0;p.booking.discount=rate>0?Math.round(sub*rate/100):0;if(rate>0)logAction('discount_applied',`${p.name} — %${rate} (${currSym()}${p.booking.discount})`);markPtDirty();renderPtBody();}
+function updateBookingDiscountAmt(amt,sub){const p=getPatient(currentPatientId);if(!p?.booking)return;p.booking.discount=amt||0;p.booking.discountRate=sub>0?+((amt/sub)*100).toFixed(1):0;markPtDirty();renderPtBody();}
 
 // ── NOTES
 async function addPatientNote(){
@@ -3071,6 +3087,10 @@ function togglePdfPrices(){
 }
 async function downloadQuotePDF(patientId){
   const p=getPatient(patientId);if(!p)return;
+  if(ptFormDirty&&currentPtTab==="assessment"){
+    if(!await confirmDialog(t.unsavedPlanWarning))return;
+    await saveAssessmentSilent();
+  }
   logAction('quote_download',p.name);
   const a=p.assessment||{};const b=p.booking||{};
   // Warn if accommodation or transfer is missing before generating PDF
