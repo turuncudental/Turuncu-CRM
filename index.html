@@ -556,6 +556,12 @@ tr:{
   startDate:"Başlangıç Tarihi",endDate:"Bitiş Tarihi",noEventsFound:"Etkinlik bulunamadı",
   unsavedChangesWarning:"Hasta Kayıt formunda kaydedilmemiş değişiklikler var. Kaydetmeden devam etmek istiyor musunuz?",
   unsavedPlanWarning:"Planlama sekmesinde kaydedilmemiş değişiklikler var. Kaydetmek ister misiniz?",
+  undoBtn:"↩ Geri Al",undoNoAction:"Geri alınacak işlem yok",undoDone:"↩ Geri alındı ✅",
+  cannotRootCanal:"Bu dişte kanal seçemezsiniz",cannotCrown:"Seçtiğiniz bölgede kron bulunmamaktadır",
+  imageReadError:"Resim okunamadı:",companyHasUsers:"Bu firmaya bağlı {n} kullanıcı var. Önce kullanıcıları silin.",
+  undoLabelEventDel:"Etkinlik sil",undoLabelAptStatus:"Randevu durumu",undoLabelAptDel:"Randevu sil",undoLabelTxDel:"Kayıt sil",undoLabelPatientDel:"Hasta sil",
+  phTxCategory:"Estetik, Restorasyon, İmplant...",phAccomName:"Hilton, Marriott...",phAccomDesc:"5 yıldızlı otel, özel suit...",phAccomCity:"İstanbul, Antalya...",phTravelName:"Firma adı...",phTravelDesc:"Havalimanı transferi, VIP servis...",phTravelType:"Transfer, VIP Transfer, Kiralık Araç...",
+  regionLabel:"Bölge",
 },
 en:{
   navDashboard:"Dashboard",navPatients:"Patients",navEvents:"Events",navAppointments:"Appointments",
@@ -668,6 +674,12 @@ en:{
   startDate:"Start Date",endDate:"End Date",noEventsFound:"No events found",
   unsavedChangesWarning:"Patient Record has unsaved changes. Continue without saving?",
   unsavedPlanWarning:"Planning tab has unsaved changes. Would you like to save?",
+  undoBtn:"↩ Undo",undoNoAction:"Nothing to undo",undoDone:"↩ Undone ✅",
+  cannotRootCanal:"Root canal cannot be applied to this tooth",cannotCrown:"No crown available in the selected area",
+  imageReadError:"Could not read image:",companyHasUsers:"This company has {n} user(s). Delete users first.",
+  undoLabelEventDel:"Delete event",undoLabelAptStatus:"Appointment status",undoLabelAptDel:"Delete appointment",undoLabelTxDel:"Delete record",undoLabelPatientDel:"Delete patient",
+  phTxCategory:"Aesthetic, Restoration, Implant...",phAccomName:"Hilton, Marriott...",phAccomDesc:"5-star hotel, private suite...",phAccomCity:"Istanbul, Antalya...",phTravelName:"Company name...",phTravelDesc:"Airport transfer, VIP service...",phTravelType:"Transfer, VIP Transfer, Rental Car...",
+  regionLabel:"Region",
 }};
 
 let lang="tr",t=T.tr;
@@ -916,7 +928,7 @@ function buildPlanDetail(p){
   const total=patientActivePlanTotal(p);const discount=p.booking?.discount||0;
   let d=`${p.name} — ${currSym()}${total.toLocaleString()}`;
   if(parts.length)d+=` | ${parts.slice(0,6).join(', ')}${parts.length>6?` +${parts.length-6} daha`:''}`;
-  if(discount>0)d+=` | İndirim: ${currSym()}${discount}`;
+  if(discount>0)d+=` | ${(t.discount||'İndirim ').trim()}: ${currSym()}${discount}`;
   return d;
 }
 async function logAction(action,detail=''){
@@ -1059,20 +1071,20 @@ function pushUndo(stateKey,label){
 }
 function updateUndoBtn(){
   const last=undoStack[undoStack.length-1];
-  const label=last?`↩ Geri Al: ${last.label}`:'';
+  const label=last?`${t.undoBtn||'↩ Geri Al'}: ${last.label}`:'';
   const overlayOpen=document.getElementById('patient-overlay')?.style.display!=='none';
   const btn=document.getElementById('btn-undo');
-  if(btn){if(last){btn.style.display='';btn.title=label;}else btn.style.display='none';}
+  if(btn){if(last){btn.style.display='';btn.textContent=t.undoBtn||'↩ Geri Al';btn.title=label;}else btn.style.display='none';}
   const btnT=document.getElementById('btn-undo-topbar');
-  if(btnT){if(last&&!overlayOpen){btnT.style.display='';btnT.title=label;}else btnT.style.display='none';}
+  if(btnT){if(last&&!overlayOpen){btnT.style.display='';btnT.textContent=t.undoBtn||'↩ Geri Al';btnT.title=label;}else btnT.style.display='none';}
 }
 async function undoLastAction(){
-  const last=undoStack.pop();if(!last){toast('Geri alınacak işlem yok','err');return;}
+  const last=undoStack.pop();if(!last){toast(t.undoNoAction||'Geri alınacak işlem yok','err');return;}
   state[last.stateKey]=last.data;
   const map={patients:'customers',events:'deals',appointments:'tasks',treatments:'history'};
   await persist(map[last.stateKey]);
   render();updateUndoBtn();
-  toast('↩ Geri alındı ✅');
+  toast(t.undoDone||'↩ Geri alındı ✅');
 }
 // ── LANG
 function setLang(l){
@@ -1087,6 +1099,9 @@ function setLang(l){
   const _lc=document.getElementById("logo-sub-crm");if(_lc)_lc.textContent=t.logoCRM;
   const _sl=document.getElementById("syncing-label");if(_sl)_sl.textContent=t.saving;
   const _lo=document.getElementById("btn-logout");if(_lo)_lo.title=t.logout;
+  const _cp=document.getElementById("btn-change-pwd");if(_cp)_cp.title=t.changePassword;
+  const _ub=document.getElementById("btn-undo");if(_ub)_ub.textContent=t.undoBtn;
+  const _ubt=document.getElementById("btn-undo-topbar");if(_ubt)_ubt.textContent=t.undoBtn;
   const _ur=document.getElementById("user-role");if(_ur&&currentUser)_ur.textContent=roleLabel(currentUser.role);
   if(currentUser){document.getElementById("page-title").textContent=t[currentTab]||currentTab;updateFooter();render();}
 }
@@ -1171,8 +1186,8 @@ function renderDashboard(){
     <div class="grid4">
       <div class="card"><div class="kpi-val" style="color:#60a5fa">${total}</div><div class="kpi-lbl">${t.totalPatients}</div><div class="kpi-sub">${state.patients.filter(p=>p.status==="consultation").length} ${t.consultationCount}</div></div>
       <div class="card"><div class="kpi-val" style="color:#a78bfa">${upcomingEvts}</div><div class="kpi-lbl">${t.upcomingEvents}</div><div class="kpi-sub">${state.events.length} ${t.totalEventsCount}</div></div>
-      <div class="card"><div class="kpi-val" style="color:#f59e0b">%${conv}</div><div class="kpi-lbl">${t.convRate}</div><div class="kpi-sub">${booked} / ${total} hasta</div></div>
-      <div class="card"><div class="kpi-val" style="color:#34d399">${currSym()}${totalRev.toLocaleString()}</div><div class="kpi-lbl">${t.totalRevenue}</div><div class="kpi-sub">${booked} rezervasyon</div></div>
+      <div class="card"><div class="kpi-val" style="color:#f59e0b">%${conv}</div><div class="kpi-lbl">${t.convRate}</div><div class="kpi-sub">${booked} / ${total} ${t.footerPatients}</div></div>
+      <div class="card"><div class="kpi-val" style="color:#34d399">${currSym()}${totalRev.toLocaleString()}</div><div class="kpi-lbl">${t.totalRevenue}</div><div class="kpi-sub">${booked} ${t.footerBooked}</div></div>
     </div>
     ${nextEvt?`<div class="card">
       <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px">
@@ -1962,8 +1977,8 @@ function setToothCond(num,cond){
   if(!p.assessment)p.assessment={currentCondition:{},treatmentPlan:{},dentistNotes:""};
   if(!p.assessment[activePlan])p.assessment[activePlan]={};
   const existing=p.assessment[activePlan][num];
-  if(cond==='root_canal'&&existing&&(existing==='implant'||existing.startsWith('implant+'))){toast("Bu dişte kanal seçemezsiniz","warn");return;}
-  if(cond==='filling'&&existing==='missing'){toast("Seçtiğiniz bölgede kron bulunmamaktadır","warn");return;}
+  if(cond==='root_canal'&&existing&&(existing==='implant'||existing.startsWith('implant+'))){toast(t.cannotRootCanal,"warn");return;}
+  if(cond==='filling'&&existing==='missing'){toast(t.cannotCrown,"warn");return;}
   // Crown-type conditions that can sit on top of an implant
   const crownTypes=["crown","zircrown","veneer","cavity","filling","bridge"];
   if(existing==="implant"&&crownTypes.includes(cond)){
@@ -2294,7 +2309,7 @@ async function addPatientFiles(input){
     let compressed=null;
     if(file.type.startsWith('image/')){
       compressed=await compressImage(file);
-      if(!compressed){toast('Resim okunamadı: '+file.name,'error');continue;}
+      if(!compressed){toast((t.imageReadError||'Resim okunamadı:')+' '+file.name,'error');continue;}
     }else if(file.size>20*1024*1024){toast(file.name+' '+t.fileTooLarge,'error');continue;}
     try{
       toast(file.name+' '+t.uploading);
@@ -2392,8 +2407,8 @@ function renderEvents(){
           <div style="font-size:12px;color:#4a607d">📍 ${e.city} · ${e.venue} &nbsp;·&nbsp; ${(d=>d.main?`<span style="color:#22c55e;font-weight:700">${d.main} ${d.year}</span>`:"")(formatEventDateDisplay(e))}</div>
         </div>
         <div style="margin-left:auto;display:flex;align-items:center;gap:10px">
-          <span style="color:#60a5fa;font-size:13px;font-weight:700">${pats.length} hasta</span>
-          <span style="color:#34d399;font-size:13px;font-weight:700">${booked} rezerve</span>
+          <span style="color:#60a5fa;font-size:13px;font-weight:700">${pats.length} ${t.footerPatients}</span>
+          <span style="color:#34d399;font-size:13px;font-weight:700">${booked} ${t.footerBooked}</span>
           <button onclick="eventDetailViewMode=eventDetailViewMode==='grid'?'list':'grid';render()" style="padding:6px 10px;border-radius:8px;border:1px solid #1a2236;background:#1a2236;color:#dde4ef;font-size:15px;cursor:pointer;line-height:1" title="${eventDetailViewMode==='grid'?t.listView:t.gridView}">${eventDetailViewMode==='grid'?'≡':'⊞'}</button>
         </div>
       </div>
@@ -2448,8 +2463,8 @@ function renderEvents(){
       <div style="font-weight:800;font-size:14px;margin-bottom:4px">${e.name}</div>
       <div style="font-size:12px;color:#4a607d;margin-bottom:10px">📍 ${e.city} · ${e.venue}</div>
       <div style="display:flex;gap:10px;padding-top:10px;border-top:1px solid #1a2236;font-size:12px;margin-bottom:8px">
-        <span style="color:#60a5fa">${pats.length} hasta</span>
-        <span style="color:#34d399">${booked} rezerve</span>
+        <span style="color:#60a5fa">${pats.length} ${t.footerPatients}</span>
+        <span style="color:#34d399">${booked} ${t.footerBooked}</span>
       </div>
       <div style="border-top:1px solid #1a2236;padding-top:8px;display:flex;flex-direction:column;gap:4px">
         <div style="display:flex;justify-content:space-between;font-size:11px"><span style="color:#4a607d">${t.totalQuoteLabel}</span><span style="color:#dde4ef;font-weight:700">${totalQuote>0?currSym()+totalQuote.toLocaleString():"—"}</span></div>
@@ -2654,7 +2669,7 @@ async function saveCompany(editId){
 async function deleteCompany(id){
   if(!canSeeLogs())return;
   const userCount=state.users.filter(u=>u.company_id===id).length;
-  if(userCount>0){toast(`Bu firmaya bağlı ${userCount} kullanıcı var. Önce kullanıcıları silin.`,"err");return;}
+  if(userCount>0){toast((t.companyHasUsers||'Bu firmaya bağlı {n} kullanıcı var. Önce kullanıcıları silin.').replace('{n}',userCount),"err");return;}
   if(!await confirmDialog(t.confirmDeleteCompany||"Bu firmayı silmek istediğinizden emin misiniz?",true))return;
   try{const r=await fetch(`${SUPA_URL}/rest/v1/crm_companies?id=eq.${id}`,{method:"DELETE",headers:H});if(!r.ok){toast(t.updateFailed||"Hata","err");return;}
   const _dcname=state.companies.find(c=>c.id===id)?.name||'';
@@ -2918,7 +2933,7 @@ async function saveEvent(editId){
   else{state.events.push({...item,id:Date.now()});logAction('event_add',name);}
   await persist("deals");toast("✅ "+t.saved);closeModal();render();
 }
-async function deleteEvent(id){if(!isSuperAdmin())return;if(!await confirmDialog(t.confirmDeleteEvent,true))return;const _de=state.events.find(e=>e.id===id);await takeSnapshot('deals',state.events);pushUndo('events',`Etkinlik sil: ${_de?.name||''}`);state.events=state.events.map(e=>e.id===id?{...e,deleted:true}:e);await persist("deals");logAction('event_delete',_de?.name||'');toast(t.eventDeleted,"warn");render();}
+async function deleteEvent(id){if(!isSuperAdmin())return;if(!await confirmDialog(t.confirmDeleteEvent,true))return;const _de=state.events.find(e=>e.id===id);await takeSnapshot('deals',state.events);pushUndo('events',`${t.undoLabelEventDel||'Etkinlik sil'}: ${_de?.name||''}`);state.events=state.events.map(e=>e.id===id?{...e,deleted:true}:e);await persist("deals");logAction('event_delete',_de?.name||'');toast(t.eventDeleted,"warn");render();}
 
 // ── APPOINTMENTS
 function openAppointmentModal(){
@@ -2941,11 +2956,11 @@ async function saveAppointment(){
 }
 async function setAptStatus(id,status){
   const _apt=state.appointments.find(a=>a.id==id);
-  pushUndo('appointments',`Randevu durumu: ${_apt?.patientName||''}`);
+  pushUndo('appointments',`${t.undoLabelAptStatus||'Randevu durumu'}: ${_apt?.patientName||''}`);
   state.appointments=state.appointments.map(a=>a.id==id?{...a,status}:a);
   await persist("tasks");logAction('apt_status',`${_apt?.patientName||''} → ${status}`);toast("✅ "+t.saved);render();
 }
-async function deleteAppointment(id){if(!await confirmDialog(t.confirmDeleteApt,true))return;const _da=state.appointments.find(a=>a.id===id);await takeSnapshot('tasks',state.appointments);pushUndo('appointments',`Randevu sil: ${_da?.patientName||''}`);state.appointments=state.appointments.map(a=>a.id===id?{...a,deleted:true}:a);await persist("tasks");logAction('apt_delete',_da?.patientName||'');toast(t.aptDeleted,"warn");render();}
+async function deleteAppointment(id){if(!await confirmDialog(t.confirmDeleteApt,true))return;const _da=state.appointments.find(a=>a.id===id);await takeSnapshot('tasks',state.appointments);pushUndo('appointments',`${t.undoLabelAptDel||'Randevu sil'}: ${_da?.patientName||''}`);state.appointments=state.appointments.map(a=>a.id===id?{...a,deleted:true}:a);await persist("tasks");logAction('apt_delete',_da?.patientName||'');toast(t.aptDeleted,"warn");render();}
 
 // ── TREATMENTS
 function openTreatmentModal(editId,forcedType){
@@ -2956,7 +2971,7 @@ function openTreatmentModal(editId,forcedType){
     body=`
       <div class="field"><label>${t.tname}</label><input id="trm-name" value="${tr?.name||""}"/></div>
       <div class="field"><label>${t.tdesc}</label><input id="trm-desc" value="${tr?.description||""}"/></div>
-      <div class="field"><label>${t.tcategory}</label><input id="trm-cat" value="${tr?.category||""}" placeholder="Estetik, Restorasyon, İmplant..."/></div>
+      <div class="field"><label>${t.tcategory}</label><input id="trm-cat" value="${tr?.category||""}" placeholder="${t.phTxCategory||'Estetik, Restorasyon, İmplant...'}"/></div>
       <div class="field-row">
         <div class="field"><label>${t.tclinicCost}</label><input type="number" id="trm-clinicCost" value="${tr?.clinicCost||0}"/></div>
         <div class="field"><label>${t.tsalePrice} (£ GBP)</label><input type="number" id="trm-salePrice" value="${tr?.salePrice||0}"/></div>
@@ -2967,16 +2982,16 @@ function openTreatmentModal(editId,forcedType){
       </div>`;
   } else if(type==="accommodation"){
     body=`
-      <div class="field"><label>${t.aname}</label><input id="trm-name" value="${tr?.name||""}" placeholder="Hilton, Marriott..."/></div>
-      <div class="field"><label>${t.tdesc}</label><input id="trm-desc" value="${tr?.description||""}" placeholder="5 yıldızlı otel, özel suit..."/></div>
-      <div class="field"><label>${t.acity} / Bölge</label><input id="trm-cat" value="${tr?.category||""}" placeholder="İstanbul, Antalya..."/></div>
+      <div class="field"><label>${t.aname}</label><input id="trm-name" value="${tr?.name||""}" placeholder="${t.phAccomName||'Hilton, Marriott...'}"/></div>
+      <div class="field"><label>${t.tdesc}</label><input id="trm-desc" value="${tr?.description||""}" placeholder="${t.phAccomDesc||'5 yıldızlı otel, özel suit...'}"/></div>
+      <div class="field"><label>${t.acity} / ${t.regionLabel||'Region'}</label><input id="trm-cat" value="${tr?.category||""}" placeholder="${t.phAccomCity||'İstanbul, Antalya...'}"/></div>
       <div class="field"><label>${t.apricePerNight}</label><input type="number" id="trm-salePrice" value="${tr?.salePrice||0}"/></div>
       <input type="hidden" id="trm-clinicCost" value="0"/>`;
   } else {
     body=`
-      <div class="field"><label>${t.trvName}</label><input id="trm-name" value="${tr?.name||""}" placeholder="Firma adı..."/></div>
-      <div class="field"><label>${t.trvRoute}</label><input id="trm-desc" value="${tr?.description||""}" placeholder="Havalimanı transferi, VIP servis..."/></div>
-      <div class="field"><label>${t.trvType}</label><input id="trm-cat" value="${tr?.category||""}" placeholder="Transfer, VIP Transfer, Kiralık Araç..."/></div>
+      <div class="field"><label>${t.trvName}</label><input id="trm-name" value="${tr?.name||""}" placeholder="${t.phTravelName||'Firma adı...'}"/></div>
+      <div class="field"><label>${t.trvRoute}</label><input id="trm-desc" value="${tr?.description||""}" placeholder="${t.phTravelDesc||'Havalimanı transferi, VIP servis...'}"/></div>
+      <div class="field"><label>${t.trvType}</label><input id="trm-cat" value="${tr?.category||""}" placeholder="${t.phTravelType||'Transfer, VIP Transfer, Kiralık Araç...'}"/></div>
       <div class="field"><label>${t.trvPrice}</label><input type="number" id="trm-salePrice" value="${tr?.salePrice||0}"/></div>
       <input type="hidden" id="trm-clinicCost" value="0"/>`;
   }
@@ -2993,8 +3008,8 @@ async function saveTreatment(editId,type){
   else{state.treatments.push({...item,id:Date.now()});logAction('catalog_add',name);}
   await persist("history");toast("✅ "+t.saved);closeModal();render();
 }
-async function deleteTreatment(id){if(!canEdit())return;if(!await confirmDialog(t.confirmDeleteTx,true))return;const _dt=state.treatments.find(tr=>tr.id===id);await takeSnapshot('history',state.treatments);pushUndo('treatments',`Tedavi sil: ${_dt?.name||''}`);state.treatments=state.treatments.map(tr=>tr.id===id?{...tr,deleted:true}:tr);await persist("history");logAction('catalog_delete',_dt?.name||'');toast(t.recordDeleted,"warn");render();}
-async function deletePatient(id){if(!isSuperAdmin())return;if(!await confirmDialog(t.confirmDeletePatient||'Bu hastayı silmek istediğinizden emin misiniz?',true))return;const _dp=state.patients.find(p=>p.id===id);await takeSnapshot('customers',state.patients);pushUndo('patients',`Hasta sil: ${_dp?.name||''}`);state.patients=state.patients.map(p=>p.id===id?{...p,deleted:true}:p);await persist("customers");logAction('patient_delete',_dp?.name||'');toast(t.patientDeleted||'Hasta silindi',"warn");closePatient();render();}
+async function deleteTreatment(id){if(!canEdit())return;if(!await confirmDialog(t.confirmDeleteTx,true))return;const _dt=state.treatments.find(tr=>tr.id===id);await takeSnapshot('history',state.treatments);pushUndo('treatments',`${t.undoLabelTxDel||'Kayıt sil'}: ${_dt?.name||''}`);state.treatments=state.treatments.map(tr=>tr.id===id?{...tr,deleted:true}:tr);await persist("history");logAction('catalog_delete',_dt?.name||'');toast(t.recordDeleted,"warn");render();}
+async function deletePatient(id){if(!isSuperAdmin())return;if(!await confirmDialog(t.confirmDeletePatient,true))return;const _dp=state.patients.find(p=>p.id===id);await takeSnapshot('customers',state.patients);pushUndo('patients',`${t.undoLabelPatientDel||'Hasta sil'}: ${_dp?.name||''}`);state.patients=state.patients.map(p=>p.id===id?{...p,deleted:true}:p);await persist("customers");logAction('patient_delete',_dp?.name||'');toast(t.patientDeleted,"warn");closePatient();render();}
 async function restoreFromTrash(type,id){
   if(type==='patient'){state.patients=state.patients.map(p=>p.id==id?{...p,deleted:false}:p);await persist('customers');}
   else if(type==='event'){state.events=state.events.map(e=>e.id==id?{...e,deleted:false}:e);await persist('deals');}
@@ -3090,7 +3105,7 @@ async function saveChangePassword(uid,isOwn){
     const hashed=await bcrypt.hash(newPwd,10);
     const r=await fetch(`${SUPA_URL}/rest/v1/crm_users?id=eq.${uid}`,{method:'PATCH',headers:{...H,'Prefer':'return=minimal'},body:JSON.stringify({password:hashed})});
     if(!r.ok){toast(t.updateFailed||'Güncelleme başarısız','err');return;}
-    logAction('user_edit',`Şifre değiştirildi — kullanıcı #${uid}`);
+    logAction('user_edit',`${t.passwordChanged||'Password changed'} — #${uid}`);
     toast(t.passwordChanged||'Şifre başarıyla değiştirildi ✅');closeModal();
   }catch{toast(t.errorMsg||'Hata','err');}
 }
