@@ -259,11 +259,16 @@ nav button:hover:not(.active){color:#94a3b8}
       <button data-tab="events" onclick="setTab('events')">📅 &nbsp;<span class="nav-lbl" data-key="navEvents">Etkinlikler</span></button>
       <button data-tab="appointments" onclick="setTab('appointments')">🕐 &nbsp;<span class="nav-lbl" data-key="navAppointments">Randevular</span></button>
       <button data-tab="treatments" id="nav-treatments" style="display:none" onclick="setTab('treatments')">🦷 &nbsp;<span class="nav-lbl" data-key="navTreatments">Tedaviler</span></button>
-      <button data-tab="reports" id="nav-reports" style="display:none" onclick="setTab('reports')">↗ &nbsp;<span class="nav-lbl" data-key="navReports">Raporlar</span></button>
-      <button data-tab="users" id="nav-users" style="display:none" onclick="setTab('users')">👤 &nbsp;<span class="nav-lbl" data-key="navUsers">Kullanıcılar</span></button>
-      <button data-tab="logs" id="nav-logs" style="display:none" onclick="setTab('logs')">📋 &nbsp;<span class="nav-lbl" data-key="navLogs">Aktivite Logu</span></button>
-      <button data-tab="trash" id="nav-trash" style="display:none" onclick="setTab('trash')">🗑️ &nbsp;<span class="nav-lbl" data-key="navTrash">Çöp Kutusu</span></button>
-      <button data-tab="snapshots" id="nav-snapshots" style="display:none" onclick="setTab('snapshots')">💾 &nbsp;<span class="nav-lbl" data-key="navSnapshots">Yedekler</span></button>
+      <div id="nav-admin-group" style="display:none">
+        <button id="nav-admin-toggle" onclick="adminNavOpen=!adminNavOpen;document.getElementById('nav-admin-items').style.display=adminNavOpen?'':'none';this.querySelector('.nav-arrow').textContent=adminNavOpen?'▾':'▸'" style="width:100%;text-align:left;display:flex;align-items:center;gap:8px;padding:10px 16px;background:none;border:none;color:#3d5270;font-size:12px;font-weight:700;cursor:pointer;letter-spacing:.5px">⚙️ &nbsp;<span class="nav-lbl">Admin</span><span class="nav-arrow" style="margin-left:auto;font-size:10px">▸</span></button>
+        <div id="nav-admin-items" style="display:none;padding-left:10px">
+          <button data-tab="reports" id="nav-reports" onclick="setTab('reports')">↗ &nbsp;<span class="nav-lbl" data-key="navReports">Raporlar</span></button>
+          <button data-tab="users" id="nav-users" onclick="setTab('users')">👤 &nbsp;<span class="nav-lbl" data-key="navUsers">Kullanıcılar</span></button>
+          <button data-tab="logs" id="nav-logs" onclick="setTab('logs')">📋 &nbsp;<span class="nav-lbl" data-key="navLogs">Aktivite Logu</span></button>
+          <button data-tab="trash" id="nav-trash" onclick="setTab('trash')">🗑️ &nbsp;<span class="nav-lbl" data-key="navTrash">Çöp Kutusu</span></button>
+          <button data-tab="snapshots" id="nav-snapshots" onclick="setTab('snapshots')">💾 &nbsp;<span class="nav-lbl" data-key="navSnapshots">Yedekler</span></button>
+        </div>
+      </div>
     </nav>
     <div class="sidebar-footer" id="sidebar-footer">...</div>
   </div>
@@ -280,6 +285,7 @@ nav button:hover:not(.active){color:#94a3b8}
       <button id="btn-undo-topbar" onclick="undoLastAction()" title="Geri Al" style="display:none;background:#0a1a2e;border:1.5px solid #60a5fa;border-radius:8px;color:#60a5fa;font-size:12px;font-weight:700;padding:5px 12px;cursor:pointer;font-family:'DM Sans',sans-serif">↩ Geri Al</button>
       <div id="topbar-actions"></div>
     </div>
+    <div id="company-banner" style="display:none;padding:8px 20px 0"></div>
     <div id="content"><div class="loading"><div class="spinner">🦷</div></div></div>
   </div>
 </div>
@@ -683,7 +689,7 @@ en:{
 let lang="tr",t=T.tr;
 const undoStack=[];
 let currentUser=null;
-let currentTab="dashboard",searchQuery="",charts={};
+let currentTab="dashboard",searchQuery="",charts={},adminNavOpen=false;
 let currentPatientId=null,currentPtTab="consultation",ptFormDirty=false;
 let activeCompanyId=null;
 function markPtDirty(){ptFormDirty=true;}
@@ -1045,12 +1051,10 @@ async function showApp(){
   const _sl2=document.getElementById("syncing-label");if(_sl2)_sl2.textContent=t.saving;
   const _lo2=document.getElementById("btn-logout");if(_lo2)_lo2.title=t.logout;
   document.getElementById("nav-treatments").style.display=canSeeCatalog()?"":"none";
-  document.getElementById("nav-reports").style.display=canSeeReports()?"":"none";
-  document.getElementById("nav-logs").style.display=canSeeLogs()?"":"none";
-  document.getElementById("nav-companies").style.display=canSeeLogs()?"":"none";
-  document.getElementById("nav-trash").style.display=canManageUsers()?"":"none";
-  document.getElementById("nav-snapshots").style.display=isSuperAdmin()?"":"none";
-  if(canManageUsers()){document.getElementById("nav-users").style.display="";await loadUsers();}
+  document.getElementById("nav-companies").style.display=isSuperAdmin()?"":"none";
+  const adminGroup=document.getElementById("nav-admin-group");
+  if(adminGroup)adminGroup.style.display=(canSeeReports()||canSeeLogs()||canManageUsers()||isSuperAdmin())?"":"none";
+  if(canManageUsers()){await loadUsers();}
   if(isSuperAdmin()){await loadCompanies();loadCompanyStats().then(()=>render());}
   render();
   // Arka planda her 90 saniyede veriyi Supabase'den yenile
@@ -1127,13 +1131,37 @@ function setTab(tab){
   currentTab=tab;
   document.getElementById("page-title").textContent=t["nav"+tab.charAt(0).toUpperCase()+tab.slice(1)]||tab;
   document.querySelectorAll("nav button[data-tab]").forEach(b=>b.className=b.dataset.tab===tab?"active":"");
+  const adminTabs=["reports","users","logs","trash","snapshots"];
+  if(adminTabs.includes(tab)&&!adminNavOpen){
+    adminNavOpen=true;
+    const items=document.getElementById("nav-admin-items");
+    const arrow=document.querySelector("#nav-admin-toggle .nav-arrow");
+    if(items)items.style.display="";
+    if(arrow)arrow.textContent="▾";
+  }
   closeSidebar();
   render();
 }
 function onSearch(v){searchQuery=v;document.getElementById("search-clear").style.display=v?"block":"none";render();}
 function clearSearch(){searchQuery="";document.getElementById("search-input").value="";document.getElementById("search-clear").style.display="none";render();}
+function renderCompanyBanner(){
+  const banner=document.getElementById("company-banner");if(!banner)return;
+  const hiddenTabs=["companies","logs","users","trash","snapshots"];
+  const activeCompany=activeCompanyId?state.companies.find(c=>c.id===activeCompanyId):null;
+  if(activeCompany&&!hiddenTabs.includes(currentTab)){
+    banner.style.display="";
+    banner.innerHTML=`<div style="display:flex;align-items:center;gap:10px;background:#f9731610;border:1px solid #f9731630;border-radius:10px;padding:9px 14px;margin-bottom:0">
+      <span style="font-size:16px">🏢</span>
+      <span style="font-weight:700;color:#f97316;font-size:13px">${activeCompany.name}</span>
+      <span style="color:#3d5270;font-size:12px">·</span>
+      <span style="font-size:12px;color:#60a5fa;cursor:pointer" onclick="setTab('companies')">← ${t.navCompanies||"Firmalar"}</span>
+    </div>`;
+  } else {
+    banner.style.display="none";banner.innerHTML="";
+  }
+}
 function render(){
-  updateFooter();renderTopbarActions();
+  updateFooter();renderTopbarActions();renderCompanyBanner();
   const c=document.getElementById("content");
   if(currentTab==="dashboard")c.innerHTML=renderDashboard();
   else if(currentTab==="patients")c.innerHTML=renderPatients();
@@ -1186,15 +1214,7 @@ function renderDashboard(){
 
   const recent=[...state.patients].sort((a,b)=>(b.createdAt||"").localeCompare(a.createdAt||"")).slice(0,8);
 
-  const activeCompany=activeCompanyId?state.companies.find(c=>c.id===activeCompanyId):null;
   return`<div style="display:flex;flex-direction:column;gap:18px">
-    ${activeCompany?`<div style="display:flex;align-items:center;gap:12px;background:#f9731610;border:1px solid #f9731630;border-radius:12px;padding:12px 16px">
-      <span style="font-size:20px">🏢</span>
-      <div>
-        <div style="font-size:16px;font-weight:800;color:#f97316">${activeCompany.name}</div>
-        <div style="font-size:11px;color:#4a607d;margin-top:1px">${t.companies||"Firma"} · <span style="color:#60a5fa;cursor:pointer" onclick="setTab('companies')">← ${t.navCompanies||"Firmalar"}</span></div>
-      </div>
-    </div>`:''}
     <div class="grid4">
       <div class="card"><div class="kpi-val" style="color:#60a5fa">${total}</div><div class="kpi-lbl">${t.totalPatients}</div><div class="kpi-sub">${state.patients.filter(p=>p.status==="consultation").length} ${t.consultationCount}</div></div>
       <div class="card"><div class="kpi-val" style="color:#a78bfa">${upcomingEvts}</div><div class="kpi-lbl">${t.upcomingEvents}</div><div class="kpi-sub">${state.events.length} ${t.totalEventsCount}</div></div>
