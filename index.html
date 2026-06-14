@@ -824,14 +824,14 @@ function getJaw(num){return(num>=11&&num<=28)?'upper':(num>=31&&num<=48)?'lower'
 function flag(c){const m={"United Kingdom":"🇬🇧","UK":"🇬🇧","UAE":"🇦🇪","United Arab Emirates":"🇦🇪","Russia":"🇷🇺","Ireland":"🇮🇪","Spain":"🇪🇸","Germany":"🇩🇪","France":"🇫🇷","USA":"🇺🇸","United States":"🇺🇸","Australia":"🇦🇺","Turkey":"🇹🇷","Türkiye":"🇹🇷","Netherlands":"🇳🇱","Belgium":"🇧🇪","Sweden":"🇸🇪","Norway":"🇳🇴","Denmark":"🇩🇰","Italy":"🇮🇹","Poland":"🇵🇱","Canada":"🇨🇦","Kuwait":"🇰🇼","Saudi Arabia":"🇸🇦","Qatar":"🇶🇦","Bahrain":"🇧🇭","Jordan":"🇯🇴","Romania":"🇷🇴","Bulgaria":"🇧🇬","Ukraine":"🇺🇦","Israel":"🇮🇱"};return m[c]||"🌍";}
 function statusLabel(s){return{walkin:t.statusWalkin,consultation:t.statusConsultation,assessed:t.statusAssessed,pricing:t.statusPricing,booked:t.statusBooked,cancelled:t.statusCancelled}[s]||s;}
 function statusBadge(s){const c=STATUS_COLORS[s]||"#4a607d";return`<span class="badge" style="background:${c}22;color:${c}">${statusLabel(s)}</span>`;}
-function roleLabel(role){return{superadmin:t.roleSuper||'Süper Admin',admin:t.roleAdmin,satis:t.roleSales,okuyucu:t.roleReader}[role]||role;}
+function roleLabel(role){return{superadmin:t.roleAdmin,admin:t.roleAdmin,satis:t.roleSales,okuyucu:t.roleReader}[role]||role;}
 function toast(msg,type="ok"){const el=document.createElement("div");el.className=`toast ${type}`;el.textContent=msg;document.getElementById("toast-container").appendChild(el);setTimeout(()=>el.remove(),3500);}
 function confirmDialog(msg,danger=false){return new Promise(resolve=>{const ov=document.createElement("div");ov.className="confirm-overlay";ov.innerHTML=`<div class="confirm-box"><div style="font-size:28px">${danger?"🗑️":"💾"}</div><div class="conf-msg">${msg}</div><div class="conf-btns"><button class="conf-no">${t.no}</button><button class="conf-yes${danger?" danger":""}">${t.yes}</button></div></div>`;document.body.appendChild(ov);ov.querySelector(".conf-yes").onclick=()=>{ov.remove();resolve(true);};ov.querySelector(".conf-no").onclick=()=>{ov.remove();resolve(false);};});}
 function matches(fields){if(!searchQuery)return true;return fields.some(f=>f&&String(f).toLowerCase().includes(searchQuery.toLowerCase()));}
 function getPatient(id){return state.patients.find(p=>p.id==id);}
 function getEvent(id){return state.events.find(e=>e.id==id);}
 function getTreatment(id){return state.treatments.find(tr=>tr.id==id);}
-function isSuperAdmin(){return currentUser&&(currentUser.role==="superadmin"||currentUser.role==="admin");}
+function isSuperAdmin(){return currentUser&&(currentUser.role==="admin"||currentUser.role==="superadmin");}
 function canEdit(){return currentUser&&currentUser.role!=="okuyucu";}
 function canManageUsers(){return currentUser&&(currentUser.role==="admin"||isSuperAdmin());}
 function canSeeCatalog(){return currentUser&&(currentUser.role==="admin"||isSuperAdmin());}
@@ -998,7 +998,7 @@ async function doLogin(){
         const usr=data[0];let ok=false;
         if(usr.password&&usr.password.startsWith('$pbkdf2$')){ok=await bcrypt.compare(password,usr.password);}
         else{ok=(usr.password===password);if(ok){const h=await bcrypt.hash(password,10);fetch(`${SUPA_URL}/rest/v1/crm_users?id=eq.${usr.id}`,{method:'PATCH',headers:{...H,'Prefer':'return=minimal'},body:JSON.stringify({password:h})}).catch(()=>{});}}
-        if(ok){loginOk=true;clearAttempts(username);currentUser=usr;activeCompanyId=currentUser.role==='superadmin'?null:(currentUser.company_id||1);sessionStorage.setItem("crm_user",JSON.stringify(currentUser));await showApp();logAction('login','');btn.textContent=t.loginBtn;btn.disabled=false;return;}
+        if(ok){loginOk=true;clearAttempts(username);currentUser=usr;activeCompanyId=isSuperAdmin()?null:(currentUser.company_id||1);sessionStorage.setItem("crm_user",JSON.stringify(currentUser));await showApp();logAction('login','');btn.textContent=t.loginBtn;btn.disabled=false;return;}
       }
     }
   }catch{}
@@ -1007,7 +1007,7 @@ async function doLogin(){
   if(fallback){
     loginOk=true;clearAttempts(username);
     currentUser={id:fallback.id,username:fallback.username,role:fallback.role,display_name:fallback.display_name,company_id:fallback.company_id||1,company_name:fallback.company_name||'Turuncu Dental'};
-    activeCompanyId=currentUser.role==='superadmin'?null:(currentUser.company_id||1);
+    activeCompanyId=isSuperAdmin()?null:(currentUser.company_id||1);
     sessionStorage.setItem("crm_user",JSON.stringify(currentUser));
     await showApp();
     logAction('login','');
@@ -2590,7 +2590,7 @@ function renderUsers(){
   return`<div style="max-width:700px;display:flex;flex-direction:column;gap:9px">
     ${state.users.map(u=>{
       const isMe=u.id===currentUser.id;const color=ROLE_COLORS[u.role]||"#f97316";
-      const rl=u.role==="superadmin"?(t.roleSuper||"Süper Admin"):u.role==="admin"?t.roleAdmin:u.role==="satis"?t.roleSales:t.roleReader;
+      const rl=roleLabel(u.role);
       return`<div class="card" style="display:flex;align-items:center;gap:14px">
         <div style="width:40px;height:40px;border-radius:50%;background:${color}22;display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:800;color:${color};border:2px solid ${color}44;flex-shrink:0">${(u.display_name||u.username)[0].toUpperCase()}</div>
         <div style="flex:1;min-width:0">
@@ -3029,17 +3029,12 @@ async function restoreSnapshot(id){
 function openUserModal(editId){
   const u=editId?state.users.find(u=>u.id===editId):null;
   const roleOpts=[["admin",t.roleAdmin],["satis",t.roleSales],["okuyucu",t.roleReader]].map(([v,l])=>`<option value="${v}"${(u?.role===v||(u?.role==="superadmin"&&v==="admin"))?" selected":""}>${l}</option>`).join("");
-  const roleDesc={
-    superadmin:"Tüm firmaları yönetir, log raporlarına erişir",
-    admin:t.adminRoleDesc,
-    satis:t.salesRoleDesc,
-    okuyucu:t.readerRoleDesc
-  };
+  const roleDesc={admin:t.adminRoleDesc,satis:t.salesRoleDesc,okuyucu:t.readerRoleDesc};
   const body=`
     <div class="field"><label>${t.fdisplayName}</label><input id="u-displayName" value="${u?.display_name||""}"/></div>
     <div class="field"><label>${t.loginUser}</label><input id="u-username" value="${u?.username||""}" ${editId?"readonly style='opacity:.5;cursor:not-allowed'":""}/></div>
     <div class="field"><label>${editId?t.fnewPass:t.fpassword}</label><input id="u-password" type="password" placeholder="${editId?t.fnewPassHint:"••••••••"}"/>${editId?`<div style="font-size:10px;color:#3d5270;margin-top:3px">${t.fnewPassHint}</div>`:""}</div>
-    <div class="field"><label>${t.fRole}</label><select id="u-role" onchange="document.getElementById('role-desc').textContent=({superadmin:'Tüm firmaları yönetir',admin:'${roleDesc.admin}',satis:'${roleDesc.satis}',okuyucu:'${roleDesc.okuyucu}'})[this.value]||''">${roleOpts}</select>
+    <div class="field"><label>${t.fRole}</label><select id="u-role" onchange="document.getElementById('role-desc').textContent=({admin:'${roleDesc.admin}',satis:'${roleDesc.satis}',okuyucu:'${roleDesc.okuyucu}'})[this.value]||''">${roleOpts}</select>
       <div id="role-desc" style="margin-top:6px;font-size:11px;color:#4a607d;line-height:1.5">${roleDesc[u?.role||'satis']||''}</div>
     </div>
     ${isSuperAdmin()?`<div class="field"><label>${t.fcompanyName||"Firma"}</label><select id="u-company-sel" style="background:#131b2a;border:1px solid #1a2236;border-radius:8px;padding:8px 10px;color:#dde4ef;font-size:13px;outline:none;width:100%"><option value="">${t.selectFirm||"Firma Seç"}</option>${state.companies.map(c=>`<option value="${c.id}|${c.name}"${u?.company_id===c.id?" selected":""}>${c.name}</option>`).join("")}</select></div>`:''}`;
@@ -3269,7 +3264,7 @@ async function downloadQuotePDF(patientId){
   const savedLang=localStorage.getItem('crm_lang');
   if(savedLang&&T[savedLang]){setLang(savedLang);setLoginLang(savedLang);}
   const saved=sessionStorage.getItem("crm_user");
-  if(saved){try{currentUser=JSON.parse(saved);activeCompanyId=currentUser.role==='superadmin'?null:(currentUser.company_id||1);await showApp();}catch{sessionStorage.removeItem("crm_user");}}
+  if(saved){try{currentUser=JSON.parse(saved);activeCompanyId=isSuperAdmin()?null:(currentUser.company_id||1);await showApp();}catch{sessionStorage.removeItem("crm_user");}}
 })();
 </script>
 </body>
