@@ -298,6 +298,7 @@ nav button:hover:not(.active){color:#94a3b8}
     </div>
     <button id="btn-delete-patient" class="btn" style="font-size:12px;background:#7f1d1d;display:none" onclick="deletePatient(currentPatientId)">🗑 Sil</button>
     <button id="btn-undo" class="btn" onclick="undoLastAction()" title="Geri Al" style="font-size:12px;background:#0a1a2e;border:1.5px solid #60a5fa;color:#60a5fa;display:none">↩ Geri Al</button>
+    <button class="btn" style="font-size:12px;background:#162040;border:1.5px solid #c8a255;color:#c8a255" onclick="openTreatmentPlanPresentation(currentPatientId)" title="Profesyonel tedavi planı sunumu oluştur">📋 Treatment Plan</button>
     <button id="btn-save-patient" class="btn" style="font-size:12px" onclick="saveCurrentPatient()">💾 Kaydet</button>
   </div>
   <div class="pt-tabs" id="pt-tabs"></div>
@@ -3209,6 +3210,209 @@ function togglePdfPrices(){
   const hidden=s.textContent.includes('none');
   s.textContent=hidden?'':'.qp-price{display:none!important}';
   document.getElementById('quote-toggle-prices').textContent=hidden?t.hidePrices:t.showPrices;
+}
+function openTreatmentPlanPresentation(patientId){
+  const p=getPatient(patientId);if(!p)return;
+  const a=p.assessment||{};const b=p.booking||{};
+  const planKey=a.activePlan||'treatmentPlan';
+  const allTx=state.treatments.filter(tx=>tx.type==='treatment'&&tx.active);
+  const sym=currSym();
+  const dateStr=new Date().toLocaleDateString('en-GB',{year:'numeric',month:'long',day:'numeric'});
+  const rows=[];
+  const jawTxMap=(a.jawTx||{})[planKey]||{};
+  Object.entries(jawTxMap).forEach(([jaw,txId])=>{const tx=allTx.find(t=>t.id===+txId);if(!tx)return;rows.push({name:`${tx.name} (${jaw==='upper'?'Upper Jaw':'Lower Jaw'})`,qty:1,price:getEffectivePrice(tx)});});
+  const toothTxMap=(a.toothTx||{})[planKey]||{};
+  const txGroups={};Object.values(toothTxMap).forEach(txId=>{const k=+txId;txGroups[k]=(txGroups[k]||0)+1;});
+  const plannedTeeth=new Set(Object.keys(toothTxMap).map(Number));
+  Object.entries(txGroups).forEach(([txId,cnt])=>{const tx=allTx.find(t=>t.id===+txId);if(!tx)return;rows.push({name:tx.name,qty:cnt,price:getEffectivePrice(tx)});});
+  const extras=(a.planExtras||{})[planKey]||[];
+  extras.forEach(e=>{if(e.customName)rows.push({name:e.customName,qty:e.qty||1,price:e.price||0});else{const tx=allTx.find(t=>t.id===e.txId);if(tx)rows.push({name:tx.name,qty:e.qty||1,price:getEffectivePrice(tx)});}});
+  const txSub=rows.reduce((s,r)=>s+r.qty*r.price,0);
+  const acSub=(b.accommodations||[]).reduce((s,ac)=>s+(ac.nights||1)*(ac.pricePerNight||0),0);
+  const trSub=(b.travels||[]).reduce((s,tr)=>s+(tr.persons||1)*(tr.price||0),0);
+  const sub=txSub+acSub+trSub;
+  const discount=b.discount||0;const total=sub-discount;const deposit=b.deposit||0;const balance=total-deposit;
+  const hasUpperJaw=!!jawTxMap.upper;const hasLowerJaw=!!jawTxMap.lower;
+  const conditions=a.currentCondition||{};
+  const UPPER=[18,17,16,15,14,13,12,11,21,22,23,24,25,26,27,28];
+  const LOWER=[48,47,46,45,44,43,42,41,31,32,33,34,35,36,37,38];
+  const INCISORS=new Set([11,12,21,22,31,32,41,42]);
+  const CANINES=new Set([13,23,33,43]);
+  function toothIcon(num,isUpper,planned,jawPlanned,isMissing){
+    const isIncisor=INCISORS.has(num);const isCanine=CANINES.has(num);
+    const isMolar=!isIncisor&&!isCanine&&![14,15,24,25,34,35,44,45].includes(num);
+    const w=isIncisor?13:isCanine?14:isMolar?19:16;const h=isIncisor?22:isCanine?24:isMolar?18:20;
+    let fill='#dde4ef';let stroke='#9ca3c0';
+    if(isMissing){fill='transparent';stroke='transparent';}
+    else if(jawPlanned||planned){fill='#bbf7d0';stroke='#16a34a';}
+    const bumps=(!isIncisor&&!isCanine)?`<line x1="${Math.round(w/3)}" y1="${isUpper?6:0}" x2="${Math.round(w/3)}" y2="${isUpper?h+4:h}" stroke="${stroke}" stroke-width="0.7" opacity="0.6"/><line x1="${Math.round(2*w/3)}" y1="${isUpper?6:0}" x2="${Math.round(2*w/3)}" y2="${isUpper?h+4:h}" stroke="${stroke}" stroke-width="0.7" opacity="0.6"/>`:'';
+    const body=isUpper
+      ?`<rect x="1" y="6" width="${w-2}" height="${h}" rx="${isIncisor?2:3}" fill="${fill}" stroke="${stroke}" stroke-width="1.5"/>${bumps}`
+      :`<rect x="1" y="0" width="${w-2}" height="${h}" rx="${isIncisor?2:3}" fill="${fill}" stroke="${stroke}" stroke-width="1.5"/>${bumps}`;
+    const xmark=(isMissing&&!planned&&!jawPlanned)?`<line x1="2" y1="${isUpper?8:2}" x2="${w-2}" y2="${isUpper?h+4:h-2}" stroke="#d1d5db" stroke-width="1.2"/><line x1="${w-2}" y1="${isUpper?8:2}" x2="2" y2="${isUpper?h+4:h-2}" stroke="#d1d5db" stroke-width="1.2"/>`:``;
+    return `<svg width="${w}" height="${h+10}" viewBox="0 0 ${w} ${h+10}" xmlns="http://www.w3.org/2000/svg">${body}${xmark}</svg>`;
+  }
+  function toothRow(teeth,isUpper,showPlan){
+    return teeth.map(num=>{
+      const cond=conditions[num]||'healthy';
+      const isMissing=cond==='missing';
+      const planned=showPlan&&plannedTeeth.has(num);
+      const jawPlanned=showPlan&&((isUpper&&hasUpperJaw)||(!isUpper&&hasLowerJaw));
+      return`<td style="text-align:center;padding:0 2px;vertical-align:${isUpper?'bottom':'top'}">${toothIcon(num,isUpper,planned,jawPlanned,isMissing)}<div style="font-size:6.5px;color:#94a3b8;font-weight:600;margin-top:1px">${num}</div></td>`;
+    }).join('');
+  }
+  function chart(showPlan){
+    return`<table style="border-collapse:collapse;margin:0 auto"><tr>${toothRow(UPPER,true,showPlan)}</tr><tr><td colspan="16" style="height:6px;border-bottom:1px dashed #cbd5e1"></td></tr><tr>${toothRow(LOWER,false,showPlan)}</tr></table>`;
+  }
+  const firstName=p.name.split(' ')[0];
+  const condLbl=k=>({healthy:'Intact',cavity:'Cavity',crown:'Crown',zircrown:'Zirconia',missing:'Missing',implant:'Implant',root_canal:'Root Canal',veneer:'Veneer',filling:'Filling',bridge:'Bridge',extraction:'Extraction',root:'Root'})[k]||k;
+  const html=`<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><title>Treatment Plan – ${p.name}</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Georgia',serif;-webkit-print-color-adjust:exact;print-color-adjust:exact;background:#e5e7eb}
+.page{width:210mm;min-height:297mm;position:relative;page-break-after:always;overflow:hidden;display:flex;flex-direction:column;margin:0 auto}
+@media print{body{background:#fff}.no-print{display:none}.page{page-break-after:always;margin:0}}
+@media screen{.page{margin:0 auto 20px;box-shadow:0 4px 24px rgba(0,0,0,.25)}}
+.gold{color:#c8a255}.navy{background:#162040}
+.stat-num{font-size:30px;font-weight:900;color:#c8a255;font-family:'Georgia',serif;line-height:1}
+.stat-lbl{font-size:8px;color:#94a3b8;letter-spacing:1px;text-transform:uppercase;margin-top:3px}
+.sec{font-size:8.5px;font-weight:700;color:#c8a255;letter-spacing:2px;text-transform:uppercase;margin-bottom:8px;padding-bottom:5px;border-bottom:1px solid #c8a25540}
+.tx-row{display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid #ffffff18;font-size:11px}
+</style></head><body>
+<div class="no-print" style="background:#1e293b;padding:12px 20px;position:sticky;top:0;z-index:99;display:flex;gap:10px;align-items:center">
+  <span style="color:#94a3b8;font-size:13px;flex:1">Treatment Plan — ${p.name}</span>
+  <button onclick="window.print()" style="background:#c8a255;color:#162040;border:none;border-radius:6px;padding:7px 18px;font-weight:700;cursor:pointer;font-size:12px">🖨 Print / Save PDF</button>
+  <button onclick="window.close()" style="background:#334155;color:#fff;border:none;border-radius:6px;padding:7px 14px;cursor:pointer;font-size:12px">✕ Close</button>
+</div>
+
+<!-- 1. COVER -->
+<div class="page" style="justify-content:center;align-items:center;background:radial-gradient(ellipse at 25% 20%,#c8a25525 0%,transparent 55%),radial-gradient(ellipse at 75% 75%,#c8a25518 0%,transparent 50%),linear-gradient(150deg,#0d1a36 0%,#162040 55%,#0a1229 100%)">
+  <div style="position:absolute;top:12%;left:18%;width:90px;height:90px;border-radius:50%;background:radial-gradient(#c8a25530,transparent);filter:blur(25px)"></div>
+  <div style="position:absolute;bottom:20%;right:12%;width:140px;height:140px;border-radius:50%;background:radial-gradient(#c8a25518,transparent);filter:blur(35px)"></div>
+  <div style="text-align:center;z-index:1;padding:40px">
+    <div style="font-size:52px;margin-bottom:14px">🦷</div>
+    <div style="font-size:20px;color:#c8a255;font-weight:700;letter-spacing:7px;margin-bottom:5px">TURUNCU</div>
+    <div style="font-size:10px;color:#64748b;letter-spacing:5px;margin-bottom:70px">DENTAL CLINIC</div>
+    <div style="font-size:56px;font-weight:900;color:#fff;line-height:1;font-family:'Georgia',serif;margin-bottom:14px">Treatment<br>Plan</div>
+    <div style="width:55px;height:2px;background:#c8a255;margin:20px auto"></div>
+    <div style="color:#64748b;font-size:11px;letter-spacing:3px;margin-top:18px;text-transform:uppercase">exclusively for ${p.name}</div>
+  </div>
+</div>
+
+<!-- 2. WELCOME -->
+<div class="page" style="justify-content:center;padding:64px 56px;background:linear-gradient(150deg,#0d1a36 0%,#162040 100%)">
+  <div style="flex:1;display:flex;flex-direction:column;justify-content:center">
+    <div style="font-size:40px;font-weight:900;color:#fff;line-height:1.1;margin-bottom:6px">Treatment Plan</div>
+    <div style="font-size:15px;color:#c8a255;margin-bottom:36px;font-style:italic">exclusively for ${firstName}</div>
+    <div style="width:48px;height:2px;background:#c8a255;margin-bottom:36px"></div>
+    <div style="color:#94a3b8;font-size:13px;margin-bottom:18px">Dear ${firstName}!</div>
+    <div style="color:#cbd5e1;font-size:12px;line-height:2.1;max-width:460px">Thank you for trusting us with your dental health. This treatment plan is your roadmap to a confident, beautiful new smile. It was created specifically for you, addressing your unique dental situation and needs.<br><br>Please take your time reviewing it, and don't hesitate to ask questions. We're here for you.</div>
+  </div>
+  <div style="text-align:center;margin-top:48px"><div style="font-size:30px;margin-bottom:8px">🦷</div><div style="font-size:13px;color:#c8a255;letter-spacing:5px;font-weight:700">TURUNCU</div><div style="font-size:9px;color:#475569;letter-spacing:3px;margin-top:3px">DENTAL CLINIC</div></div>
+</div>
+
+<!-- 3. ABOUT CLINIC -->
+<div class="page" style="padding:50px 56px;background:#fff">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px"><div style="font-size:8.5px;letter-spacing:2px;color:#94a3b8;text-transform:uppercase">Turuncu Dental Clinic</div><div>🦷</div></div>
+  <div style="width:38px;height:3px;background:#c8a255;margin-bottom:28px"></div>
+  <div style="display:flex;gap:16px;margin-bottom:28px">
+    <div style="flex:1;text-align:center"><div class="stat-num">5000+</div><div class="stat-lbl">Happy Patients</div></div>
+    <div style="flex:1;text-align:center"><div class="stat-num">15+</div><div class="stat-lbl">Years Experience</div></div>
+    <div style="flex:1;text-align:center"><div class="stat-num">99.7%</div><div class="stat-lbl">Satisfaction</div></div>
+  </div>
+  <div style="font-size:32px;font-weight:900;color:#162040;line-height:1.2;margin-bottom:18px">About<br>Turuncu<br>Dental Clinic</div>
+  <div style="color:#475569;font-size:11.5px;line-height:2;max-width:430px">Turuncu Dental Clinic is a modern dental clinic dedicated to providing high-quality dental care for both local and international patients. We use the latest digital scanning and treatment technologies to create a complete dental experience.<br><br>We believe that a beautiful smile is the best asset you can wear — and we're committed to helping you achieve it.</div>
+  <div style="position:absolute;bottom:20px;right:24px;font-size:8px;color:#cbd5e1">${dateStr}</div>
+</div>
+
+<!-- 4. DIAGNOSIS DIVIDER -->
+<div class="page" style="justify-content:flex-end;align-items:flex-start;padding:56px;background:linear-gradient(140deg,#0a1229 0%,#1a2a4a 65%,#162040 100%)">
+  <div style="position:absolute;top:12px;right:20px;font-size:9px;color:#c8a255;letter-spacing:2px">🦷 TURUNCU</div>
+  <div style="color:#94a3b8;font-size:10px;letter-spacing:2px;text-transform:uppercase;margin-bottom:14px">The Current Diagnosis</div>
+  <div style="font-size:58px;font-weight:900;color:#fff;line-height:1">YOUR<br>DENTAL</div>
+  <div style="font-size:58px;font-weight:900;color:#c8a255;line-height:1">SITUATION</div>
+</div>
+
+<!-- 5. DENTAL STATUS -->
+<div class="page" style="padding:38px 48px;background:#fff">
+  <div style="display:flex;justify-content:space-between;margin-bottom:5px"><div style="font-size:10px;font-weight:700;color:#162040;letter-spacing:1px">YOUR CURRENT DENTAL STATUS</div><div style="font-size:9px">🦷 TURUNCU</div></div>
+  <div style="height:1px;background:#e2e8f0;margin-bottom:18px"></div>
+  <div style="margin-bottom:20px;overflow-x:auto">${chart(false)}</div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+    <div>
+      <div class="sec">Diagnosis – Upper Jaw</div>
+      ${UPPER.map(n=>`<div style="display:flex;justify-content:space-between;font-size:9px;padding:3px 0;border-bottom:1px solid #f1f5f9;color:#475569"><span>${n}.</span><span style="color:#1e293b">${condLbl(conditions[n]||'healthy')}</span></div>`).join('')}
+    </div>
+    <div>
+      <div class="sec">Diagnosis – Lower Jaw</div>
+      ${LOWER.map(n=>`<div style="display:flex;justify-content:space-between;font-size:9px;padding:3px 0;border-bottom:1px solid #f1f5f9;color:#475569"><span>${n}.</span><span style="color:#1e293b">${condLbl(conditions[n]||'healthy')}</span></div>`).join('')}
+    </div>
+  </div>
+  <div style="position:absolute;bottom:14px;right:24px;font-size:7.5px;color:#94a3b8">${dateStr} · Turuncu Dental Clinic</div>
+</div>
+
+<!-- 6. NEW SMILE DIVIDER -->
+<div class="page" style="justify-content:flex-end;align-items:flex-start;padding:56px;background:linear-gradient(160deg,#0a1229 0%,#162040 45%,#1e3a5f 100%)">
+  <div style="position:absolute;top:0;right:0;width:220px;height:220px;background:radial-gradient(#c8a25512,transparent);border-radius:50%;transform:translate(40%,-40%)"></div>
+  <div style="position:absolute;top:12px;right:20px;font-size:9px;color:#c8a255;letter-spacing:2px">🦷 TURUNCU</div>
+  <div style="color:#94a3b8;font-size:10px;letter-spacing:2px;text-transform:uppercase;margin-bottom:14px">The Planned Treatment</div>
+  <div style="font-size:58px;font-weight:900;color:#fff;line-height:1">YOUR<br>NEW</div>
+  <div style="font-size:58px;font-weight:900;color:#c8a255;line-height:1">SMILE</div>
+</div>
+
+<!-- 7. TREATMENT PLAN -->
+<div class="page" style="padding:38px 48px;background:#fff">
+  <div style="display:flex;justify-content:space-between;margin-bottom:5px"><div style="font-size:10px;font-weight:700;color:#162040;letter-spacing:1px">YOUR SUGGESTED TREATMENT</div><div style="font-size:9px">🦷 TURUNCU</div></div>
+  <div style="height:1px;background:#e2e8f0;margin-bottom:18px"></div>
+  <div style="margin-bottom:22px;overflow-x:auto">${chart(true)}</div>
+  ${rows.length>0?`<table style="width:100%;border-collapse:collapse">
+    <thead><tr style="background:#162040"><th style="padding:8px 12px;text-align:left;font-size:8.5px;font-weight:700;color:#c8a255;letter-spacing:1px;text-transform:uppercase">Treatment</th><th style="padding:8px 12px;text-align:right;font-size:8.5px;font-weight:700;color:#c8a255;letter-spacing:1px;width:55px">Qty</th></tr></thead>
+    <tbody>${rows.map((r,i)=>`<tr style="background:${i%2===0?'#fff':'#f8fafc'}"><td style="padding:8px 12px;font-size:11px;color:#1e293b">${r.name}</td><td style="padding:8px 12px;text-align:right;font-size:11px;font-weight:700;color:#162040">${r.qty} ×</td></tr>`).join('')}</tbody>
+  </table>`:`<div style="text-align:center;color:#94a3b8;padding:30px;font-size:12px">No treatment plan recorded yet</div>`}
+  <div style="position:absolute;bottom:14px;right:24px;font-size:7.5px;color:#94a3b8">${dateStr} · Turuncu Dental Clinic</div>
+</div>
+
+<!-- 8. PRICE SUMMARY -->
+<div class="page" style="padding:50px 50px;background:#162040">
+  <div style="display:flex;justify-content:space-between;margin-bottom:5px"><div style="font-size:10px;font-weight:700;color:#c8a255;letter-spacing:1px">PRICE SUMMARY</div><div style="font-size:9px">🦷</div></div>
+  <div style="height:1px;background:#c8a25540;margin-bottom:22px"></div>
+  ${rows.length>0?`<div class="sec">Treatments</div>${rows.map(r=>`<div class="tx-row"><span style="color:#cbd5e1">${r.name}</span><span style="color:#fff;font-weight:600">${sym}${(r.qty*r.price).toLocaleString()}</span></div>`).join('')}`:''}
+  ${(b.accommodations||[]).length>0?`<div class="sec" style="margin-top:16px">Accommodation</div>${(b.accommodations||[]).map(ac=>`<div class="tx-row"><span style="color:#cbd5e1">🏨 ${ac.name} · ${ac.nights||1} nights</span><span style="color:#fff;font-weight:600">${sym}${((ac.nights||1)*(ac.pricePerNight||0)).toLocaleString()}</span></div>`).join('')}`:''}
+  ${(b.travels||[]).length>0?`<div class="sec" style="margin-top:16px">Transfer & Travel</div>${(b.travels||[]).map(tr=>`<div class="tx-row"><span style="color:#cbd5e1">✈️ ${tr.name} · ${tr.persons||1} persons</span><span style="color:#fff;font-weight:600">${sym}${((tr.persons||1)*(tr.price||0)).toLocaleString()}</span></div>`).join('')}`:''}
+  <div style="margin-top:22px;padding-top:16px;border-top:1px solid #c8a255">
+    ${discount>0?`<div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:7px"><span style="color:#94a3b8">Total</span><span style="color:#fff">${sym}${sub.toLocaleString()}</span></div><div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:7px"><span style="color:#94a3b8">Discount</span><span style="color:#4ade80">-${sym}${discount.toLocaleString()}</span></div>`:''}
+    <div style="display:flex;justify-content:space-between;font-size:15px;font-weight:700;background:#c8a25520;padding:11px 14px;border-radius:7px;border:1px solid #c8a25540"><span style="color:#c8a255">Final Price</span><span style="color:#fff">${sym}${total.toLocaleString()}</span></div>
+  </div>
+  <div style="margin-top:18px">
+    <div class="sec">Payment Plan</div>
+    ${deposit>0?`<div class="tx-row"><span style="color:#cbd5e1">Deposit</span><span style="color:#fff">${sym}${deposit.toLocaleString()}</span></div><div class="tx-row"><span style="color:#cbd5e1">Remaining Balance</span><span style="color:#fff">${sym}${balance.toLocaleString()}</span></div>`:
+    `<div class="tx-row"><span style="color:#cbd5e1">1st Visit (60%)</span><span style="color:#fff">${sym}${Math.round(total*0.6).toLocaleString()}</span></div><div class="tx-row"><span style="color:#cbd5e1">2nd Visit (40%)</span><span style="color:#fff">${sym}${Math.round(total*0.4).toLocaleString()}</span></div>`}
+  </div>
+  ${(b.accommodations||[]).length>0?`<div style="margin-top:18px"><div class="sec">Visit Plan</div>${(b.accommodations||[]).map(ac=>`<div style="font-size:11px;color:#cbd5e1;padding:3px 0">• ${ac.name}: ${ac.nights||1} nights</div>`).join('')}</div>`:''}
+</div>
+
+<!-- 9. BACK COVER -->
+<div class="page" style="justify-content:space-between;align-items:center;padding:56px;background:radial-gradient(ellipse at 30% 20%,#c8a25514,transparent 55%),linear-gradient(150deg,#0d1a36 0%,#162040 100%)">
+  <div style="text-align:center;flex:1">
+    <div style="font-size:44px;margin-bottom:14px">🦷</div>
+    <div style="font-size:18px;color:#c8a255;letter-spacing:7px;font-weight:700;margin-bottom:5px">TURUNCU</div>
+    <div style="font-size:10px;color:#475569;letter-spacing:5px;margin-bottom:50px">DENTAL CLINIC</div>
+    <div style="width:190px;height:120px;background:#c8a25515;border-radius:18px;border:1px solid #c8a25530;margin:0 auto 48px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px">
+      <div style="font-size:11px;color:#94a3b8;letter-spacing:1px">Prepared for</div>
+      <div style="font-size:17px;font-weight:700;color:#fff">${p.name}</div>
+      <div style="font-size:10px;color:#475569">${dateStr}</div>
+    </div>
+  </div>
+  <div style="display:flex;justify-content:center;gap:36px;width:100%;padding-top:28px;border-top:1px solid #c8a25530">
+    <div style="text-align:center"><div style="font-size:14px;margin-bottom:4px">📘</div><div style="font-size:9px;color:#64748b">Turuncu Dental Clinic</div></div>
+    <div style="text-align:center"><div style="font-size:14px;margin-bottom:4px">📸</div><div style="font-size:9px;color:#64748b">turuncudental.international</div></div>
+  </div>
+</div>
+<script>window.onload=function(){setTimeout(()=>window.print(),700)};<\/script>
+</body></html>`;
+  const win=window.open('','_blank','width=920,height=820');
+  if(win){win.document.write(html);win.document.close();}
+  else toast('Popup engellendi — tarayıcı ayarlarından izin ver.','err');
 }
 async function downloadQuotePDF(patientId){
   const p=getPatient(patientId);if(!p)return;
