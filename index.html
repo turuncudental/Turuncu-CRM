@@ -265,10 +265,6 @@ nav button:hover:not(.active){color:#94a3b8}
       <button data-tab="trash" id="nav-trash" style="display:none" onclick="setTab('trash')">🗑️ &nbsp;<span class="nav-lbl" data-key="navTrash">Çöp Kutusu</span></button>
       <button data-tab="snapshots" id="nav-snapshots" style="display:none" onclick="setTab('snapshots')">💾 &nbsp;<span class="nav-lbl" data-key="navSnapshots">Yedekler</span></button>
     </nav>
-    <div id="company-selector" style="display:none;padding:6px 14px 2px">
-      <div style="font-size:10px;color:#3d5270;font-weight:700;margin-bottom:4px;letter-spacing:.5px">FIRMA</div>
-      <select id="company-select" onchange="setCompany(this.value)" style="width:100%;background:#131b2a;border:1px solid #1a2236;border-radius:8px;padding:7px 10px;color:#dde4ef;font-size:12px;outline:none;cursor:pointer"></select>
-    </div>
     <div class="sidebar-footer" id="sidebar-footer">...</div>
   </div>
   <div id="main">
@@ -1044,7 +1040,7 @@ async function showApp(){
   document.getElementById("nav-trash").style.display=canManageUsers()?"":"none";
   document.getElementById("nav-snapshots").style.display=isSuperAdmin()?"":"none";
   if(canManageUsers()){document.getElementById("nav-users").style.display="";await loadUsers();}
-  if(isSuperAdmin()){await loadCompanies();document.getElementById("company-selector").style.display="";populateCompanySelector();}
+  if(isSuperAdmin()){await loadCompanies();}
   render();
   // Arka planda her 90 saniyede veriyi Supabase'den yenile
   if(window._syncInterval)clearInterval(window._syncInterval);
@@ -1056,11 +1052,6 @@ async function showApp(){
   },90000);
 }
 
-function populateCompanySelector(){
-  const sel=document.getElementById("company-select");if(!sel)return;
-  const opts=[`<option value="">${t.selectCompany||"— Firma Seç —"}</option>`,...state.companies.map(c=>`<option value="${c.id}"${activeCompanyId===c.id?" selected":""}>${c.name}</option>`)].join("");
-  sel.innerHTML=opts;sel.value=activeCompanyId||"";
-}
 async function setCompany(cid){
   activeCompanyId=cid?+cid:null;
   if(activeCompanyId){await loadAll();}else{state.patients=[];state.events=[];state.appointments=[];}
@@ -1157,7 +1148,6 @@ function renderTopbarActions(){
     else html=`<button class="btn" onclick="openTreatmentModal(0,'travel')">${t.addTravel}</button>`;
   }
   else if(canManageUsers()&&currentTab==="users")html=`<button class="btn" onclick="openUserModal(0)">${t.addUser}</button>`;
-  else if(canSeeLogs()&&currentTab==="companies")html=`<button class="btn" onclick="openCompanyModal(0)">${t.addCompany||"+ Firma Ekle"}</button>`;
   el.innerHTML=html;
 }
 setInterval(async()=>{if(!currentUser)return;await loadAll();if(!document.getElementById("patient-overlay").style.display||document.getElementById("patient-overlay").style.display==="none")render();},15000);
@@ -2607,24 +2597,37 @@ function renderUsers(){
     }).join("")}
   </div>`;
 }
+async function openCompanyPanel(cid){
+  activeCompanyId=cid;
+  await loadAll();
+  setTab('dashboard');
+}
 function renderCompanies(){
   if(!canSeeLogs())return`<div class="empty">${t.accessDenied}</div>`;
   if(!state.companies.length)return`<div class="empty"><div style="font-size:32px;margin-bottom:12px">🏢</div><div>${t.noCompanies||"Henüz firma yok"}</div></div>`;
-  return`<div style="max-width:600px;display:flex;flex-direction:column;gap:9px">
+  return`<div style="max-width:640px">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+      <h2 style="font-size:16px;font-weight:700;color:#dde4ef;margin:0">${t.companies||"Firmalar"}</h2>
+      <button class="btn" onclick="openCompanyModal(0)">+ ${t.newCompany||"Yeni Firma"}</button>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:10px">
     ${state.companies.map(c=>{
       const userCount=state.users.filter(u=>u.company_id===c.id).length;
-      return`<div class="card" style="display:flex;align-items:center;gap:14px">
-        <div style="width:42px;height:42px;border-radius:10px;background:#f9731622;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0">🏢</div>
+      const isActive=activeCompanyId===c.id;
+      const ptCount=isActive?state.patients.length:null;
+      return`<div class="card" style="display:flex;align-items:center;gap:14px;cursor:pointer;border:2px solid ${isActive?'#f97316':'transparent'};transition:border-color .15s" onclick="openCompanyPanel(${c.id})" title="Paneli aç">
+        <div style="width:48px;height:48px;border-radius:12px;background:${isActive?'#f9731633':'#f9731615'};display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0">🏢</div>
         <div style="flex:1;min-width:0">
-          <div style="font-weight:700;font-size:14px">${c.name}</div>
-          <div style="font-size:11px;color:#4a607d">ID: ${c.id} · ${userCount} kullanıcı</div>
+          <div style="font-weight:700;font-size:15px;color:${isActive?'#f97316':'#dde4ef'}">${c.name}${isActive?` <span style="font-size:11px;background:#f97316;color:#fff;border-radius:8px;padding:1px 7px;font-weight:600;vertical-align:middle">Aktif</span>`:''}</div>
+          <div style="font-size:11px;color:#4a607d;margin-top:2px">${userCount} kullanıcı${ptCount!==null?` · ${ptCount} hasta`:''}</div>
         </div>
-        <div style="display:flex;gap:6px">
+        <div style="display:flex;gap:6px" onclick="event.stopPropagation()">
           <button class="sm-btn" onclick="openCompanyModal(${c.id})">${t.editBtn||"Düzenle"}</button>
           <button class="sm-btn danger" onclick="deleteCompany(${c.id})">✕</button>
         </div>
       </div>`;
     }).join("")}
+    </div>
   </div>`;
 }
 function openCompanyModal(editId){
@@ -2645,7 +2648,7 @@ async function saveCompany(editId){
     const added=await r.json();const newC=Array.isArray(added)?added[0]:added;
     state.companies.push(newC);logAction('company_add',name);toast("✅ "+(t.companyAdded||"Firma eklendi"));}catch{toast(t.errorMsg||"Hata","err");return;}
   }
-  closeModal();render();populateCompanySelector();
+  closeModal();render();
 }
 async function deleteCompany(id){
   if(!canSeeLogs())return;
@@ -2654,7 +2657,7 @@ async function deleteCompany(id){
   if(!await confirmDialog(t.confirmDeleteCompany||"Bu firmayı silmek istediğinizden emin misiniz?",true))return;
   try{const r=await fetch(`${SUPA_URL}/rest/v1/crm_companies?id=eq.${id}`,{method:"DELETE",headers:H});if(!r.ok){toast(t.updateFailed||"Hata","err");return;}
   const _dcname=state.companies.find(c=>c.id===id)?.name||'';
-  state.companies=state.companies.filter(c=>c.id!==id);logAction('company_delete',_dcname);toast(t.companyDeleted||"Firma silindi","warn");render();populateCompanySelector();}catch{toast(t.errorMsg||"Hata","err");}
+  state.companies=state.companies.filter(c=>c.id!==id);logAction('company_delete',_dcname);toast(t.companyDeleted||"Firma silindi","warn");render();}catch{toast(t.errorMsg||"Hata","err");}
 }
 function renderLogs(){
   if(!canSeeLogs())return`<div class="empty">${t.accessDenied}</div>`;
