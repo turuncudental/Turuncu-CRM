@@ -1151,9 +1151,9 @@ function renderCompanyBanner(){
   if(activeCompany&&!hiddenTabs.includes(currentTab)){
     banner.style.display="";
     banner.innerHTML=`<div style="display:flex;align-items:center;gap:10px;background:#f9731610;border:1px solid #f9731630;border-radius:10px;padding:9px 14px;margin-bottom:0">
-      <span style="font-size:16px">🏢</span>
-      <span style="font-weight:700;color:#f97316;font-size:13px">${activeCompany.name}</span>
-      <span style="color:#3d5270;font-size:12px">·</span>
+      <span style="font-size:18px">🏢</span>
+      <span style="font-weight:800;color:#f97316;font-size:17px;letter-spacing:.2px">${activeCompany.name}</span>
+      <span style="color:#3d5270;font-size:13px">·</span>
       <span style="font-size:12px;color:#60a5fa;cursor:pointer" onclick="setTab('companies')">← ${t.navCompanies||"Firmalar"}</span>
     </div>`;
   } else {
