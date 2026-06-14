@@ -831,7 +831,7 @@ function matches(fields){if(!searchQuery)return true;return fields.some(f=>f&&St
 function getPatient(id){return state.patients.find(p=>p.id==id);}
 function getEvent(id){return state.events.find(e=>e.id==id);}
 function getTreatment(id){return state.treatments.find(tr=>tr.id==id);}
-function isSuperAdmin(){return currentUser&&currentUser.role==="superadmin";}
+function isSuperAdmin(){return currentUser&&(currentUser.role==="superadmin"||currentUser.role==="admin");}
 function canEdit(){return currentUser&&currentUser.role!=="okuyucu";}
 function canManageUsers(){return currentUser&&(currentUser.role==="admin"||isSuperAdmin());}
 function canSeeCatalog(){return currentUser&&(currentUser.role==="admin"||isSuperAdmin());}
@@ -3028,7 +3028,7 @@ async function restoreSnapshot(id){
 // ── USERS
 function openUserModal(editId){
   const u=editId?state.users.find(u=>u.id===editId):null;
-  const roleOpts=[...(isSuperAdmin()?[["superadmin",t.roleSuper||"Süper Admin"]]:[]),["admin",t.roleAdmin],["satis",t.roleSales],["okuyucu",t.roleReader]].map(([v,l])=>`<option value="${v}"${u?.role===v?" selected":""}>${l}</option>`).join("");
+  const roleOpts=[["admin",t.roleAdmin],["satis",t.roleSales],["okuyucu",t.roleReader]].map(([v,l])=>`<option value="${v}"${(u?.role===v||(u?.role==="superadmin"&&v==="admin"))?" selected":""}>${l}</option>`).join("");
   const roleDesc={
     superadmin:"Tüm firmaları yönetir, log raporlarına erişir",
     admin:t.adminRoleDesc,
