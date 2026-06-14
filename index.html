@@ -708,7 +708,7 @@ function getEffectivePrice(item){
 let paintBrush=null;
 let activeTxBrush=null;
 let catalogTab="treatment";
-let state={patients:[],events:[],appointments:[],treatments:[],users:[],logs:[],companies:[],snapshots:[]};
+let state={patients:[],events:[],appointments:[],treatments:[],users:[],logs:[],companies:[],snapshots:[],companyStats:{}};
 // ==SEED==
 const SEED_PATIENTS=[
   {id:1,name:"Sarah Johnson",email:"sarah.j@gmail.com",phone:"+44 7911 123456",dob:"1985-03-15",country:"United Kingdom",nationality:"British",status:"booked",eventId:1,assignee:"admin",createdAt:"2026-05-20",
@@ -962,6 +962,17 @@ async function loadCompanies(){
     if(r.ok)state.companies=await r.json();
   }catch{}
 }
+async function loadCompanyStats(){
+  try{
+    const [custRows,dealRows]=await Promise.all([
+      fetch(`${SUPA_URL}/rest/v1/customers?select=id,data`,{headers:H}).then(r=>r.ok?r.json():[]),
+      fetch(`${SUPA_URL}/rest/v1/deals?select=id,data`,{headers:H}).then(r=>r.ok?r.json():[])
+    ]);
+    state.companyStats={};
+    (custRows||[]).forEach(row=>{state.companyStats[row.id]={...(state.companyStats[row.id]||{}),patients:Array.isArray(row.data)?row.data.length:0};});
+    (dealRows||[]).forEach(row=>{state.companyStats[row.id]={...(state.companyStats[row.id]||{}),events:Array.isArray(row.data)?row.data.length:0};});
+  }catch{}
+}
 
 // ── AUTH
 // Supabase erişilemezse bu yedek kullanıcılar devreye girer
@@ -1040,7 +1051,7 @@ async function showApp(){
   document.getElementById("nav-trash").style.display=canManageUsers()?"":"none";
   document.getElementById("nav-snapshots").style.display=isSuperAdmin()?"":"none";
   if(canManageUsers()){document.getElementById("nav-users").style.display="";await loadUsers();}
-  if(isSuperAdmin()){await loadCompanies();}
+  if(isSuperAdmin()){await loadCompanies();loadCompanyStats().then(()=>render());}
   render();
   // Arka planda her 90 saniyede veriyi Supabase'den yenile
   if(window._syncInterval)clearInterval(window._syncInterval);
@@ -1131,7 +1142,7 @@ function render(){
   else if(currentTab==="treatments")c.innerHTML=renderTreatments();
   else if(currentTab==="reports"){c.innerHTML=renderReports();renderReportCharts();}
   else if(currentTab==="users")c.innerHTML=renderUsers();
-  else if(currentTab==="companies")c.innerHTML=renderCompanies();
+  else if(currentTab==="companies"){c.innerHTML=renderCompanies();loadCompanyStats().then(()=>{if(currentTab==="companies")c.innerHTML=renderCompanies();});}
   else if(currentTab==="logs"){c.innerHTML=renderLogs();loadLogs().then(()=>{if(currentTab==="logs")c.innerHTML=renderLogs();});}
   else if(currentTab==="trash")c.innerHTML=renderTrash();
   else if(currentTab==="snapshots"){c.innerHTML=renderSnapshots();loadSnapshots().then(()=>{if(currentTab==="snapshots")c.innerHTML=renderSnapshots();});}
@@ -2614,12 +2625,15 @@ function renderCompanies(){
     ${state.companies.map(c=>{
       const userCount=state.users.filter(u=>u.company_id===c.id).length;
       const isActive=activeCompanyId===c.id;
-      const ptCount=isActive?state.patients.length:null;
+      const stats=state.companyStats[c.id]||{};
+      const ptCount=isActive?state.patients.length:(stats.patients??null);
+      const evCount=isActive?state.events.length:(stats.events??null);
+      const statStr=[ptCount!==null?`👤 ${ptCount} hasta`:'',evCount!==null?`📅 ${evCount} etkinlik`:'',`👥 ${userCount} kullanıcı`].filter(Boolean).join(' · ');
       return`<div class="card" style="display:flex;align-items:center;gap:14px;cursor:pointer;border:2px solid ${isActive?'#f97316':'transparent'};transition:border-color .15s" onclick="openCompanyPanel(${c.id})" title="Paneli aç">
-        <div style="width:48px;height:48px;border-radius:12px;background:${isActive?'#f9731633':'#f9731615'};display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0">🏢</div>
+        <div style="width:52px;height:52px;border-radius:12px;background:${isActive?'#f9731633':'#f9731615'};display:flex;align-items:center;justify-content:center;font-size:24px;flex-shrink:0">🏢</div>
         <div style="flex:1;min-width:0">
-          <div style="font-weight:700;font-size:15px;color:${isActive?'#f97316':'#dde4ef'}">${c.name}${isActive?` <span style="font-size:11px;background:#f97316;color:#fff;border-radius:8px;padding:1px 7px;font-weight:600;vertical-align:middle">Aktif</span>`:''}</div>
-          <div style="font-size:11px;color:#4a607d;margin-top:2px">${userCount} kullanıcı${ptCount!==null?` · ${ptCount} hasta`:''}</div>
+          <div style="font-weight:700;font-size:15px;color:${isActive?'#f97316':'#dde4ef'};margin-bottom:3px">${c.name}${isActive?` <span style="font-size:11px;background:#f97316;color:#fff;border-radius:8px;padding:1px 7px;font-weight:600;vertical-align:middle">Aktif</span>`:''}</div>
+          <div style="font-size:11px;color:#4a607d">${statStr||'—'}</div>
         </div>
         <div style="display:flex;gap:6px" onclick="event.stopPropagation()">
           <button class="sm-btn" onclick="openCompanyModal(${c.id})">${t.editBtn||"Düzenle"}</button>
@@ -2648,7 +2662,7 @@ async function saveCompany(editId){
     const added=await r.json();const newC=Array.isArray(added)?added[0]:added;
     state.companies.push(newC);logAction('company_add',name);toast("✅ "+(t.companyAdded||"Firma eklendi"));}catch{toast(t.errorMsg||"Hata","err");return;}
   }
-  closeModal();render();
+  closeModal();render();loadCompanyStats().then(()=>render());
 }
 async function deleteCompany(id){
   if(!canSeeLogs())return;
