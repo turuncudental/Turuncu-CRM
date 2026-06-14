@@ -882,15 +882,15 @@ async function dbGet(table){
     const cid=activeCompanyId;
     const filter=cid?`?id=eq.${cid}&select=*`:`?select=*`;
     const r=await fetch(`${SUPA_URL}/rest/v1/${table}${filter}`,{headers:H});
-    if(r.ok){const rows=await r.json();if(rows&&rows.length>0){localStorage.setItem("crm_"+table,JSON.stringify(rows));return rows;}}
+    if(r.ok){const rows=await r.json();if(rows&&rows.length>0){localStorage.setItem(`crm_${table}_${cid||'all'}`,JSON.stringify(rows));return rows;}}
   }catch{}
-  // Offline fallback: use localStorage cache
-  try{const local=localStorage.getItem("crm_"+table);if(local)return JSON.parse(local);}catch{}
+  // Offline fallback: use company-specific localStorage cache
+  try{const local=localStorage.getItem(`crm_${table}_${activeCompanyId||'all'}`);if(local)return JSON.parse(local);}catch{}
   return null;
 }
 async function dbSet(table,data){
   const cid=activeCompanyId||1;
-  try{localStorage.setItem("crm_"+table,JSON.stringify([{id:cid,data}]));}catch{}
+  try{localStorage.setItem(`crm_${table}_${cid}`,JSON.stringify([{id:cid,data}]));}catch{}
   try{await fetch(`${SUPA_URL}/rest/v1/${table}`,{method:"POST",headers:{...H,"Prefer":"resolution=merge-duplicates,return=minimal"},body:JSON.stringify({id:cid,data})});}catch{}
 }
 const TABLE_STATE={customers:"patients",deals:"events",tasks:"appointments",history:"treatments"};
@@ -993,7 +993,7 @@ async function loadAllCompaniesData(){
 }
 async function setAllCompanies(){
   activeCompanyId=null;allCompaniesMode=true;
-  await loadAllCompaniesData();
+  await Promise.all([loadAllCompaniesData(),loadCompanyStats()]);
   setTab('dashboard');
 }
 
@@ -2672,6 +2672,7 @@ function renderUsers(){
 async function openCompanyPanel(cid){
   activeCompanyId=cid;allCompaniesMode=false;
   await loadAll();
+  loadCompanyStats().then(()=>{if(currentTab==='companies'||currentTab==='dashboard')render();});
   setTab('dashboard');
 }
 function renderCompanies(){
@@ -3013,7 +3014,7 @@ async function saveEvent(editId){
   else{state.events.push({...item,id:Date.now()});logAction('event_add',name);}
   await persist("deals");toast("✅ "+t.saved);closeModal();render();
 }
-async function deleteEvent(id){if(!isSuperAdmin())return;if(!await confirmDialog(t.confirmDeleteEvent,true))return;const _de=state.events.find(e=>e.id===id);await takeSnapshot('deals',state.events);pushUndo('events',`${t.undoLabelEventDel||'Etkinlik sil'}: ${_de?.name||''}`);state.events=state.events.map(e=>e.id===id?{...e,deleted:true}:e);await persist("deals");logAction('event_delete',_de?.name||'');toast(t.eventDeleted,"warn");render();}
+async function deleteEvent(id){if(!isSuperAdmin())return;if(!await confirmDialog(t.confirmDeleteEvent,true))return;const _de=state.events.find(e=>e.id===id);await takeSnapshot('deals',state.events);pushUndo('events',`${t.undoLabelEventDel||'Etkinlik sil'}: ${_de?.name||''}`);state.events=state.events.map(e=>e.id===id?{...e,deleted:true}:e);await persist("deals");logAction('event_delete',_de?.name||'');toast(t.eventDeleted,"warn");render();loadCompanyStats().then(()=>render());}
 
 // ── APPOINTMENTS
 function openAppointmentModal(){
@@ -3089,7 +3090,7 @@ async function saveTreatment(editId,type){
   await persist("history");toast("✅ "+t.saved);closeModal();render();
 }
 async function deleteTreatment(id){if(!canEdit())return;if(!await confirmDialog(t.confirmDeleteTx,true))return;const _dt=state.treatments.find(tr=>tr.id===id);await takeSnapshot('history',state.treatments);pushUndo('treatments',`${t.undoLabelTxDel||'Kayıt sil'}: ${_dt?.name||''}`);state.treatments=state.treatments.map(tr=>tr.id===id?{...tr,deleted:true}:tr);await persist("history");logAction('catalog_delete',_dt?.name||'');toast(t.recordDeleted,"warn");render();}
-async function deletePatient(id){if(!isSuperAdmin())return;if(!await confirmDialog(t.confirmDeletePatient,true))return;const _dp=state.patients.find(p=>p.id===id);await takeSnapshot('customers',state.patients);pushUndo('patients',`${t.undoLabelPatientDel||'Hasta sil'}: ${_dp?.name||''}`);state.patients=state.patients.map(p=>p.id===id?{...p,deleted:true}:p);await persist("customers");logAction('patient_delete',_dp?.name||'');toast(t.patientDeleted,"warn");closePatient();render();}
+async function deletePatient(id){if(!isSuperAdmin())return;if(!await confirmDialog(t.confirmDeletePatient,true))return;const _dp=state.patients.find(p=>p.id===id);await takeSnapshot('customers',state.patients);pushUndo('patients',`${t.undoLabelPatientDel||'Hasta sil'}: ${_dp?.name||''}`);state.patients=state.patients.map(p=>p.id===id?{...p,deleted:true}:p);await persist("customers");logAction('patient_delete',_dp?.name||'');toast(t.patientDeleted,"warn");closePatient();render();loadCompanyStats().then(()=>render());}
 async function restoreFromTrash(type,id){
   if(type==='patient'){state.patients=state.patients.map(p=>p.id==id?{...p,deleted:false}:p);await persist('customers');}
   else if(type==='event'){state.events=state.events.map(e=>e.id==id?{...e,deleted:false}:e);await persist('deals');}
