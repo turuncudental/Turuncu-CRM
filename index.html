@@ -461,7 +461,7 @@ tr:{
   currentCondition:"Mevcut Durum",treatmentPlan:"Tedavi Planı",dentistNotes:"Diş Hekimi Notları",
   selectTreatments:"Tedavi Seç",bookingTreatments:"Seçilen Tedaviler",travelType:"Transfer",accommodation:"Konaklama",discount:"İndirim ",deposit:"Deposit ",bookingNotes:"Notlar",
   subtotal:"Ara Toplam",totalCost:"Toplam",balanceDue:"Kalan Ödeme",
-  addNote:"Not Ekle",noNotes:"Henüz not eklenmedi",
+  addNote:"Not Ekle",noNotes:"Henüz not eklenmedi",noteLocked:"🔒 Düzenlenemez (15 dk geçti)",
   events:"Etkinlikler",addEvent:"+ Etkinlik",newEvent:"Yeni Etkinlik",editEvent:"Etkinlik Düzenle",
   ename:"Etkinlik Adı",ecity:"Şehir",evenue:"Mekan",edate:"Tarih",eactive:"Aktif",
   appointments:"Randevular",addAppointment:"+ Randevu",newAppointment:"Yeni Randevu",selectEvent:"Etkinlik Seçin",
@@ -580,7 +580,7 @@ en:{
   currentCondition:"Current Condition",treatmentPlan:"Treatment Plan",dentistNotes:"Dentist Notes",
   selectTreatments:"Select Treatments",bookingTreatments:"Selected Treatments",travelType:"Travel",accommodation:"Accommodation",discount:"Discount ",deposit:"Deposit ",bookingNotes:"Notes",
   subtotal:"Subtotal",totalCost:"Total",balanceDue:"Balance Due",
-  addNote:"Add Note",noNotes:"No notes yet",
+  addNote:"Add Note",noNotes:"No notes yet",noteLocked:"🔒 Locked (15 min passed)",
   events:"Events",addEvent:"+ Event",newEvent:"New Event",editEvent:"Edit Event",
   ename:"Event Name",ecity:"City",evenue:"Venue",edate:"Date",eactive:"Active",
   appointments:"Appointments",addAppointment:"+ Appointment",newAppointment:"New Appointment",selectEvent:"Select Event",
@@ -2208,6 +2208,10 @@ function renderPtBooking(p){
   </div>`;
 }
 
+function isNoteEditable(n){
+  if(!n.createdAt)return false;
+  return(Date.now()-new Date(n.createdAt).getTime())<15*60*1000;
+}
 function renderPtNotes(p){
   const notes=[...(p.notes||[])].sort((a,b)=>(b.date||"").localeCompare(a.date||""));
   return`<div style="max-width:640px">
@@ -2217,7 +2221,9 @@ function renderPtNotes(p){
         <button class="btn" onclick="addPatientNote()">+ ${t.addBtn}</button>
       </div>
     </div>
-    ${notes.length===0?`<div class="empty">${t.noNotes}</div>`:notes.map(n=>`
+    ${notes.length===0?`<div class="empty">${t.noNotes}</div>`:notes.map(n=>{
+      const editable=canEdit()&&isNoteEditable(n);
+      return`
     <div style="display:flex;gap:12px;margin-bottom:4px">
       <div style="display:flex;flex-direction:column;align-items:center">
         <div style="width:32px;height:32px;border-radius:50%;background:#f9731622;border:1px solid #f9731633;display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0">📝</div>
@@ -2227,13 +2233,14 @@ function renderPtNotes(p){
         <div style="display:flex;align-items:center;gap:8px;margin-bottom:5px">
           <span style="font-size:11px;background:#131b2a;border:1px solid #1a2236;color:#4a607d;padding:1px 7px;border-radius:20px">${n.date}</span>
           <span style="font-size:11px;color:#3d5270">@${n.by||"admin"}</span>
+          ${n.createdAt&&!isNoteEditable(n)?`<span style="font-size:10px;color:#3d5270" title="${t.noteLocked}">🔒</span>`:''}
         </div>
         <div style="background:#0d1320;border:1px solid #1a2236;border-radius:8px;padding:9px 12px;font-size:13px;color:#94a3b8;display:flex;justify-content:space-between;gap:10px">
           <span>${n.text}</span>
-          ${canEdit()?`<button class="sm-btn danger" onclick="deletePatientNote(${n.id})" style="flex-shrink:0">✕</button>`:""}
+          ${editable?`<button class="sm-btn danger" onclick="deletePatientNote(${n.id})" style="flex-shrink:0">✕</button>`:""}
         </div>
       </div>
-    </div>`).join("")}
+    </div>`;}).join("")}
   </div>`;
 }
 // ==FILES==
@@ -2842,11 +2849,13 @@ async function addPatientNote(){
   const p=getPatient(currentPatientId);if(!p)return;
   const text=document.getElementById("new-note-text")?.value?.trim();if(!text)return;
   if(!p.notes)p.notes=[];
-  p.notes.push({id:Date.now(),date:new Date().toISOString().slice(0,10),text,by:currentUser.username});
+  p.notes.push({id:Date.now(),date:new Date().toISOString().slice(0,10),text,by:currentUser.username,createdAt:new Date().toISOString()});
   await persist("customers");logAction('note_add',p?.name||'');toast("✅ "+t.added);renderPtBody();
 }
 async function deletePatientNote(noteId){
   const p=getPatient(currentPatientId);if(!p)return;
+  const note=(p.notes||[]).find(n=>n.id===noteId);
+  if(!isNoteEditable(note)){toast(t.noteLocked||'🔒 Düzenlenemez','err');return;}
   if(!await confirmDialog(t.confirmDeleteNote,true))return;
   p.notes=(p.notes||[]).filter(n=>n.id!==noteId);
   await persist("customers");logAction('note_delete',p?.name||'');toast("🗑️ "+t.deleted,"warn");renderPtBody();
