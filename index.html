@@ -691,7 +691,7 @@ const undoStack=[];
 let currentUser=null;
 let currentTab="dashboard",searchQuery="",charts={},adminNavOpen=false;
 let currentPatientId=null,currentPtTab="consultation",ptFormDirty=false;
-let activeCompanyId=null;
+let activeCompanyId=null,allCompaniesMode=false;
 function markPtDirty(){ptFormDirty=true;}
 let selectedEventId=null;
 let currentEventDetailId=null;
@@ -979,6 +979,23 @@ async function loadCompanyStats(){
     (dealRows||[]).forEach(row=>{state.companyStats[row.id]={...(state.companyStats[row.id]||{}),events:Array.isArray(row.data)?row.data.length:0};});
   }catch{}
 }
+async function loadAllCompaniesData(){
+  try{
+    const [custRows,dealRows,aptRows]=await Promise.all([
+      fetch(`${SUPA_URL}/rest/v1/customers?select=*`,{headers:H}).then(r=>r.ok?r.json():[]),
+      fetch(`${SUPA_URL}/rest/v1/deals?select=*`,{headers:H}).then(r=>r.ok?r.json():[]),
+      fetch(`${SUPA_URL}/rest/v1/tasks?select=*`,{headers:H}).then(r=>r.ok?r.json():[])
+    ]);
+    state.patients=(custRows||[]).flatMap(r=>Array.isArray(r.data)?r.data:[]);
+    state.events=(dealRows||[]).flatMap(r=>Array.isArray(r.data)?r.data:[]);
+    state.appointments=(aptRows||[]).flatMap(r=>Array.isArray(r.data)?r.data:[]);
+  }catch{}
+}
+async function setAllCompanies(){
+  activeCompanyId=null;allCompaniesMode=true;
+  await loadAllCompaniesData();
+  setTab('dashboard');
+}
 
 // ── AUTH
 // Supabase erişilemezse bu yedek kullanıcılar devreye girer
@@ -1148,11 +1165,20 @@ function renderCompanyBanner(){
   const banner=document.getElementById("company-banner");if(!banner)return;
   const hiddenTabs=["companies","logs","users","trash","snapshots"];
   const activeCompany=activeCompanyId?state.companies.find(c=>c.id===activeCompanyId):null;
-  if(activeCompany&&!hiddenTabs.includes(currentTab)){
+  if(hiddenTabs.includes(currentTab)){banner.style.display="none";banner.innerHTML="";return;}
+  if(activeCompany){
     banner.style.display="";
     banner.innerHTML=`<div style="display:flex;align-items:center;gap:10px;background:#f9731610;border:1px solid #f9731630;border-radius:10px;padding:9px 14px;margin-bottom:0">
       <span style="font-size:18px">🏢</span>
       <span style="font-weight:800;color:#f97316;font-size:17px;letter-spacing:.2px">${activeCompany.name}</span>
+      <span style="color:#3d5270;font-size:13px">·</span>
+      <span style="font-size:12px;color:#60a5fa;cursor:pointer" onclick="setTab('companies')">← ${t.navCompanies||"Firmalar"}</span>
+    </div>`;
+  } else if(allCompaniesMode){
+    banner.style.display="";
+    banner.innerHTML=`<div style="display:flex;align-items:center;gap:10px;background:#60a5fa10;border:1px solid #60a5fa30;border-radius:10px;padding:9px 14px;margin-bottom:0">
+      <span style="font-size:18px">🌐</span>
+      <span style="font-weight:800;color:#60a5fa;font-size:17px;letter-spacing:.2px">Tüm Firmalar</span>
       <span style="color:#3d5270;font-size:13px">·</span>
       <span style="font-size:12px;color:#60a5fa;cursor:pointer" onclick="setTab('companies')">← ${t.navCompanies||"Firmalar"}</span>
     </div>`;
@@ -2637,19 +2663,28 @@ function renderUsers(){
   </div>`;
 }
 async function openCompanyPanel(cid){
-  activeCompanyId=cid;
+  activeCompanyId=cid;allCompaniesMode=false;
   await loadAll();
   setTab('dashboard');
 }
 function renderCompanies(){
   if(!canSeeLogs())return`<div class="empty">${t.accessDenied}</div>`;
   if(!state.companies.length)return`<div class="empty"><div style="font-size:32px;margin-bottom:12px">🏢</div><div>${t.noCompanies||"Henüz firma yok"}</div></div>`;
+  const totalPt=Object.values(state.companyStats).reduce((s,v)=>s+(v.patients||0),0);
+  const totalEv=Object.values(state.companyStats).reduce((s,v)=>s+(v.events||0),0);
   return`<div style="max-width:640px">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
       <h2 style="font-size:16px;font-weight:700;color:#dde4ef;margin:0">${t.companies||"Firmalar"}</h2>
       <button class="btn" onclick="openCompanyModal(0)">+ ${t.newCompany||"Yeni Firma"}</button>
     </div>
     <div style="display:flex;flex-direction:column;gap:10px">
+    <div class="card" style="display:flex;align-items:center;gap:14px;cursor:pointer;border:2px solid ${allCompaniesMode?'#60a5fa':'transparent'};transition:border-color .15s;background:${allCompaniesMode?'#1a2a3a':''};" onclick="setAllCompanies()" title="Tüm firmaların verisini göster">
+      <div style="width:52px;height:52px;border-radius:12px;background:${allCompaniesMode?'#60a5fa33':'#60a5fa15'};display:flex;align-items:center;justify-content:center;font-size:24px;flex-shrink:0">🌐</div>
+      <div style="flex:1;min-width:0">
+        <div style="font-weight:700;font-size:15px;color:${allCompaniesMode?'#60a5fa':'#dde4ef'};margin-bottom:3px">Tüm Firmalar${allCompaniesMode?` <span style="font-size:11px;background:#60a5fa;color:#fff;border-radius:8px;padding:1px 7px;font-weight:600;vertical-align:middle">Aktif</span>`:''}</div>
+        <div style="font-size:11px;color:#4a607d">${state.companies.length} firma · 👤 ${allCompaniesMode?state.patients.length:totalPt} hasta · 📅 ${allCompaniesMode?state.events.length:totalEv} etkinlik</div>
+      </div>
+    </div>
     ${state.companies.map(c=>{
       const userCount=state.users.filter(u=>u.company_id===c.id).length;
       const isActive=activeCompanyId===c.id;
