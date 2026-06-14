@@ -253,6 +253,7 @@ nav button:hover:not(.active){color:#94a3b8}
       <button id="btn-logout" class="logout-btn" onclick="doLogout()" title="Çıkış">⏻</button>
     </div>
     <nav id="nav">
+      <button data-tab="companies" id="nav-companies" style="display:none" onclick="setTab('companies')">🏢 &nbsp;<span class="nav-lbl" data-key="navCompanies">Firmalar</span></button>
       <button data-tab="dashboard" class="active" onclick="setTab('dashboard')">▦ &nbsp;<span class="nav-lbl" data-key="navDashboard">Panel</span></button>
       <button data-tab="patients" onclick="setTab('patients')">👥 &nbsp;<span class="nav-lbl" data-key="navPatients">Hastalar</span></button>
       <button data-tab="events" onclick="setTab('events')">📅 &nbsp;<span class="nav-lbl" data-key="navEvents">Etkinlikler</span></button>
@@ -260,7 +261,6 @@ nav button:hover:not(.active){color:#94a3b8}
       <button data-tab="treatments" id="nav-treatments" style="display:none" onclick="setTab('treatments')">🦷 &nbsp;<span class="nav-lbl" data-key="navTreatments">Tedaviler</span></button>
       <button data-tab="reports" id="nav-reports" style="display:none" onclick="setTab('reports')">↗ &nbsp;<span class="nav-lbl" data-key="navReports">Raporlar</span></button>
       <button data-tab="users" id="nav-users" style="display:none" onclick="setTab('users')">👤 &nbsp;<span class="nav-lbl" data-key="navUsers">Kullanıcılar</span></button>
-      <button data-tab="companies" id="nav-companies" style="display:none" onclick="setTab('companies')">🏢 &nbsp;<span class="nav-lbl" data-key="navCompanies">Firmalar</span></button>
       <button data-tab="logs" id="nav-logs" style="display:none" onclick="setTab('logs')">📋 &nbsp;<span class="nav-lbl" data-key="navLogs">Aktivite Logu</span></button>
       <button data-tab="trash" id="nav-trash" style="display:none" onclick="setTab('trash')">🗑️ &nbsp;<span class="nav-lbl" data-key="navTrash">Çöp Kutusu</span></button>
       <button data-tab="snapshots" id="nav-snapshots" style="display:none" onclick="setTab('snapshots')">💾 &nbsp;<span class="nav-lbl" data-key="navSnapshots">Yedekler</span></button>
@@ -1186,7 +1186,15 @@ function renderDashboard(){
 
   const recent=[...state.patients].sort((a,b)=>(b.createdAt||"").localeCompare(a.createdAt||"")).slice(0,8);
 
+  const activeCompany=activeCompanyId?state.companies.find(c=>c.id===activeCompanyId):null;
   return`<div style="display:flex;flex-direction:column;gap:18px">
+    ${activeCompany?`<div style="display:flex;align-items:center;gap:12px;background:#f9731610;border:1px solid #f9731630;border-radius:12px;padding:12px 16px">
+      <span style="font-size:20px">🏢</span>
+      <div>
+        <div style="font-size:16px;font-weight:800;color:#f97316">${activeCompany.name}</div>
+        <div style="font-size:11px;color:#4a607d;margin-top:1px">${t.companies||"Firma"} · <span style="color:#60a5fa;cursor:pointer" onclick="setTab('companies')">← ${t.navCompanies||"Firmalar"}</span></div>
+      </div>
+    </div>`:''}
     <div class="grid4">
       <div class="card"><div class="kpi-val" style="color:#60a5fa">${total}</div><div class="kpi-lbl">${t.totalPatients}</div><div class="kpi-sub">${state.patients.filter(p=>p.status==="consultation").length} ${t.consultationCount}</div></div>
       <div class="card"><div class="kpi-val" style="color:#a78bfa">${upcomingEvts}</div><div class="kpi-lbl">${t.upcomingEvents}</div><div class="kpi-sub">${state.events.length} ${t.totalEventsCount}</div></div>
