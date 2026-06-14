@@ -975,9 +975,16 @@ async function loadCompanyStats(){
       fetch(`${SUPA_URL}/rest/v1/deals?select=id,data`,{headers:H}).then(r=>r.ok?r.json():[])
     ]);
     state.companyStats={};
-    (custRows||[]).forEach(row=>{state.companyStats[row.id]={...(state.companyStats[row.id]||{}),patients:Array.isArray(row.data)?row.data.length:0};});
-    (dealRows||[]).forEach(row=>{state.companyStats[row.id]={...(state.companyStats[row.id]||{}),events:Array.isArray(row.data)?row.data.length:0};});
+    (custRows||[]).forEach(row=>{state.companyStats[row.id]={...(state.companyStats[row.id]||{}),patients:Array.isArray(row.data)?row.data.filter(p=>!p.deleted).length:0};});
+    (dealRows||[]).forEach(row=>{state.companyStats[row.id]={...(state.companyStats[row.id]||{}),events:Array.isArray(row.data)?row.data.filter(e=>!e.deleted).length:0};});
   }catch{}
+}
+function updateLocalCompanyStats(){
+  const cid=activeCompanyId;if(!cid)return;
+  state.companyStats[cid]={
+    patients:state.patients.filter(p=>!p.deleted).length,
+    events:state.events.filter(e=>!e.deleted).length
+  };
 }
 async function loadAllCompaniesData(){
   try{
@@ -1218,16 +1225,18 @@ function renderTopbarActions(){
 setInterval(async()=>{if(!currentUser)return;await loadAll();if(!document.getElementById("patient-overlay").style.display||document.getElementById("patient-overlay").style.display==="none")render();},15000);
 // ==RENDER_DASH==
 function renderDashboard(){
-  const total=state.patients.length;
-  const booked=state.patients.filter(p=>p.status==="booked").length;
+  const activePts=state.patients.filter(p=>!p.deleted);
+  const activeEvts=state.events.filter(e=>!e.deleted);
+  const total=activePts.length;
+  const booked=activePts.filter(p=>p.status==="booked").length;
   const conv=total?Math.round(booked/total*100):0;
   const today=new Date().toISOString().slice(0,10);
-  const upcomingEvts=state.events.filter(e=>!e.deleted&&e.active&&(e.dateEnd||e.dateStart||e.date||"")>=today).length;
-  const totalRev=state.patients.filter(p=>p.status==="booked").reduce((s,p)=>s+patientActivePlanTotal(p),0);
+  const upcomingEvts=activeEvts.filter(e=>e.active&&(e.dateEnd||e.dateStart||e.date||"")>=today).length;
+  const totalRev=activePts.filter(p=>p.status==="booked").reduce((s,p)=>s+patientActivePlanTotal(p),0);
 
   // find next upcoming event for live stats
-  const nextEvt=state.events.filter(e=>e.active&&(e.dateEnd||e.dateStart||e.date||"")>=today).sort((a,b)=>(a.dateStart||a.date||"").localeCompare(b.dateStart||b.date||""))[0]||state.events[0];
-  const evtPats=nextEvt?state.patients.filter(p=>p.eventId==nextEvt.id):[];
+  const nextEvt=activeEvts.filter(e=>e.active&&(e.dateEnd||e.dateStart||e.date||"")>=today).sort((a,b)=>(a.dateStart||a.date||"").localeCompare(b.dateStart||b.date||""))[0]||activeEvts[0];
+  const evtPats=nextEvt?activePts.filter(p=>p.eventId==nextEvt.id):[];
   const liveStats=nextEvt?[
     {label:t.registered,val:evtPats.length,color:"#60a5fa"},
     {label:t.walkins,val:evtPats.filter(p=>p.status==="walkin").length,color:"#94a3b8"},
@@ -1238,7 +1247,7 @@ function renderDashboard(){
     {label:t.revenueToday,val:`${currSym()}${evtPats.filter(p=>p.status==="booked").reduce((s,p)=>s+patientActivePlanTotal(p),0).toLocaleString()}`,color:"#f97316"}
   ]:[];
 
-  const recent=[...state.patients].sort((a,b)=>(b.createdAt||"").localeCompare(a.createdAt||"")).slice(0,8);
+  const recent=[...activePts].sort((a,b)=>(b.createdAt||"").localeCompare(a.createdAt||"")).slice(0,8);
 
   return`<div style="display:flex;flex-direction:column;gap:18px">
     <div class="grid4">
@@ -2672,8 +2681,9 @@ function renderUsers(){
 async function openCompanyPanel(cid){
   activeCompanyId=cid;allCompaniesMode=false;
   await loadAll();
-  loadCompanyStats().then(()=>{if(currentTab==='companies'||currentTab==='dashboard')render();});
+  updateLocalCompanyStats();
   setTab('dashboard');
+  loadCompanyStats();
 }
 function renderCompanies(){
   if(!canSeeLogs())return`<div class="empty">${t.accessDenied}</div>`;
@@ -2690,15 +2700,15 @@ function renderCompanies(){
       <div style="width:52px;height:52px;border-radius:12px;background:${allCompaniesMode?'#60a5fa33':'#60a5fa15'};display:flex;align-items:center;justify-content:center;font-size:24px;flex-shrink:0">🌐</div>
       <div style="flex:1;min-width:0">
         <div style="font-weight:700;font-size:15px;color:${allCompaniesMode?'#60a5fa':'#dde4ef'};margin-bottom:3px">Tüm Firmalar${allCompaniesMode?` <span style="font-size:11px;background:#60a5fa;color:#fff;border-radius:8px;padding:1px 7px;font-weight:600;vertical-align:middle">Aktif</span>`:''}</div>
-        <div style="font-size:11px;color:#4a607d">${state.companies.length} firma · 👤 ${allCompaniesMode?state.patients.length:totalPt} hasta · 📅 ${allCompaniesMode?state.events.length:totalEv} etkinlik</div>
+        <div style="font-size:11px;color:#4a607d">${state.companies.length} firma · 👤 ${allCompaniesMode?state.patients.filter(p=>!p.deleted).length:totalPt} hasta · 📅 ${allCompaniesMode?state.events.filter(e=>!e.deleted).length:totalEv} etkinlik</div>
       </div>
     </div>
     ${state.companies.map(c=>{
       const userCount=state.users.filter(u=>u.company_id===c.id).length;
       const isActive=activeCompanyId===c.id;
       const stats=state.companyStats[c.id]||{};
-      const ptCount=isActive?state.patients.length:(stats.patients??null);
-      const evCount=isActive?state.events.length:(stats.events??null);
+      const ptCount=isActive?state.patients.filter(p=>!p.deleted).length:(stats.patients??null);
+      const evCount=isActive?state.events.filter(e=>!e.deleted).length:(stats.events??null);
       const statStr=[ptCount!==null?`👤 ${ptCount} hasta`:'',evCount!==null?`📅 ${evCount} etkinlik`:'',`👥 ${userCount} kullanıcı`].filter(Boolean).join(' · ');
       return`<div class="card" style="display:flex;align-items:center;gap:14px;cursor:pointer;border:2px solid ${isActive?'#f97316':'transparent'};transition:border-color .15s" onclick="openCompanyPanel(${c.id})" title="Paneli aç">
         <div style="width:52px;height:52px;border-radius:12px;background:${isActive?'#f9731633':'#f9731615'};display:flex;align-items:center;justify-content:center;font-size:24px;flex-shrink:0">🏢</div>
@@ -2858,7 +2868,7 @@ async function savePatientModal(editId){
   pushUndo('patients',editId?(t.editPatient||'Hasta düzenle'):(t.newPatient||'Hasta ekle'));
   if(editId){state.patients=state.patients.map(p=>p.id==editId?{...p,...item}:p);logAction('patient_edit',name);toast("✅ "+t.updated);}
   else{state.patients.push({...item,id:Date.now(),assignee:currentUser.username,createdAt:new Date().toISOString(),consultation:{dentalConcerns:"",medicalHistory:"",allergies:"",medications:"",smoking:false,pregnant:false,bisphosphonate:false,heartDisease:false,diabetes:false,notes:""},assessment:{currentCondition:{},treatmentPlan:{},dentistNotes:""},booking:{treatments:[],accommodations:[],travels:[],discount:0,deposit:0,notes:""},notes:[]});logAction('patient_add',name);toast("✅ "+t.added);}
-  await persist("customers");closeModal();render();
+  updateLocalCompanyStats();await persist("customers");closeModal();render();
 }
 
 // ── SAVE CURRENT PATIENT (from overlay)
@@ -3012,9 +3022,9 @@ async function saveEvent(editId){
   pushUndo('events',editId?(t.editEvent||'Etkinlik düzenle'):(t.newEvent||'Etkinlik ekle'));
   if(editId){state.events=state.events.map(e=>e.id==editId?{...e,...item}:e);logAction('event_edit',name);}
   else{state.events.push({...item,id:Date.now()});logAction('event_add',name);}
-  await persist("deals");toast("✅ "+t.saved);closeModal();render();
+  updateLocalCompanyStats();await persist("deals");toast("✅ "+t.saved);closeModal();render();
 }
-async function deleteEvent(id){if(!isSuperAdmin())return;if(!await confirmDialog(t.confirmDeleteEvent,true))return;const _de=state.events.find(e=>e.id===id);await takeSnapshot('deals',state.events);pushUndo('events',`${t.undoLabelEventDel||'Etkinlik sil'}: ${_de?.name||''}`);state.events=state.events.map(e=>e.id===id?{...e,deleted:true}:e);await persist("deals");logAction('event_delete',_de?.name||'');toast(t.eventDeleted,"warn");render();loadCompanyStats().then(()=>render());}
+async function deleteEvent(id){if(!isSuperAdmin())return;if(!await confirmDialog(t.confirmDeleteEvent,true))return;const _de=state.events.find(e=>e.id===id);await takeSnapshot('deals',state.events);pushUndo('events',`${t.undoLabelEventDel||'Etkinlik sil'}: ${_de?.name||''}`);state.events=state.events.map(e=>e.id===id?{...e,deleted:true}:e);updateLocalCompanyStats();await persist("deals");logAction('event_delete',_de?.name||'');toast(t.eventDeleted,"warn");render();}
 
 // ── APPOINTMENTS
 function openAppointmentModal(){
@@ -3090,7 +3100,7 @@ async function saveTreatment(editId,type){
   await persist("history");toast("✅ "+t.saved);closeModal();render();
 }
 async function deleteTreatment(id){if(!canEdit())return;if(!await confirmDialog(t.confirmDeleteTx,true))return;const _dt=state.treatments.find(tr=>tr.id===id);await takeSnapshot('history',state.treatments);pushUndo('treatments',`${t.undoLabelTxDel||'Kayıt sil'}: ${_dt?.name||''}`);state.treatments=state.treatments.map(tr=>tr.id===id?{...tr,deleted:true}:tr);await persist("history");logAction('catalog_delete',_dt?.name||'');toast(t.recordDeleted,"warn");render();}
-async function deletePatient(id){if(!isSuperAdmin())return;if(!await confirmDialog(t.confirmDeletePatient,true))return;const _dp=state.patients.find(p=>p.id===id);await takeSnapshot('customers',state.patients);pushUndo('patients',`${t.undoLabelPatientDel||'Hasta sil'}: ${_dp?.name||''}`);state.patients=state.patients.map(p=>p.id===id?{...p,deleted:true}:p);await persist("customers");logAction('patient_delete',_dp?.name||'');toast(t.patientDeleted,"warn");closePatient();render();loadCompanyStats().then(()=>render());}
+async function deletePatient(id){if(!isSuperAdmin())return;if(!await confirmDialog(t.confirmDeletePatient,true))return;const _dp=state.patients.find(p=>p.id===id);await takeSnapshot('customers',state.patients);pushUndo('patients',`${t.undoLabelPatientDel||'Hasta sil'}: ${_dp?.name||''}`);state.patients=state.patients.map(p=>p.id===id?{...p,deleted:true}:p);updateLocalCompanyStats();await persist("customers");logAction('patient_delete',_dp?.name||'');toast(t.patientDeleted,"warn");closePatient();render();}
 async function restoreFromTrash(type,id){
   if(type==='patient'){state.patients=state.patients.map(p=>p.id==id?{...p,deleted:false}:p);await persist('customers');}
   else if(type==='event'){state.events=state.events.map(e=>e.id==id?{...e,deleted:false}:e);await persist('deals');}
