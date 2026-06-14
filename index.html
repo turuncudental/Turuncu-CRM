@@ -986,9 +986,9 @@ async function loadAllCompaniesData(){
       fetch(`${SUPA_URL}/rest/v1/deals?select=*`,{headers:H}).then(r=>r.ok?r.json():[]),
       fetch(`${SUPA_URL}/rest/v1/tasks?select=*`,{headers:H}).then(r=>r.ok?r.json():[])
     ]);
-    state.patients=(custRows||[]).flatMap(r=>Array.isArray(r.data)?r.data:[]);
-    state.events=(dealRows||[]).flatMap(r=>Array.isArray(r.data)?r.data:[]);
-    state.appointments=(aptRows||[]).flatMap(r=>Array.isArray(r.data)?r.data:[]);
+    state.patients=(custRows||[]).flatMap(r=>Array.isArray(r.data)?r.data.map(p=>({...p,_companyId:r.id})):[]);
+    state.events=(dealRows||[]).flatMap(r=>Array.isArray(r.data)?r.data.map(e=>({...e,_companyId:r.id})):[]);
+    state.appointments=(aptRows||[]).flatMap(r=>Array.isArray(r.data)?r.data.map(a=>({...a,_companyId:r.id})):[]);
   }catch{}
 }
 async function setAllCompanies(){
@@ -1405,9 +1405,16 @@ function renderPtConsultation(p){
   const c=p.consultation||{};
   const evtOpts=state.events.map(e=>`<option value="${e.id}"${p.eventId==e.id?" selected":""}>${e.name}</option>`).join("");
   const statusOpts=["walkin","consultation","assessed","pricing","booked","cancelled"].map(s=>`<option value="${s}"${p.status===s?" selected":""}>${statusLabel(s)}</option>`).join("");
+  const ptCompanyId=p._companyId||activeCompanyId;
+  const ptCompany=isSuperAdmin()&&state.companies.length>0?state.companies.find(c=>c.id===ptCompanyId):null;
   return`<div style="max-width:700px;display:flex;flex-direction:column;gap:14px" oninput="markPtDirty()" onchange="markPtDirty()">
     <div class="card">
       <div class="section-title">${t.patientInfo}</div>
+      ${ptCompany?`<div style="display:flex;align-items:center;gap:8px;background:#f9731610;border:1px solid #f9731625;border-radius:8px;padding:7px 12px;margin-bottom:10px">
+        <span style="font-size:14px">🏢</span>
+        <span style="font-size:12px;color:#4a607d;font-weight:600">${t.fcompanyName||"Firma"}:</span>
+        <span style="font-size:13px;font-weight:700;color:#f97316">${ptCompany.name}</span>
+      </div>`:''}
       <div class="field-row">
         <div class="field"><label>${t.fname}</label><input id="pc-name" value="${p.name||""}"/></div>
         <div class="field"><label>${t.femail}</label><input id="pc-email" value="${p.email||""}"/></div>
