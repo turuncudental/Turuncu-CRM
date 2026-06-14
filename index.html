@@ -698,6 +698,7 @@ let chartMode="treatmentPlan";
 let activePlan="treatmentPlan";
 let ptVisitTab=0;
 function setVisitTab(n){ptVisitTab=n;renderPtBody();}
+let editingNoteId=null;
 let activeCurrency='GBP';
 const CURR_SYM={GBP:'£',EUR:'€',USD:'$'};
 function currSym(){return CURR_SYM[activeCurrency]||'£';}
@@ -2223,6 +2224,7 @@ function renderPtNotes(p){
     </div>
     ${notes.length===0?`<div class="empty">${t.noNotes}</div>`:notes.map(n=>{
       const editable=canEdit()&&isNoteEditable(n);
+      const isEditing=editingNoteId===n.id;
       return`
     <div style="display:flex;gap:12px;margin-bottom:4px">
       <div style="display:flex;flex-direction:column;align-items:center">
@@ -2235,10 +2237,21 @@ function renderPtNotes(p){
           <span style="font-size:11px;color:#3d5270">@${n.by||"admin"}</span>
           ${n.createdAt&&!isNoteEditable(n)?`<span style="font-size:10px;color:#3d5270" title="${t.noteLocked}">🔒</span>`:''}
         </div>
-        <div style="background:#0d1320;border:1px solid #1a2236;border-radius:8px;padding:9px 12px;font-size:13px;color:#94a3b8;display:flex;justify-content:space-between;gap:10px">
-          <span>${n.text}</span>
-          ${editable?`<button class="sm-btn danger" onclick="deletePatientNote(${n.id})" style="flex-shrink:0">✕</button>`:""}
-        </div>
+        ${isEditing?`
+        <div style="background:#0d1320;border:1px solid #f9731644;border-radius:8px;padding:9px 12px;display:flex;flex-direction:column;gap:8px">
+          <textarea id="edit-note-${n.id}" style="width:100%;background:#131b2a;border:1px solid #1a2236;border-radius:6px;padding:7px 10px;color:#dde4ef;font-size:13px;outline:none;resize:vertical;min-height:64px;font-family:'DM Sans',sans-serif">${n.text}</textarea>
+          <div style="display:flex;gap:6px;justify-content:flex-end">
+            <button class="sm-btn" onclick="editingNoteId=null;renderPtBody()">${t.cancel}</button>
+            <button class="btn" style="font-size:12px;padding:5px 14px" onclick="savePatientNote(${n.id})">💾 ${t.save}</button>
+          </div>
+        </div>`:`
+        <div style="background:#0d1320;border:1px solid #1a2236;border-radius:8px;padding:9px 12px;font-size:13px;color:#94a3b8;display:flex;justify-content:space-between;gap:10px;align-items:flex-start">
+          <span style="white-space:pre-wrap">${n.text}</span>
+          ${editable?`<div style="display:flex;gap:5px;flex-shrink:0">
+            <button class="sm-btn" onclick="editingNoteId=${n.id};renderPtBody()" style="color:#60a5fa;border-color:#60a5fa44">${t.editBtn||'✎ Edit'}</button>
+            <button class="sm-btn danger" onclick="deletePatientNote(${n.id})">✕</button>
+          </div>`:""}
+        </div>`}
       </div>
     </div>`;}).join("")}
   </div>`;
@@ -2859,6 +2872,16 @@ async function deletePatientNote(noteId){
   if(!await confirmDialog(t.confirmDeleteNote,true))return;
   p.notes=(p.notes||[]).filter(n=>n.id!==noteId);
   await persist("customers");logAction('note_delete',p?.name||'');toast("🗑️ "+t.deleted,"warn");renderPtBody();
+}
+async function savePatientNote(noteId){
+  const p=getPatient(currentPatientId);if(!p)return;
+  const note=(p.notes||[]).find(n=>n.id===noteId);
+  if(!isNoteEditable(note)){toast(t.noteLocked||'🔒 Düzenlenemez','err');return;}
+  const newText=document.getElementById(`edit-note-${noteId}`)?.value?.trim();
+  if(!newText)return;
+  note.text=newText;
+  editingNoteId=null;
+  await persist("customers");logAction('note_add',p?.name||'');toast("✅ "+t.saved);renderPtBody();
 }
 
 // ── EVENTS
