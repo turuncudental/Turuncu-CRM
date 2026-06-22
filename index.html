@@ -298,6 +298,7 @@ nav button:hover:not(.active){color:#94a3b8}
     </div>
     <button id="btn-delete-patient" class="btn" style="font-size:12px;background:#7f1d1d;display:none" onclick="deletePatient(currentPatientId)">🗑 Sil</button>
     <button id="btn-undo" class="btn" onclick="undoLastAction()" title="Geri Al" style="font-size:12px;background:#0a1a2e;border:1.5px solid #60a5fa;color:#60a5fa;display:none">↩ Geri Al</button>
+    <button id="btn-brochure" class="btn" style="font-size:12px;background:#7c3aed" onclick="openTreatmentBrochure(currentPatientId)">📋 Bröşür</button>
     <button id="btn-save-patient" class="btn" style="font-size:12px" onclick="saveCurrentPatient()">💾 Kaydet</button>
   </div>
   <div class="pt-tabs" id="pt-tabs"></div>
@@ -2728,21 +2729,58 @@ function renderCompanies(){
 }
 function openCompanyModal(editId){
   const c=editId?state.companies.find(c=>c.id===editId):null;
-  const body=`<div class="field"><label>${t.fcompanyName||"Firma Adı"}</label><input id="cm-name" value="${c?.name||""}"/></div>`;
+  const s=c?.settings||{};
+  const body=`
+<div class="field"><label>${t.fcompanyName||"Firma Adı"}</label><input id="cm-name" value="${c?.name||""}"/></div>
+<div class="field"><label>Doktor Adı</label><input id="co-doctor-name" value="${s.doctorName||''}"/></div>
+<div class="field"><label>Doktor Ünvanı</label><input id="co-doctor-title" placeholder="Diş Hekimi" value="${s.doctorTitle||''}"/></div>
+<div class="field"><label>Doktor Biyografi</label><textarea id="co-doctor-bio" rows="3">${s.doctorBio||''}</textarea></div>
+<div class="field"><label>Doktor Fotoğrafı</label><input type="file" id="co-doctor-photo-input" accept="image/*" onchange="handleCoPhoto(this,'co-doctor-photo-preview','_coDoctorPhotoB64')"/><br><img id="co-doctor-photo-preview" src="${s.doctorPhoto||''}" style="max-width:120px;max-height:80px;margin-top:6px;border-radius:6px;display:${s.doctorPhoto?'block':'none'}"/></div>
+<div class="field"><label>Klinik Fotoğrafı</label><input type="file" id="co-clinic-photo-input" accept="image/*" onchange="handleCoPhoto(this,'co-clinic-photo-preview','_coClinicPhotoB64')"/><br><img id="co-clinic-photo-preview" src="${s.clinicPhoto||''}" style="max-width:120px;max-height:80px;margin-top:6px;border-radius:6px;display:${s.clinicPhoto?'block':'none'}"/></div>
+<div class="field"><label>Klinik İstatistikleri — Hasta Sayısı</label><input id="co-stat-patients" placeholder="2500+" value="${s.statPatients||''}"/></div>
+<div class="field"><label>Yıl</label><input id="co-stat-years" placeholder="15+" value="${s.statYears||''}"/></div>
+<div class="field"><label>Memnuniyet</label><input id="co-stat-satisfaction" placeholder="99.7%" value="${s.statSatisfaction||''}"/></div>
+<div class="field"><label>Website</label><input id="co-website" value="${s.website||''}"/></div>
+<div class="field"><label>Instagram</label><input id="co-instagram" value="${s.instagram||''}"/></div>`;
+  window._coDoctorPhotoB64=null;window._coClinicPhotoB64=null;
   makeModal(editId?t.editCompany||"Firma Düzenle":t.newCompany||"Yeni Firma",body,`saveCompany(${editId||0})`);
+}
+function handleCoPhoto(input,previewId,globalVar){
+  const file=input.files[0];if(!file)return;
+  const reader=new FileReader();
+  reader.onload=e=>{
+    window[globalVar]=e.target.result;
+    const prev=document.getElementById(previewId);
+    if(prev){prev.src=e.target.result;prev.style.display='block';}
+  };
+  reader.readAsDataURL(file);
 }
 async function saveCompany(editId){
   const name=document.getElementById("cm-name")?.value?.trim();if(!name)return;
+  const existC=editId?state.companies.find(c=>c.id===editId):null;
+  const oldSettings=existC?.settings||{};
+  const newSettings={
+    doctorName:document.getElementById('co-doctor-name')?.value||oldSettings.doctorName||'',
+    doctorTitle:document.getElementById('co-doctor-title')?.value||oldSettings.doctorTitle||'',
+    doctorBio:document.getElementById('co-doctor-bio')?.value||oldSettings.doctorBio||'',
+    doctorPhoto:window._coDoctorPhotoB64||oldSettings.doctorPhoto||'',
+    clinicPhoto:window._coClinicPhotoB64||oldSettings.clinicPhoto||'',
+    statPatients:document.getElementById('co-stat-patients')?.value||oldSettings.statPatients||'',
+    statYears:document.getElementById('co-stat-years')?.value||oldSettings.statYears||'',
+    statSatisfaction:document.getElementById('co-stat-satisfaction')?.value||oldSettings.statSatisfaction||'',
+    website:document.getElementById('co-website')?.value||oldSettings.website||'',
+    instagram:document.getElementById('co-instagram')?.value||oldSettings.instagram||''
+  };
   if(editId){
-    try{const r=await fetch(`${SUPA_URL}/rest/v1/crm_companies?id=eq.${editId}`,{method:"PATCH",headers:{...H,"Prefer":"return=minimal"},body:JSON.stringify({name})});if(!r.ok){toast(t.updateFailed||"Hata","err");return;}
-    state.companies=state.companies.map(c=>c.id===editId?{...c,name}:c);
+    try{const r=await fetch(`${SUPA_URL}/rest/v1/crm_companies?id=eq.${editId}`,{method:"PATCH",headers:{...H,"Prefer":"return=minimal"},body:JSON.stringify({name,settings:newSettings})});if(!r.ok){toast(t.updateFailed||"Hata","err");return;}
+    state.companies=state.companies.map(c=>c.id===editId?{...c,name,settings:newSettings}:c);
     await fetch(`${SUPA_URL}/rest/v1/crm_users?company_id=eq.${editId}`,{method:"PATCH",headers:{...H,"Prefer":"return=minimal"},body:JSON.stringify({company_name:name})});
     state.users=state.users.map(u=>u.company_id===editId?{...u,company_name:name}:u);
     logAction('company_edit',name);toast("✅ "+(t.companyUpdated||"Firma güncellendi"));}catch{toast(t.errorMsg||"Hata","err");return;}
   } else {
-    try{const r=await fetch(`${SUPA_URL}/rest/v1/crm_companies`,{method:"POST",headers:{...H,"Prefer":"return=representation"},body:JSON.stringify({name})});if(!r.ok){toast(t.addFailed||"Hata","err");return;}
+    try{const r=await fetch(`${SUPA_URL}/rest/v1/crm_companies`,{method:"POST",headers:{...H,"Prefer":"return=representation"},body:JSON.stringify({name,settings:newSettings})});if(!r.ok){toast(t.addFailed||"Hata","err");return;}
     const added=await r.json();const newC=Array.isArray(added)?added[0]:added;
-    state.companies.push(newC);logAction('company_add',name);toast("✅ "+(t.companyAdded||"Firma eklendi"));}catch{toast(t.errorMsg||"Hata","err");return;}
+    newC.settings=newSettings;state.companies.push(newC);logAction('company_add',name);toast("✅ "+(t.companyAdded||"Firma eklendi"));}catch{toast(t.errorMsg||"Hata","err");return;}
   }
   closeModal();render();loadCompanyStats().then(()=>render());
 }
@@ -3360,6 +3398,337 @@ async function downloadQuotePDF(patientId){
   ov.appendChild(el);
   document.body.appendChild(ov);
 }
+function openTreatmentBrochure(patientId){
+  const p=getPatient(patientId);if(!p)return;
+  const company=state.companies.find(c=>c.id===activeCompanyId)||{};
+  const settings=company.settings||{};
+  const a=p.assessment||{};const b=p.booking||{};
+  const planKey=a.activePlan||'treatmentPlan';
+  const allTx=state.treatments.filter(tx=>tx.type==='treatment'&&tx.active);
+  const isTR=lang==='tr';
+  const dateStr=new Date().toLocaleDateString('tr-TR');
+
+  // Build treatment rows (same as downloadQuotePDF)
+  const rows=[];
+  const jawTxMap=(a.jawTx||{})[planKey]||{};
+  Object.entries(jawTxMap).forEach(([jaw,txId])=>{
+    const tx=allTx.find(t=>t.id===+txId);if(!tx)return;
+    const jawLabel=jaw==='upper'?(isTR?'Üst Çene':'Upper Jaw'):(isTR?'Alt Çene':'Lower Jaw');
+    rows.push({name:`${tx.name} (${jawLabel})`,qty:1,price:getEffectivePrice(tx)});
+  });
+  const toothTxMap=(a.toothTx||{})[planKey]||{};
+  const txGroups={};
+  Object.values(toothTxMap).flatMap(v=>Array.isArray(v)?v:[v]).forEach(txId=>{const k=+txId;txGroups[k]=(txGroups[k]||0)+1;});
+  Object.entries(txGroups).forEach(([txId,cnt])=>{
+    const tx=allTx.find(t=>t.id===+txId);if(!tx)return;
+    rows.push({name:tx.name,qty:cnt,price:getEffectivePrice(tx)});
+  });
+  const extras=(a.planExtras||{})[planKey]||[];
+  extras.forEach(e=>{
+    if(e.customName){rows.push({name:e.customName,qty:e.qty||1,price:e.price||0});}
+    else{const tx=allTx.find(t=>t.id===e.txId);if(tx)rows.push({name:tx.name,qty:e.qty||1,price:getEffectivePrice(tx)});}
+  });
+
+  const txSub=rows.reduce((s,r)=>s+r.qty*r.price,0);
+  const sub=txSub;
+  const discount=b.discount||0;
+  const total=sub-discount;
+  const balance=total-(b.deposit||0);
+  const cs=currSym();
+  const dName=settings.doctorName||(isTR?'Dr. Diş Hekimi':'Dr. Dentist');
+  const dTitle=settings.doctorTitle||(isTR?'Diş Hekimi':'Dentist');
+  const dBio=settings.doctorBio||(isTR?'Uzman diş hekimimiz, yılların deneyimi ile size en iyi tedaviyi sunmaktadır.':'Our expert dentist provides the best treatment with years of experience.');
+  const statPats=settings.statPatients||'2500+';
+  const statYrs=settings.statYears||'15+';
+  const statSat=settings.statSatisfaction||'99.7%';
+  const website=settings.website||'www.turuncudental.com';
+  const instagram=settings.instagram||'@turuncudental';
+  const companyName=company.name||'Turuncu Dental';
+
+  // Tooth chart SVG generator
+  function toothChartSVG(chartData,planMode){
+    const upper=[18,17,16,15,14,13,12,11,21,22,23,24,25,26,27,28];
+    const lower=[48,47,46,45,44,43,42,41,31,32,33,34,35,36,37,38];
+    const W=18,H=22,GAP=2,ROWS=2;
+    const totalW=upper.length*(W+GAP)-GAP;
+    const totalH=ROWS*(H+GAP+8)+8;
+    const condColor={healthy:'#e2e8f0',cavity:'#92400e',crown:'#60a5fa',zircrown:'#3b82f6',missing:'#374151',implant:'#6b7280',root_canal:'#ef4444',veneer:'#a78bfa',filling:'#fbbf24',bridge:'#10b981',extraction:'#dc2626',root:'#7c3aed'};
+    const rows=[upper,lower];
+    let svgContent='';
+    rows.forEach((teeth,ri)=>{
+      teeth.forEach((num,ti)=>{
+        const x=ti*(W+GAP);
+        const y=ri*(H+GAP+16);
+        const cond=(chartData||{})[num];
+        const fill=cond&&cond!=='healthy'?(condColor[cond]||'#f97316'):'#e2e8f0';
+        const isEx=cond==='extraction';
+        svgContent+=`<rect x="${x}" y="${y}" width="${W}" height="${H}" rx="3" fill="${fill}" stroke="#1e293b" stroke-width="0.5"/>`;
+        if(isEx){svgContent+=`<line x1="${x+3}" y1="${y+3}" x2="${x+W-3}" y2="${y+H-3}" stroke="#fff" stroke-width="1.5"/><line x1="${x+W-3}" y1="${y+3}" x2="${x+3}" y2="${y+H-3}" stroke="#fff" stroke-width="1.5"/>`;}
+        else if(cond==='implant'){svgContent+=`<line x1="${x+W/2}" y1="${y+2}" x2="${x+W/2}" y2="${y+H-2}" stroke="#fff" stroke-width="1.5" stroke-dasharray="2,2"/>`;}
+        svgContent+=`<text x="${x+W/2}" y="${y+H+7}" text-anchor="middle" font-size="5.5" fill="#64748b" font-family="Arial">${num}</text>`;
+      });
+    });
+    return `<svg width="${totalW}" height="${totalH+10}" xmlns="http://www.w3.org/2000/svg">${svgContent}</svg>`;
+  }
+
+  // Affected teeth lists for page 5
+  function affectedTeeth(chartData,jaw){
+    const teeth=jaw==='upper'?[18,17,16,15,14,13,12,11,21,22,23,24,25,26,27,28]:[48,47,46,45,44,43,42,41,31,32,33,34,35,36,37,38];
+    return teeth.filter(n=>{const c=(chartData||{})[n];return c&&c!=='healthy';})
+      .map(n=>`<span style="display:inline-block;margin:2px;padding:2px 7px;border-radius:4px;background:#f1f5f9;font-size:11px;color:#334155;border:1px solid #e2e8f0">${n}: ${condLabel((chartData||{})[n])}</span>`).join('');
+  }
+
+  const PAGE='width:794px;height:1123px;box-sizing:border-box;position:relative;overflow:hidden;page-break-after:always;font-family:Arial,Helvetica,sans-serif;margin-bottom:8px;box-shadow:0 4px 20px #0008';
+
+  // === PAGE 1: COVER ===
+  const pg1=`<div style="${PAGE};background:linear-gradient(135deg,#0a1628 0%,#1a2a4a 50%,#0a1628 100%)">
+  <div style="position:absolute;top:0;left:0;right:0;height:6px;background:#f97316"></div>
+  <div style="position:absolute;bottom:0;left:0;right:0;height:6px;background:#f97316"></div>
+  <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;gap:24px;padding:60px">
+    <div style="font-size:80px;line-height:1">🦷</div>
+    <div style="text-align:center">
+      <div style="color:#fff;font-size:32px;font-weight:900;letter-spacing:2px">${companyName.toUpperCase()}</div>
+      <div style="color:#f97316;font-size:18px;font-weight:700;letter-spacing:4px;margin-top:4px">DENTAL CLINIC</div>
+    </div>
+    <div style="width:80px;height:3px;background:#f97316;border-radius:2px"></div>
+    <div style="color:#cbd5e1;font-size:14px;letter-spacing:4px;font-weight:600;text-transform:uppercase">${isTR?'TEDAVİ TEKLİFİ':'TREATMENT PROPOSAL'}</div>
+    <div style="color:#fff;font-size:28px;font-weight:900;text-transform:uppercase;text-align:center;margin-top:8px">${p.name}</div>
+    <div style="color:#94a3b8;font-size:12px">${dateStr}</div>
+    <div style="position:absolute;bottom:50px;color:#64748b;font-size:13px;font-style:italic">${isTR?'Özel olarak hazırlandı':'Exclusively prepared for you'}</div>
+  </div>
+</div>`;
+
+  // === PAGE 2: WELCOME ===
+  const pg2=`<div style="${PAGE};background:#fff">
+  <div style="background:#f97316;height:60px;display:flex;align-items:center;padding:0 60px">
+    <span style="color:#fff;font-size:22px;font-weight:900;letter-spacing:3px">${isTR?'HOŞ GELDİNİZ':'WELCOME'}</span>
+  </div>
+  <div style="padding:60px">
+    <p style="font-size:18px;font-weight:700;color:#1e293b;margin:0 0 20px">${isTR?`Sayın ${p.name},`:`Dear ${p.name},`}</p>
+    <p style="font-size:14px;color:#475569;line-height:1.8;margin:0 0 30px">${isTR
+      ?`${companyName} olarak sizi aramıza hoş geldiniz. Bu özel tedavi teklifini sizin için özenle hazırladık. Sağlıklı ve güzel bir gülüşe sahip olmak için doğru yerdesiniz. Ekibimiz, modern teknoloji ve uzman bilgisiyle size en iyi tedaviyi sunmak için burada.`
+      :`Welcome to ${companyName}. We have carefully prepared this exclusive treatment proposal for you. You are in the right place to achieve a healthy and beautiful smile. Our team is here to provide you with the best treatment with modern technology and expert knowledge.`
+    }</p>
+    <div style="margin-top:60px;padding-top:20px;border-top:2px solid #f1f5f9">
+      <div style="font-size:14px;font-weight:700;color:#1e293b">${dName}</div>
+      <div style="font-size:12px;color:#f97316;margin-top:2px">${dTitle}</div>
+      <div style="margin-top:30px;height:1px;width:180px;background:#e2e8f0"></div>
+      <div style="font-size:11px;color:#94a3b8;margin-top:6px">${isTR?'İmza / Onay':'Signature / Approval'}</div>
+    </div>
+    <div style="position:absolute;bottom:40px;right:60px;text-align:right">
+      <div style="font-size:24px">🦷</div>
+      <div style="font-size:13px;font-weight:900;color:#f97316">${companyName}</div>
+    </div>
+  </div>
+</div>`;
+
+  // === PAGE 3: DOCTOR ===
+  const hasDocPhoto=!!(settings.doctorPhoto);
+  const doctorInitials=dName.split(' ').map(w=>w[0]).join('').substring(0,2).toUpperCase();
+  const pg3=`<div style="${PAGE};background:#0a1628;display:flex">
+  <div style="width:50%;height:100%;overflow:hidden;flex-shrink:0">
+    ${hasDocPhoto
+      ?`<img src="${settings.doctorPhoto}" style="width:100%;height:100%;object-fit:cover"/>`
+      :`<div style="width:100%;height:100%;background:linear-gradient(180deg,#1a2a4a,#0a1628);display:flex;align-items:center;justify-content:center"><div style="width:140px;height:140px;border-radius:50%;background:#f9731633;border:3px solid #f97316;display:flex;align-items:center;justify-content:center;font-size:48px;color:#f97316;font-weight:900">${doctorInitials}</div></div>`
+    }
+  </div>
+  <div style="flex:1;background:#fff;padding:50px 40px;display:flex;flex-direction:column;justify-content:center">
+    <div style="font-size:11px;color:#f97316;font-weight:700;letter-spacing:3px;margin-bottom:16px">${isTR?'UZMANINIZ':'YOUR DENTAL EXPERT'}</div>
+    <div style="font-size:24px;font-weight:900;color:#1e293b;margin-bottom:8px">${dName}</div>
+    <div style="font-size:14px;color:#f97316;font-weight:700;margin-bottom:20px">${dTitle}</div>
+    <div style="font-size:13px;color:#64748b;line-height:1.7;margin-bottom:30px">${dBio}</div>
+    <div style="display:inline-flex;align-items:center;gap:10px;background:#fff7ed;border:2px solid #f97316;border-radius:12px;padding:12px 20px">
+      <span style="font-size:24px">🏆</span>
+      <div>
+        <div style="font-size:18px;font-weight:900;color:#c2410c">${statYrs}</div>
+        <div style="font-size:11px;color:#92400e;font-weight:600">${isTR?'YIL DENEYİM':'YEARS EXPERIENCE'}</div>
+      </div>
+    </div>
+  </div>
+</div>`;
+
+  // === PAGE 4: CLINIC ===
+  const hasClinicPhoto=!!(settings.clinicPhoto);
+  const pg4=`<div style="${PAGE};background:#0a1628;display:flex;flex-direction:column">
+  ${hasClinicPhoto
+    ?`<div style="position:absolute;inset:0"><img src="${settings.clinicPhoto}" style="width:100%;height:100%;object-fit:cover"/><div style="position:absolute;inset:0;background:rgba(10,22,40,0.75)"></div></div>`
+    :''
+  }
+  <div style="position:relative;flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:60px;text-align:center">
+    <div style="font-size:11px;color:#f97316;font-weight:700;letter-spacing:3px;margin-bottom:20px">${isTR?'KLİNİĞİMİZ':'OUR CLINIC'}</div>
+    <div style="font-size:28px;font-weight:900;color:#fff;margin-bottom:16px">${companyName}</div>
+    <div style="font-size:14px;color:#94a3b8;line-height:1.8;max-width:500px;margin-bottom:50px">${isTR?'Modern teknoloji ve uzman kadromuzla, gülüşünüzü en iyi şekilde tasarlıyoruz. Her hastamıza bireysel ve özel yaklaşım sunuyoruz.':'With modern technology and our expert team, we design your smile in the best way. We offer an individual and personalized approach to every patient.'}</div>
+    <div style="display:flex;gap:30px;justify-content:center">
+      <div style="background:rgba(249,115,22,0.15);border:2px solid #f97316;border-radius:16px;padding:24px 32px;text-align:center">
+        <div style="font-size:32px;font-weight:900;color:#f97316">${statPats}</div>
+        <div style="font-size:12px;color:#94a3b8;margin-top:4px;font-weight:600">${isTR?'HASTA':'PATIENTS'}</div>
+      </div>
+      <div style="background:rgba(249,115,22,0.15);border:2px solid #f97316;border-radius:16px;padding:24px 32px;text-align:center">
+        <div style="font-size:32px;font-weight:900;color:#f97316">${statYrs}</div>
+        <div style="font-size:12px;color:#94a3b8;margin-top:4px;font-weight:600">${isTR?'YIL':'YEARS'}</div>
+      </div>
+      <div style="background:rgba(249,115,22,0.15);border:2px solid #f97316;border-radius:16px;padding:24px 32px;text-align:center">
+        <div style="font-size:32px;font-weight:900;color:#f97316">${statSat}</div>
+        <div style="font-size:12px;color:#94a3b8;margin-top:4px;font-weight:600">${isTR?'MEMNUNİYET':'SATISFACTION'}</div>
+      </div>
+    </div>
+  </div>
+</div>`;
+
+  // === PAGE 5: CURRENT DENTAL STATUS ===
+  const condChartData=a.currentCondition||{};
+  const upperAffected=affectedTeeth(condChartData,'upper');
+  const lowerAffected=affectedTeeth(condChartData,'lower');
+  const pg5=`<div style="${PAGE};background:#fff">
+  <div style="background:#f97316;height:60px;display:flex;align-items:center;padding:0 60px">
+    <span style="color:#fff;font-size:18px;font-weight:900;letter-spacing:2px">${isTR?'MEVCUT DENTAL DURUMUNUZ':'YOUR CURRENT DENTAL STATUS'}</span>
+  </div>
+  <div style="padding:40px 60px">
+    <div style="display:flex;justify-content:center;margin-bottom:30px;background:#f8fafc;border-radius:12px;padding:24px">
+      ${toothChartSVG(condChartData,false)}
+    </div>
+    <div style="margin-bottom:20px">
+      <div style="font-size:13px;font-weight:700;color:#f97316;margin-bottom:8px">${isTR?'Üst Çene Teşhisi':'Upper Jaw Diagnosis'}</div>
+      <div style="min-height:30px">${upperAffected||`<span style="color:#94a3b8;font-size:12px">${isTR?'Sorun tespit edilmedi':'No issues detected'}</span>`}</div>
+    </div>
+    <div>
+      <div style="font-size:13px;font-weight:700;color:#f97316;margin-bottom:8px">${isTR?'Alt Çene Teşhisi':'Lower Jaw Diagnosis'}</div>
+      <div style="min-height:30px">${lowerAffected||`<span style="color:#94a3b8;font-size:12px">${isTR?'Sorun tespit edilmedi':'No issues detected'}</span>`}</div>
+    </div>
+    <div style="margin-top:24px;padding:12px 16px;background:#fff7ed;border-radius:8px;border-left:3px solid #f97316">
+      <div style="font-size:11px;font-weight:700;color:#9a3412;margin-bottom:6px">${isTR?'RENK KODLARI':'COLOR CODES'}</div>
+      <div style="display:flex;flex-wrap:wrap;gap:8px">
+        ${[['#e2e8f0','Sağlıklı/Healthy'],['#92400e','Çürük/Cavity'],['#60a5fa','Kron/Crown'],['#ef4444','Kanal/Root Canal'],['#374151','Eksik/Missing'],['#dc2626','Çekim/Extraction'],['#fbbf24','Dolgu/Filling'],['#6b7280','İmplant']].map(([col,lbl])=>`<span style="display:flex;align-items:center;gap:4px;font-size:10px;color:#64748b"><span style="width:12px;height:12px;border-radius:2px;background:${col};display:inline-block;flex-shrink:0"></span>${lbl}</span>`).join('')}
+      </div>
+    </div>
+  </div>
+</div>`;
+
+  // === PAGE 6: SUGGESTED TREATMENT ===
+  const planChartData=a[planKey]||{};
+  const rowsHTML=rows.length?rows.map((r,i)=>`<tr style="background:${i%2?'#fff7ed':'#fff'}">
+    <td style="padding:8px 12px;font-size:12px;color:#1e293b">${r.name}</td>
+    <td style="padding:8px 12px;text-align:center;font-size:12px;color:#64748b">${r.qty}</td>
+    <td style="padding:8px 12px;text-align:right;font-size:12px;color:#64748b">${cs}${r.price.toLocaleString()}</td>
+    <td style="padding:8px 12px;text-align:right;font-size:12px;font-weight:700;color:#c2410c">${cs}${(r.qty*r.price).toLocaleString()}</td>
+  </tr>`).join(''):`<tr><td colspan="4" style="padding:16px;text-align:center;color:#94a3b8;font-size:12px">${isTR?'Tedavi planı yok':'No treatment plan'}</td></tr>`;
+  const pg6=`<div style="${PAGE};background:#fff">
+  <div style="background:#f97316;height:60px;display:flex;align-items:center;padding:0 60px">
+    <span style="color:#fff;font-size:18px;font-weight:900;letter-spacing:2px">${isTR?'ÖNERİLEN TEDAVİ':'YOUR SUGGESTED TREATMENT'}</span>
+  </div>
+  <div style="padding:30px 60px">
+    <div style="display:flex;justify-content:center;margin-bottom:20px;background:#f8fafc;border-radius:12px;padding:20px">
+      ${toothChartSVG(planChartData,true)}
+    </div>
+    <table style="width:100%;border-collapse:collapse">
+      <thead><tr style="background:#1e293b">
+        <th style="padding:9px 12px;text-align:left;font-size:11px;color:#fff;font-weight:700">${isTR?'TEDAVİ':'TREATMENT'}</th>
+        <th style="padding:9px 12px;text-align:center;font-size:11px;color:#fff;font-weight:700;width:50px">${isTR?'ADET':'QTY'}</th>
+        <th style="padding:9px 12px;text-align:right;font-size:11px;color:#fff;font-weight:700;width:100px">${isTR?'BİRİM FİYAT':'UNIT PRICE'}</th>
+        <th style="padding:9px 12px;text-align:right;font-size:11px;color:#fff;font-weight:700;width:100px">TOPLAM/TOTAL</th>
+      </tr></thead>
+      <tbody>${rowsHTML}</tbody>
+      <tfoot><tr style="background:#f97316">
+        <td colspan="3" style="padding:10px 12px;font-size:13px;font-weight:900;color:#fff">TOPLAM / TOTAL</td>
+        <td style="padding:10px 12px;text-align:right;font-size:15px;font-weight:900;color:#fff">${cs}${txSub.toLocaleString()}</td>
+      </tr></tfoot>
+    </table>
+  </div>
+</div>`;
+
+  // === PAGE 7: FINANCIAL SUMMARY ===
+  const cardTotal=Math.round(total*1.02);
+  const pg7=`<div style="${PAGE};background:#fff">
+  <div style="background:#f97316;height:60px;display:flex;align-items:center;padding:0 60px">
+    <span style="color:#fff;font-size:18px;font-weight:900;letter-spacing:2px">${isTR?'FİNANSAL ÖZET':'FINANCIAL SUMMARY'}</span>
+  </div>
+  <div style="padding:50px 60px">
+    <div style="max-width:500px;margin:0 auto">
+      <div style="background:#f8fafc;border-radius:12px;padding:24px;margin-bottom:24px">
+        <div style="display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid #e2e8f0">
+          <span style="font-size:13px;color:#64748b">${isTR?'Ara Toplam':'Subtotal'}</span>
+          <span style="font-size:13px;font-weight:600;color:#1e293b">${cs}${sub.toLocaleString()}</span>
+        </div>
+        ${discount?`<div style="display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid #e2e8f0">
+          <span style="font-size:13px;color:#64748b">${isTR?'İndirim':'Discount'}</span>
+          <span style="font-size:13px;font-weight:600;color:#ef4444">-${cs}${discount.toLocaleString()}</span>
+        </div>`:''}
+        <div style="display:flex;justify-content:space-between;padding:12px 0">
+          <span style="font-size:15px;font-weight:700;color:#1e293b">TOPLAM / TOTAL</span>
+          <span style="font-size:18px;font-weight:900;color:#f97316">${cs}${total.toLocaleString()}</span>
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:${b.showCard===false?'1fr':'1fr 1fr'};gap:16px;margin-bottom:30px">
+        <div style="background:#fff7ed;border:2px solid #f97316;border-radius:12px;padding:24px;text-align:center">
+          <div style="font-size:11px;color:#9a3412;font-weight:700;letter-spacing:1px;margin-bottom:8px">💵 CASH</div>
+          <div style="font-size:24px;font-weight:900;color:#c2410c">${cs}${total.toLocaleString()}</div>
+        </div>
+        ${b.showCard===false?'':`<div style="background:#eff6ff;border:2px solid #3b5bdb;border-radius:12px;padding:24px;text-align:center">
+          <div style="font-size:11px;color:#1e40af;font-weight:700;letter-spacing:1px;margin-bottom:8px">💳 CARD (+2%)</div>
+          <div style="font-size:24px;font-weight:900;color:#1d4ed8">${cs}${cardTotal.toLocaleString()}</div>
+        </div>`}
+      </div>
+      ${hasImplantInPlan(p)?`<div style="margin-bottom:24px;padding:16px;background:#f0fff4;border:1px solid #bbf7d0;border-radius:12px">
+        <div style="font-size:11px;font-weight:700;color:#166534;letter-spacing:1px;margin-bottom:12px">${isTR?'2 ZİYARET PLANI':'2-VISIT PLAN'}</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+          <div style="background:#fff;border:1px solid #c6f6d5;border-radius:8px;padding:12px;text-align:center">
+            <div style="font-size:10px;color:#64748b;margin-bottom:4px">1. ${isTR?'Ziyaret':'Visit'} — 60%</div>
+            <div style="font-size:16px;font-weight:800;color:#166534">${cs}${Math.round(balance*0.6).toLocaleString()}</div>
+          </div>
+          <div style="background:#fff;border:1px solid #c6f6d5;border-radius:8px;padding:12px;text-align:center">
+            <div style="font-size:10px;color:#64748b;margin-bottom:4px">2. ${isTR?'Ziyaret':'Visit'} — 40%</div>
+            <div style="font-size:16px;font-weight:800;color:#166534">${cs}${Math.round(balance*0.4).toLocaleString()}</div>
+          </div>
+        </div>
+      </div>`:''}
+      <div style="text-align:center;padding:16px;background:#f8fafc;border-radius:8px;border:1px dashed #e2e8f0">
+        <div style="font-size:12px;color:#64748b">${isTR?`Bu teklif 30 gün geçerlidir — ${dateStr} tarihinden itibaren`:`This quote is valid for 30 days — from ${dateStr}`}</div>
+      </div>
+    </div>
+  </div>
+</div>`;
+
+  // === PAGE 8: BACK COVER ===
+  const pg8=`<div style="${PAGE};background:linear-gradient(135deg,#0a1628 0%,#1a2a4a 100%);page-break-after:auto">
+  <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;padding:60px;gap:30px">
+    <div style="text-align:center">
+      <div style="font-size:60px;margin-bottom:12px">🦷</div>
+      <div style="font-size:36px;font-weight:900;color:#fff">${companyName}</div>
+      <div style="font-size:16px;color:#f97316;font-weight:600;letter-spacing:3px;margin-top:6px">DENTAL CLINIC</div>
+    </div>
+    <div style="background:rgba(249,115,22,0.15);border:2px solid #f97316;border-radius:16px;padding:30px 50px;text-align:center;min-width:320px">
+      ${website?`<div style="color:#cbd5e1;font-size:14px;margin-bottom:10px">🌐 ${website}</div>`:''}
+      ${instagram?`<div style="color:#cbd5e1;font-size:14px;margin-bottom:10px">📸 ${instagram}</div>`:''}
+      <div style="color:#cbd5e1;font-size:14px">${isTR?'📧 Bizimle iletişime geçin':'📧 Contact us'}</div>
+    </div>
+    <div style="position:absolute;bottom:20px;left:0;right:0;text-align:center">
+      <div style="height:3px;background:#f97316;margin-bottom:12px"></div>
+      <div style="color:#64748b;font-size:11px">${companyName} — ${dateStr}</div>
+    </div>
+  </div>
+</div>`;
+
+  // === OVERLAY ===
+  const ov=document.createElement('div');
+  ov.setAttribute('data-brochure','1');
+  ov.style.cssText='position:fixed;inset:0;background:#000c;z-index:6000;overflow-y:auto;padding:20px;box-sizing:border-box;display:flex;flex-direction:column;align-items:center;gap:0';
+
+  const btnBar=document.createElement('div');
+  btnBar.className='no-print';
+  btnBar.style.cssText='position:sticky;top:0;z-index:1;display:flex;gap:10px;padding:12px;background:#1a2236;border-radius:10px;margin-bottom:16px;width:794px;box-sizing:border-box';
+  btnBar.innerHTML=`
+    <button onclick="window.print()" style="padding:8px 18px;border-radius:8px;border:none;background:#f97316;color:#fff;font-size:13px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif">🖨️ ${isTR?'Yazdır':'Print'}</button>
+    <button onclick="document.querySelector('[data-brochure]').remove()" style="padding:8px 18px;border-radius:8px;border:1px solid #dde4ef44;background:#0d1320;color:#dde4ef;font-size:13px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif">✕ ${isTR?'Kapat':'Close'}</button>
+  `;
+
+  const wrapper=document.createElement('div');
+  wrapper.innerHTML=`<style>@media print{body>*:not([data-brochure]){display:none!important}[data-brochure]{display:block!important;position:static!important;overflow:visible!important;background:none!important;padding:0!important}.no-print{display:none!important}.brochure-page{page-break-after:always;margin:0!important;box-shadow:none!important}}</style>${pg1}${pg2}${pg3}${pg4}${pg5}${pg6}${pg7}${pg8}`;
+
+  ov.appendChild(btnBar);
+  ov.appendChild(wrapper);
+  document.body.appendChild(ov);
+}
+
 // ==INIT==
 (async()=>{
   const savedLang=localStorage.getItem('crm_lang');
