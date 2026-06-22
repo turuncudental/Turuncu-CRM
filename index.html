@@ -871,6 +871,19 @@ function patientActivePlanTotal(p){
 function hasPlanData(a,planKey){return Object.keys((a.toothTx||{})[planKey]||{}).length>0||Object.keys((a.jawTx||{})[planKey]||{}).length>0||((a.planExtras||{})[planKey]||[]).length>0;}
 function getCreatedPlans(p){const a=p.assessment||{};if(a.createdPlans)return a.createdPlans;const plans=['treatmentPlan'];if(hasPlanData(a,'plan2'))plans.push('plan2');if(hasPlanData(a,'plan3'))plans.push('plan3');return plans;}
 function addTreatmentPlan(){const p=getPatient(currentPatientId);if(!p)return;if(!p.assessment)p.assessment={};const current=getCreatedPlans(p);const all=['treatmentPlan','plan2','plan3'];const next=all.find(pl=>!current.includes(pl));if(!next)return;p.assessment.createdPlans=[...current,next];activePlan=next;persist("customers");renderPtBody();}
+async function deleteTreatmentPlan(pl){
+  if(!await confirmDialog('Bu planı silmekten emin misiniz?',true))return;
+  const p=getPatient(currentPatientId);if(!p||!p.assessment)return;
+  const current=getCreatedPlans(p);if(current.length<=1)return;
+  delete p.assessment[pl];
+  if(p.assessment.toothTx)delete p.assessment.toothTx[pl];
+  if(p.assessment.jawTx)delete p.assessment.jawTx[pl];
+  if(p.assessment.planExtras)delete p.assessment.planExtras[pl];
+  p.assessment.createdPlans=current.filter(x=>x!==pl);
+  if(activePlan===pl)activePlan=p.assessment.createdPlans[0];
+  if(p.assessment.activePlan===pl)p.assessment.activePlan=p.assessment.createdPlans[0];
+  persist("customers");renderPtBody();
+}
 function getCatalogByType(type){return state.treatments.filter(tr=>(tr.type||"treatment")===type&&tr.active);}
 function condLabel(k){return{healthy:t.condHealthy,cavity:t.condCavity,crown:t.condCrown,zircrown:"Zirkon/E-Max",missing:t.condMissing,implant:t.condImplant,root_canal:t.condRootCanal,veneer:t.condVeneer,filling:t.condFilling,bridge:t.condBridge,extraction:t.condExtraction,root:t.condRoot}[k]||k;}
 function updateFooter(){if(!currentUser)return;document.getElementById("sidebar-footer").textContent=`${state.patients.length} ${t.footerPatients} · ${state.patients.filter(p=>p.status==="booked").length} ${t.footerBooked}`;}
@@ -1634,7 +1647,7 @@ function renderPtAssessment(p){
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:8px">
         <div style="display:flex;align-items:center;gap:10px">
           <div class="section-title" style="margin-bottom:0">${t.treatmentPlan}</div>
-          ${createdPlans.map((pl,i)=>`<div style="display:flex;flex-direction:column;align-items:center;gap:2px"><button onclick="setActivePlan('${pl}')" style="padding:4px 12px;border-radius:20px;border:1px solid ${activePlan===pl?'#f97316':'#1a2236'};background:${activePlan===pl?'#f9731622':'#131b2a'};color:${activePlan===pl?'#f97316':'#4a607d'};font-size:11px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif">${i+1}. Plan</button>${p.assessment?.activePlan===pl?`<span style="font-size:9px;color:#22c55e;font-weight:800;letter-spacing:0.5px">${t.activeLabel}</span>`:''}</div>`).join('')}
+          ${createdPlans.map((pl,i)=>`<div style="display:flex;flex-direction:column;align-items:center;gap:2px"><div style="display:flex;align-items:center;gap:3px"><button onclick="setActivePlan('${pl}')" style="padding:4px 12px;border-radius:20px;border:1px solid ${activePlan===pl?'#f97316':'#1a2236'};background:${activePlan===pl?'#f9731622':'#131b2a'};color:${activePlan===pl?'#f97316':'#4a607d'};font-size:11px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif">${i+1}. Plan</button>${createdPlans.length>1?`<button onclick="deleteTreatmentPlan('${pl}')" title="Bu planı sil" style="padding:2px 6px;border-radius:12px;border:1px solid #3d1515;background:#1a0808;color:#ef4444;font-size:11px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;line-height:1">×</button>`:''}</div>${p.assessment?.activePlan===pl?`<span style="font-size:9px;color:#22c55e;font-weight:800;letter-spacing:0.5px">${t.activeLabel}</span>`:''}</div>`).join('')}
           ${createdPlans.length<3?`<button onclick="addTreatmentPlan()" style="padding:4px 12px;border-radius:20px;border:1px dashed #2a3a54;background:transparent;color:#3d5270;font-size:11px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif">+ Plan</button>`:''}
         </div>
         <button onclick="resetActivePlan()" style="padding:4px 14px;border-radius:20px;border:1px solid #ef444444;background:#2b0f0f;color:#ef4444;font-size:11px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif">${t.resetAll}</button>
