@@ -855,7 +855,7 @@ function patientActivePlanTotal(p){
   const jawSub=Object.values(jawTxMap).reduce((s,txId)=>{const tx=allTx.find(t=>t.id===+txId);return s+getEffectivePrice(tx);},0);
   const toothTxMap=(a.toothTx||{})[planKey]||{};
   const txGroups={};
-  Object.values(toothTxMap).forEach(txId=>{const k=+txId;if(!txGroups[k])txGroups[k]=0;txGroups[k]++;});
+  Object.values(toothTxMap).flatMap(v=>Array.isArray(v)?v:[v]).forEach(txId=>{const k=+txId;if(!txGroups[k])txGroups[k]=0;txGroups[k]++;});
   const autoSub=Object.entries(txGroups).reduce((s,[txId,cnt])=>{const tx=allTx.find(t=>t.id===+txId);return s+cnt*getEffectivePrice(tx);},0);
   const extras=(a.planExtras||{})[planKey]||[];
   const extrasSub=extras.reduce((s,e)=>e.customName?s+(e.qty||1)*(e.price||0):s+(e.qty||1)*getEffectivePrice(allTx.find(t=>t.id===e.txId)),0);
@@ -926,7 +926,7 @@ function buildPlanDetail(p){
   const jawMap=(a.jawTx||{})[planKey]||{};
   const jawParts=Object.entries(jawMap).map(([jaw,txId])=>{const tx=allTx.find(t=>t.id===+txId);return tx?`${tx.name}(${jaw==='upper'?'üst':'alt'})`:'';}).filter(Boolean);
   const toothMap=(a.toothTx||{})[planKey]||{};
-  const grp={};Object.values(toothMap).forEach(id=>{grp[+id]=(grp[+id]||0)+1;});
+  const grp={};Object.values(toothMap).flatMap(v=>Array.isArray(v)?v:[v]).forEach(id=>{grp[+id]=(grp[+id]||0)+1;});
   const toothParts=Object.entries(grp).map(([id,cnt])=>{const tx=allTx.find(t=>t.id===+id);return tx?`${tx.name}×${cnt}`:'';}).filter(Boolean);
   const extras=((a.planExtras||{})[planKey]||[]).map(e=>e.customName?`${e.customName}(${e.qty||1}×${currSym()}${e.price||0})`:(allTx.find(t=>t.id===e.txId)?.name||'')+`×${e.qty||1}`).filter(Boolean);
   const parts=[...jawParts,...toothParts,...extras];
@@ -1592,11 +1592,14 @@ function renderPtAssessment(p){
   const allTxCatalog=state.treatments.filter(tx=>tx.type==='treatment'&&tx.active);
   const toothTxMap=(a.toothTx||{})[activePlan]||{};
   const txGroupsMap={};
-  Object.entries(toothTxMap).forEach(([num,txId])=>{
-    const k=+txId;
-    if(!txGroupsMap[k])txGroupsMap[k]={txId:k,count:0,toothNums:[]};
-    txGroupsMap[k].count++;
-    txGroupsMap[k].toothNums.push(+num);
+  Object.entries(toothTxMap).forEach(([num,txVal])=>{
+    const ids=Array.isArray(txVal)?txVal:[txVal];
+    ids.forEach(txId=>{
+      const k=+txId;
+      if(!txGroupsMap[k])txGroupsMap[k]={txId:k,count:0,toothNums:[]};
+      txGroupsMap[k].count++;
+      txGroupsMap[k].toothNums.push(+num);
+    });
   });
   const groupedRows=Object.values(txGroupsMap).map(g=>({...g,tx:allTxCatalog.find(t=>t.id===g.txId)})).filter(g=>g.tx);
   const extraRows=((a.planExtras||{})[activePlan]||[]).map((e,i)=>e.customName?{...e,idx:i,tx:{name:e.customName,salePrice:e.price||0}}:{...e,idx:i,tx:allTxCatalog.find(tx=>tx.id===e.txId)}).filter(e=>e.tx);
@@ -1945,14 +1948,25 @@ function applyTxToTooth(num,txId){
     markPtDirty();persist("customers");renderPtBody();return;
   }
   const tx=getTreatment(txId);if(!tx)return;
-  if(p.assessment.toothTx[activePlan][num]===txId){
+  const _existing=p.assessment.toothTx[activePlan][num];
+  const _existingIds=Array.isArray(_existing)?[..._existing]:(_existing!=null?[_existing]:[]);
+  const _allTxList=state.treatments.filter(tx=>tx.type==='treatment'&&tx.active);
+  const _newCond=txToCondition(tx);
+  const _existConds=_existingIds.map(id=>txToCondition(_allTxList.find(t=>t.id===+id))).filter(Boolean);
+  if(_existConds.includes('implant')&&(_newCond==='root_canal'||_newCond==='filling')){toast("❌ İmplantlı dişe kanal veya dolgu eklenemez");return;}
+  if(_newCond==='implant'&&(_existConds.includes('root_canal')||_existConds.includes('filling'))){toast("❌ İmplantlı dişe kanal veya dolgu eklenemez");return;}
+  const _idx=_existingIds.indexOf(txId);
+  const _newIds=_idx>=0?_existingIds.filter(id=>id!==txId):[..._existingIds,txId];
+  if(_newIds.length===0){
     delete p.assessment.toothTx[activePlan][num];
     delete p.assessment[activePlan][num];
   } else {
-    p.assessment.toothTx[activePlan][num]=txId;
-    const cond=txToCondition(tx);
-    if(cond)p.assessment[activePlan][num]=cond;
-    else delete p.assessment[activePlan][num];
+    p.assessment.toothTx[activePlan][num]=_newIds.length===1?_newIds[0]:_newIds;
+    const _allConds=_newIds.map(id=>txToCondition(_allTxList.find(t=>t.id===+id))).filter(Boolean);
+    const _priority=['extraction','implant','zircrown','crown','root_canal','filling'];
+    let _domCond=_allConds.find(c=>_priority.includes(c)&&_priority.indexOf(c)===Math.min(..._allConds.filter(x=>_priority.includes(x)).map(x=>_priority.indexOf(x))))||_allConds[0]||null;
+    if(_domCond==='implant'&&(_allConds.includes('crown')||_allConds.includes('zircrown'))){_domCond='implant+'+(_allConds.includes('zircrown')?'zircrown':'crown');}
+    if(_domCond)p.assessment[activePlan][num]=_domCond;else delete p.assessment[activePlan][num];
   }
   markPtDirty();persist("customers");renderPtBody();
 }
@@ -1975,8 +1989,21 @@ function removeTxGroup(txId){
   const plan=p.assessment?.toothTx?.[activePlan];
   if(!plan)return;
   const _txName=state.treatments.find(t=>t.id===+txId)?.name||'?';
+  const _allTxListRm=state.treatments.filter(tx=>tx.type==='treatment'&&tx.active);
   Object.keys(plan).forEach(num=>{
-    if(plan[num]===+txId){delete plan[num];if(p.assessment[activePlan])delete p.assessment[activePlan][num];}
+    const v=plan[num];const ids=Array.isArray(v)?v:[v];
+    if(ids.includes(+txId)){
+      const newIds=ids.filter(id=>id!==+txId);
+      if(newIds.length===0){delete plan[num];if(p.assessment[activePlan])delete p.assessment[activePlan][num];}
+      else{
+        plan[num]=newIds.length===1?newIds[0]:newIds;
+        const _allConds=newIds.map(id=>txToCondition(_allTxListRm.find(t=>t.id===+id))).filter(Boolean);
+        const _priority=['extraction','implant','zircrown','crown','root_canal','filling'];
+        let _dom=_allConds.find(c=>_priority.includes(c)&&_priority.indexOf(c)===Math.min(..._allConds.filter(x=>_priority.includes(x)).map(x=>_priority.indexOf(x))))||_allConds[0]||null;
+        if(_dom==='implant'&&(_allConds.includes('crown')||_allConds.includes('zircrown'))){_dom='implant+'+(_allConds.includes('zircrown')?'zircrown':'crown');}
+        if(_dom&&p.assessment[activePlan])p.assessment[activePlan][num]=_dom;
+      }
+    }
   });
   logAction('plan_save',`${p.name} — ${_txName} kaldırıldı | ${currSym()}${patientActivePlanTotal(p).toLocaleString()}`);markPtDirty();persist("customers");renderPtBody();
 }
@@ -2068,7 +2095,7 @@ function hasImplantInPlan(p){
   return candidates.some(planKey=>{
     if(seen.has(planKey))return false;seen.add(planKey);
     const toothMap=(a.toothTx||{})[planKey]||{};const jawMap=(a.jawTx||{})[planKey]||{};
-    return Object.values(toothMap).some(id=>isImplantTx(allTx.find(t=>t.id===+id)))
+    return Object.values(toothMap).flatMap(v=>Array.isArray(v)?v:[v]).some(id=>isImplantTx(allTx.find(t=>t.id===+id)))
         ||Object.values(jawMap).some(id=>isImplantTx(allTx.find(t=>t.id===+id)))
         ||Object.values((a[planKey])||{}).includes('implant');
   });
@@ -3241,7 +3268,7 @@ async function downloadQuotePDF(patientId){
   // Per-tooth treatments (grouped by tx)
   const toothTxMap=(a.toothTx||{})[planKey]||{};
   const txGroups={};
-  Object.values(toothTxMap).forEach(txId=>{const k=+txId;txGroups[k]=(txGroups[k]||0)+1;});
+  Object.values(toothTxMap).flatMap(v=>Array.isArray(v)?v:[v]).forEach(txId=>{const k=+txId;txGroups[k]=(txGroups[k]||0)+1;});
   Object.entries(txGroups).forEach(([txId,cnt])=>{
     const tx=allTx.find(t=>t.id===+txId);if(!tx)return;
     rows.push({name:tx.name,qty:cnt,price:getEffectivePrice(tx)});
