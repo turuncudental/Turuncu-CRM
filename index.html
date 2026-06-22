@@ -559,7 +559,7 @@ tr:{
   unsavedChangesWarning:"Hasta Kayıt formunda kaydedilmemiş değişiklikler var. Kaydetmeden devam etmek istiyor musunuz?",
   unsavedPlanWarning:"Planlama sekmesinde kaydedilmemiş değişiklikler var. Kaydetmek ister misiniz?",
   undoBtn:"↩ Geri Al",undoNoAction:"Geri alınacak işlem yok",undoDone:"↩ Geri alındı ✅",
-  cashLabel:"${t.cashLabel||'💵 NAKİT'}",cardLabel:"${t.cardLabel||'💳 KART +2%'}",
+  cashLabel:"💵 NAKİT",cardLabel:"💳 KART +2%",
   cannotRootCanal:"Bu dişte kanal seçemezsiniz",cannotCrown:"Seçtiğiniz bölgede kron bulunmamaktadır",
   imageReadError:"Resim okunamadı:",companyHasUsers:"Bu firmaya bağlı {n} kullanıcı var. Önce kullanıcıları silin.",
   undoLabelEventDel:"Etkinlik sil",undoLabelAptStatus:"Randevu durumu",undoLabelAptDel:"Randevu sil",undoLabelTxDel:"Kayıt sil",undoLabelPatientDel:"Hasta sil",
@@ -1818,21 +1818,24 @@ function renderPtAssessment(p){
         <div class="stat-row"><span style="font-weight:700;color:#dde4ef">${t.totalCost}</span><span style="font-weight:800;color:#34d399;font-size:15px">${currSym()}${total.toLocaleString()}</span></div>
         <div class="stat-row"><span>${t.deposit}</span><span><input type="number" min="0" value="${b.deposit||''}" placeholder="0" onchange="updateBookingDeposit(+this.value)" style="width:80px;background:#131b2a;border:1px solid #1a2236;border-radius:6px;padding:3px 6px;color:#dde4ef;font-size:12px;text-align:right"/></span></div>
         <div style="border-top:2px solid #1a2236;margin:6px 0"></div>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:4px 0 8px">
+        <div style="display:flex;align-items:center;justify-content:flex-end;margin-bottom:6px">
+          <button onclick="toggleCardPayment()" style="padding:3px 10px;border-radius:14px;border:1px solid ${b.showCard===false?'#3d5270':'#1e3a5f'};background:${b.showCard===false?'#131b2a':'#050f1e'};color:${b.showCard===false?'#3d5270':'#60a5fa'};font-size:10px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif">${b.showCard===false?'💳 Kart Göster':'💳 Kart Gizle'}</button>
+        </div>
+        <div style="display:grid;grid-template-columns:${b.showCard===false?'1fr':'1fr 1fr'};gap:8px;margin:0 0 8px">
           <div style="background:#1a0d00;border:2px solid #f97316;border-radius:10px;padding:12px;text-align:center">
-            <div style="font-size:9px;color:#f97316;font-weight:700;letter-spacing:.5px;margin-bottom:6px">${t.cashLabel||'💵 NAKİT'}</div>
+            <div style="font-size:9px;color:#f97316;font-weight:700;letter-spacing:.5px;margin-bottom:6px">${t.cashLabel}</div>
             <div style="font-size:16px;font-weight:900;color:#f97316">${currSym()}${balance.toLocaleString()}</div>
           </div>
-          <div style="background:#050f1e;border:2px solid #60a5fa;border-radius:10px;padding:12px;text-align:center">
-            <div style="font-size:9px;color:#60a5fa;font-weight:700;letter-spacing:.5px;margin-bottom:6px">${t.cardLabel||'💳 KART +2%'}</div>
+          ${b.showCard===false?'':`<div style="background:#050f1e;border:2px solid #60a5fa;border-radius:10px;padding:12px;text-align:center">
+            <div style="font-size:9px;color:#60a5fa;font-weight:700;letter-spacing:.5px;margin-bottom:6px">${t.cardLabel}</div>
             <div style="font-size:16px;font-weight:900;color:#60a5fa">${currSym()}${cardBalance.toLocaleString()}</div>
-          </div>
+          </div>`}
         </div>
         ${twoVisitMode?`<div style="border-top:1px solid #1a2236;margin:10px 0 6px"></div>
         <div style="font-size:10px;color:#4a607d;font-weight:700;margin-bottom:8px;letter-spacing:.5px">${t.twoVisitPlan}</div>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">
+        <div style="display:grid;grid-template-columns:${b.showCard===false?'1fr':'1fr 1fr'};gap:6px">
           <div>
-            <div style="font-size:9px;color:#34d399;font-weight:700;text-align:center;margin-bottom:4px">${t.cashLabel||'💵 NAKİT'}</div>
+            <div style="font-size:9px;color:#34d399;font-weight:700;text-align:center;margin-bottom:4px">${t.cashLabel}</div>
             <div style="background:#0d2b1a;border:1px solid #16532d;border-radius:6px;padding:8px;text-align:center;margin-bottom:4px">
               <div style="font-size:9px;color:#4a607d;margin-bottom:2px">1. Visit — %60</div>
               <div style="font-size:13px;font-weight:800;color:#34d399">${currSym()}${Math.round(balance*0.6).toLocaleString()}</div>
@@ -1842,8 +1845,8 @@ function renderPtAssessment(p){
               <div style="font-size:13px;font-weight:800;color:#34d399">${currSym()}${Math.round(balance*0.4).toLocaleString()}</div>
             </div>
           </div>
-          <div>
-            <div style="font-size:9px;color:#60a5fa;font-weight:700;text-align:center;margin-bottom:4px">${t.cardLabel||'💳 KART +2%'}</div>
+          ${b.showCard===false?'':`<div>
+            <div style="font-size:9px;color:#60a5fa;font-weight:700;text-align:center;margin-bottom:4px">${t.cardLabel}</div>
             <div style="background:#050f1e;border:1px solid #1e3a5f;border-radius:6px;padding:8px;text-align:center;margin-bottom:4px">
               <div style="font-size:9px;color:#4a607d;margin-bottom:2px">1. Visit — %60</div>
               <div style="font-size:12px;font-weight:700;color:#60a5fa">${currSym()}${Math.round(balance*0.6*1.02).toLocaleString()}</div>
@@ -1852,7 +1855,7 @@ function renderPtAssessment(p){
               <div style="font-size:9px;color:#4a607d;margin-bottom:2px">2. Visit — %40</div>
               <div style="font-size:12px;font-weight:700;color:#60a5fa">${currSym()}${Math.round(balance*0.4*1.02).toLocaleString()}</div>
             </div>
-          </div>
+          </div>`}
         </div>`:''}
       </div>
       <div class="field" style="margin-top:12px"><label>${t.bookingNotes}</label><textarea id="pb-notes" rows="2" oninput="markPtDirty()">${b.notes||""}</textarea></div>
@@ -2110,6 +2113,12 @@ function hasImplantInPlan(p){
         ||Object.values((a[planKey])||{}).includes('implant');
   });
 }
+function toggleCardPayment(){
+  const p=getPatient(currentPatientId);if(!p)return;
+  if(!p.booking)p.booking={};
+  p.booking.showCard=p.booking.showCard===false?true:false;
+  persist("customers");renderPtBody();
+}
 function toggleTwoVisit(){
   const p=getPatient(currentPatientId);if(!p)return;
   if(!p.booking)p.booking={};
@@ -2271,21 +2280,24 @@ function renderPtBooking(p){
         <div class="stat-row"><span style="font-weight:700;color:#dde4ef">${t.totalCost}</span><span style="font-weight:800;color:#34d399;font-size:15px">${currSym()}${total.toLocaleString()}</span></div>
         <div class="stat-row"><span>${t.deposit}</span><span><input type="number" min="0" value="${b.deposit||''}" placeholder="0" onchange="updateBookingDeposit(+this.value)" style="width:80px;background:#131b2a;border:1px solid #1a2236;border-radius:6px;padding:3px 6px;color:#dde4ef;font-size:12px;text-align:right"/></span></div>
         <div style="border-top:2px solid #f97316;margin:8px 0"></div>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:4px 0 8px">
+        <div style="display:flex;align-items:center;justify-content:flex-end;margin-bottom:6px">
+          <button onclick="toggleCardPayment()" style="padding:3px 10px;border-radius:14px;border:1px solid ${b.showCard===false?'#3d5270':'#1e3a5f'};background:${b.showCard===false?'#131b2a':'#050f1e'};color:${b.showCard===false?'#3d5270':'#60a5fa'};font-size:10px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif">${b.showCard===false?'💳 Kart Göster':'💳 Kart Gizle'}</button>
+        </div>
+        <div style="display:grid;grid-template-columns:${b.showCard===false?'1fr':'1fr 1fr'};gap:8px;margin:0 0 8px">
           <div style="background:#1a0d00;border:2px solid #f97316;border-radius:10px;padding:12px;text-align:center">
-            <div style="font-size:9px;color:#f97316;font-weight:700;letter-spacing:.5px;margin-bottom:6px">${t.cashLabel||'💵 NAKİT'}</div>
+            <div style="font-size:9px;color:#f97316;font-weight:700;letter-spacing:.5px;margin-bottom:6px">${t.cashLabel}</div>
             <div style="font-size:16px;font-weight:900;color:#f97316">${currSym()}${balance.toLocaleString()}</div>
           </div>
-          <div style="background:#050f1e;border:2px solid #60a5fa;border-radius:10px;padding:12px;text-align:center">
-            <div style="font-size:9px;color:#60a5fa;font-weight:700;letter-spacing:.5px;margin-bottom:6px">${t.cardLabel||'💳 KART +2%'}</div>
+          ${b.showCard===false?'':`<div style="background:#050f1e;border:2px solid #60a5fa;border-radius:10px;padding:12px;text-align:center">
+            <div style="font-size:9px;color:#60a5fa;font-weight:700;letter-spacing:.5px;margin-bottom:6px">${t.cardLabel}</div>
             <div style="font-size:16px;font-weight:900;color:#60a5fa">${currSym()}${cardBalance.toLocaleString()}</div>
-          </div>
+          </div>`}
         </div>
         ${isImplant?`<div style="border-top:1px solid #1a2236;margin:10px 0 6px"></div>
         <div style="font-size:10px;color:#4a607d;font-weight:700;margin-bottom:8px;letter-spacing:.5px">${t.twoVisitPlan}</div>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">
+        <div style="display:grid;grid-template-columns:${b.showCard===false?'1fr':'1fr 1fr'};gap:6px">
           <div>
-            <div style="font-size:9px;color:#34d399;font-weight:700;text-align:center;margin-bottom:4px">${t.cashLabel||'💵 NAKİT'}</div>
+            <div style="font-size:9px;color:#34d399;font-weight:700;text-align:center;margin-bottom:4px">${t.cashLabel}</div>
             <div style="background:#0d2b1a;border:1px solid #16532d;border-radius:6px;padding:8px;text-align:center;margin-bottom:4px">
               <div style="font-size:9px;color:#4a607d;margin-bottom:2px">1. Visit — %60</div>
               <div style="font-size:13px;font-weight:800;color:#34d399">${currSym()}${Math.round(balance*0.6).toLocaleString()}</div>
@@ -2295,8 +2307,8 @@ function renderPtBooking(p){
               <div style="font-size:13px;font-weight:800;color:#34d399">${currSym()}${Math.round(balance*0.4).toLocaleString()}</div>
             </div>
           </div>
-          <div>
-            <div style="font-size:9px;color:#60a5fa;font-weight:700;text-align:center;margin-bottom:4px">${t.cardLabel||'💳 KART +2%'}</div>
+          ${b.showCard===false?'':`<div>
+            <div style="font-size:9px;color:#60a5fa;font-weight:700;text-align:center;margin-bottom:4px">${t.cardLabel}</div>
             <div style="background:#050f1e;border:1px solid #1e3a5f;border-radius:6px;padding:8px;text-align:center;margin-bottom:4px">
               <div style="font-size:9px;color:#4a607d;margin-bottom:2px">1. Visit — %60</div>
               <div style="font-size:12px;font-weight:700;color:#60a5fa">${currSym()}${Math.round(balance*0.6*1.02).toLocaleString()}</div>
@@ -2305,7 +2317,7 @@ function renderPtBooking(p){
               <div style="font-size:9px;color:#4a607d;margin-bottom:2px">2. Visit — %40</div>
               <div style="font-size:12px;font-weight:700;color:#60a5fa">${currSym()}${Math.round(balance*0.4*1.02).toLocaleString()}</div>
             </div>
-          </div>
+          </div>`}
         </div>`:''}
 
       </div>
