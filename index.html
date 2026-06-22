@@ -1607,7 +1607,7 @@ function renderPtAssessment(p){
   const jawTxMap=(a.jawTx||{})[activePlan]||{};
   const jawRows=Object.entries(jawTxMap).map(([jaw,txId])=>({jaw,txId:+txId,tx:allTxCatalog.find(t=>t.id===+txId)})).filter(r=>r.tx);
   const b=p.booking||{};
-  const twoVisitMode=p.booking?.twoVisit===true||hasImplantInPlan(p);
+  const twoVisitMode=hasImplantInPlan(p)&&p.booking?.twoVisit!==false;
   const activeAc=getCatalogByType("accommodation");
   const activeTrv=getCatalogByType("travel");
   const jawSub=jawRows.reduce((s,r)=>s+getEffectivePrice(r.tx),0);
@@ -1713,7 +1713,7 @@ function renderPtAssessment(p){
     <div class="card">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:8px">
         <div class="section-title" style="margin-bottom:0">🏨 ${t.bookingAccommodation}</div>
-        <button onclick="toggleTwoVisit()" style="padding:4px 12px;border-radius:16px;border:1px solid ${twoVisitMode?'#f97316':'#1a2236'};background:${twoVisitMode?'#f9731622':'#131b2a'};color:${twoVisitMode?'#f97316':'#4a607d'};font-size:11px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif">${twoVisitMode?'✅ 2 Visit':'⬜ 2 Visit'}</button>
+        ${hasImplantInPlan(p)?`<button onclick="toggleTwoVisit()" style="padding:4px 12px;border-radius:16px;border:1px solid ${twoVisitMode?'#f97316':'#1a2236'};background:${twoVisitMode?'#f9731622':'#131b2a'};color:${twoVisitMode?'#f97316':'#4a607d'};font-size:11px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif">${twoVisitMode?'✅ 2 Visit':'⬜ 2 Visit'}</button>`:''}
       </div>
       ${twoVisitMode?(()=>{
         const viColors=['#60a5fa','#34d399'];
@@ -2142,7 +2142,7 @@ function renderPtBooking(p){
   const total=sub-discountAmt;
   const balance=total-(b.deposit||0);
   const cardBalance=Math.round(balance*1.02);
-  const isImplant=p.booking?.twoVisit===true||hasImplantInPlan(p);
+  const isImplant=hasImplantInPlan(p)&&p.booking?.twoVisit!==false;
   const activeTx=getCatalogByType("treatment");
   const activeAc=getCatalogByType("accommodation");
   const activeTr=getCatalogByType("travel");
@@ -2172,7 +2172,7 @@ function renderPtBooking(p){
     <div class="card">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:8px">
         <div class="section-title" style="margin-bottom:0">🏨 ${t.bookingAccommodation}</div>
-        <button onclick="toggleTwoVisit()" style="padding:4px 12px;border-radius:16px;border:1px solid ${isImplant?'#f97316':'#1a2236'};background:${isImplant?'#f9731622':'#131b2a'};color:${isImplant?'#f97316':'#4a607d'};font-size:11px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif">${isImplant?'✅ 2 Visit':'⬜ 2 Visit'}</button>
+        ${hasImplantInPlan(p)?`<button onclick="toggleTwoVisit()" style="padding:4px 12px;border-radius:16px;border:1px solid ${isImplant?'#f97316':'#1a2236'};background:${isImplant?'#f9731622':'#131b2a'};color:${isImplant?'#f97316':'#4a607d'};font-size:11px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif">${isImplant?'✅ 2 Visit':'⬜ 2 Visit'}</button>`:''}
       </div>
       ${isImplant?(()=>{
         const viColors=['#60a5fa','#34d399'];
