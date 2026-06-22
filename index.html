@@ -2004,6 +2004,11 @@ async function resetActivePlan(){
   p.booking.travels=[];
   p.booking.visits=[{nights:null},{nights:null}];
   p.booking.twoVisit=false;
+  p.booking.discount=0;
+  p.booking.discountRate=0;
+  p.booking.deposit=0;
+  p.booking.visitCount=1;
+  p.booking.showCard=true;
   persist("customers");renderPtBody();
 }
 function setToothCond(num,cond){
