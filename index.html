@@ -1089,11 +1089,10 @@ async function showApp(){
   const _sl2=document.getElementById("syncing-label");if(_sl2)_sl2.textContent=t.saving;
   const _lo2=document.getElementById("btn-logout");if(_lo2)_lo2.title=t.logout;
   document.getElementById("nav-treatments").style.display=canSeeCatalog()?"":"none";
-  document.getElementById("nav-companies").style.display=isSuperAdmin()?"":"none";
+  document.getElementById("nav-companies").style.display=canManageUsers()?"":"none";
   const adminGroup=document.getElementById("nav-admin-group");
   if(adminGroup)adminGroup.style.display=(canSeeReports()||canSeeLogs()||canManageUsers()||isSuperAdmin())?"":"none";
-  if(canManageUsers()){await loadUsers();}
-  if(isSuperAdmin()){await loadCompanies();loadCompanyStats().then(()=>render());}
+  if(canManageUsers()){await loadUsers();await loadCompanies();loadCompanyStats().then(()=>render());}
   render();
   // Arka planda her 90 saniyede veriyi Supabase'den yenile
   if(window._syncInterval)clearInterval(window._syncInterval);
@@ -2688,8 +2687,8 @@ async function openCompanyPanel(cid){
   loadCompanyStats();
 }
 function renderCompanies(){
-  if(!canSeeLogs())return`<div class="empty">${t.accessDenied}</div>`;
-  if(!state.companies.length)return`<div class="empty"><div style="font-size:32px;margin-bottom:12px">🏢</div><div>${t.noCompanies||"Henüz firma yok"}</div></div>`;
+  if(!canManageUsers())return`<div class="empty">${t.accessDenied}</div>`;
+  if(!state.companies.length)return`<div style="max-width:640px"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px"><h2 style="font-size:16px;font-weight:700;color:#dde4ef;margin:0">${t.companies||"Firmalar"}</h2><button class="btn" onclick="openCompanyModal(0)">+ ${t.newCompany||"Yeni Firma"}</button></div><div class="empty" style="margin-top:32px"><div style="font-size:32px;margin-bottom:12px">🏢</div><div>${t.noCompanies||"Henüz firma yok"}</div></div></div>`;
   const totalPt=Object.values(state.companyStats).reduce((s,v)=>s+(v.patients||0),0);
   const totalEv=Object.values(state.companyStats).reduce((s,v)=>s+(v.events||0),0);
   return`<div style="max-width:640px">
@@ -2785,7 +2784,7 @@ async function saveCompany(editId){
   closeModal();render();loadCompanyStats().then(()=>render());
 }
 async function deleteCompany(id){
-  if(!canSeeLogs())return;
+  if(!canManageUsers())return;
   const userCount=state.users.filter(u=>u.company_id===id).length;
   if(userCount>0){toast((t.companyHasUsers||'Bu firmaya bağlı {n} kullanıcı var. Önce kullanıcıları silin.').replace('{n}',userCount),"err");return;}
   if(!await confirmDialog(t.confirmDeleteCompany||"Bu firmayı silmek istediğinizden emin misiniz?",true))return;
