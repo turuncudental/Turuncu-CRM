@@ -1,0 +1,24 @@
+name: Supabase Keepalive
+
+on:
+  schedule:
+    - cron: '0 9 */4 * *'  # Her 4 günde bir saat 09:00'da çalışır
+  workflow_dispatch:         # Elle de tetiklenebilir
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Supabase'e ping at
+        run: |
+          STATUS=$(curl -s -o /dev/null -w "%{http_code}" \
+            "https://abtmfoetnhswccliuawn.supabase.co/rest/v1/crm_companies?select=id&limit=1" \
+            -H "apikey: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFidG1mb2V0bmhzd2NjbGl1YXduIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk0NTMwMzIsImV4cCI6MjA5NTAyOTAzMn0.G_gyNgy1HZmaGSRvZ9aLDO-XneqU_K036APAEArhFMU" \
+            -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFidG1mb2V0bmhzd2NjbGl1YXduIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk0NTMwMzIsImV4cCI6MjA5NTAyOTAzMn0.G_gyNgy1HZmaGSRvZ9aLDO-XneqU_K036APAEArhFMU")
+          echo "Supabase yanıtı: HTTP $STATUS"
+          if [ "$STATUS" = "200" ]; then
+            echo "✅ Supabase aktif ve sağlıklı"
+          else
+            echo "⚠️ Supabase yanıt kodu: $STATUS"
+            exit 1
+          fi
