@@ -905,10 +905,22 @@ async function dbGet(table){
 async function dbSet(table,data){
   const cid=activeCompanyId||1;
   try{localStorage.setItem(`crm_${table}_${cid}`,JSON.stringify([{id:cid,data}]));}catch{}
-  try{await fetch(`${SUPA_URL}/rest/v1/${table}`,{method:"POST",headers:{...H,"Prefer":"resolution=merge-duplicates,return=minimal"},body:JSON.stringify({id:cid,data})});}catch{}
+  try{
+    const r=await fetch(`${SUPA_URL}/rest/v1/${table}`,{method:"POST",headers:{...H,"Prefer":"resolution=merge-duplicates,return=minimal"},body:JSON.stringify({id:cid,data})});
+    if(!r.ok){window._supaOffline=true;}else{window._supaOffline=false;}
+  }catch{window._supaOffline=true;}
 }
 const TABLE_STATE={customers:"patients",deals:"events",tasks:"appointments",history:"treatments"};
-async function persist(table){const sl=document.getElementById("syncing-label");sl.textContent=t.saving;sl.style.display="inline";await dbSet(table,state[TABLE_STATE[table]||table]);sl.style.display="none";updateFooter();}
+async function persist(table){
+  const sl=document.getElementById("syncing-label");sl.textContent=t.saving;sl.style.display="inline";
+  await dbSet(table,state[TABLE_STATE[table]||table]);
+  if(window._supaOffline){
+    sl.textContent="⚠️ Supabase bağlantı yok — veriler geçici olarak tarayıcıda tutuluyor!";
+    sl.style.display="inline";sl.style.color="#f97316";
+    setTimeout(()=>{sl.style.display="none";sl.style.color="";},6000);
+  }else{sl.style.display="none";sl.style.color="";}
+  updateFooter();
+}
 async function loadAll(){
   const [p,e,a,tr]=await Promise.all([dbGet("customers"),dbGet("deals"),dbGet("tasks"),dbGet("history")]);
   // Guard: if data is not a valid array, fall back to seed (prevents crash from corrupted localStorage)
