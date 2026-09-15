@@ -3704,6 +3704,18 @@ function openTreatmentBrochure(patientId){
   </div>
 </div>`;
 
+  // === PAGE 7b: KLİNİK TANITIM PDF ===
+  const pgTanitim=`<div style="${PAGE};background:#fff;display:flex;flex-direction:column">
+  <div style="background:#0a1628;padding:18px 30px;display:flex;align-items:center;gap:12px">
+    <div style="font-size:22px">🏥</div>
+    <div>
+      <div style="color:#f97316;font-size:13px;font-weight:700;letter-spacing:2px">${companyName.toUpperCase()}</div>
+      <div style="color:#fff;font-size:18px;font-weight:800">${isTR?'Klinik Tanıtım':'Clinic Presentation'}</div>
+    </div>
+  </div>
+  <iframe src="turuncu-tanitim.pdf" style="flex:1;width:100%;border:none" allowfullscreen></iframe>
+</div>`;
+
   // === PAGE 8: BACK COVER ===
   const pg8=`<div style="${PAGE};background:linear-gradient(135deg,#0a1628 0%,#1a2a4a 100%);page-break-after:auto">
   <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;padding:60px;gap:30px">
@@ -3738,7 +3750,7 @@ function openTreatmentBrochure(patientId){
   `;
 
   const wrapper=document.createElement('div');
-  wrapper.innerHTML=`<style>@media print{body>*:not([data-brochure]){display:none!important}[data-brochure]{display:block!important;position:static!important;overflow:visible!important;background:none!important;padding:0!important}.no-print{display:none!important}.brochure-page{page-break-after:always;margin:0!important;box-shadow:none!important}}</style>${pg1}${pg2}${pg3}${pg4}${pg5}${pg6}${pg7}${pg8}`;
+  wrapper.innerHTML=`<style>@media print{body>*:not([data-brochure]){display:none!important}[data-brochure]{display:block!important;position:static!important;overflow:visible!important;background:none!important;padding:0!important}.no-print{display:none!important}.brochure-page{page-break-after:always;margin:0!important;box-shadow:none!important}}</style>${pg1}${pg2}${pg3}${pg4}${pg5}${pg6}${pg7}${pgTanitim}${pg8}`;
 
   ov.appendChild(btnBar);
   ov.appendChild(wrapper);
