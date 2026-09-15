@@ -925,7 +925,11 @@ async function persist(table){
   updateFooter();
 }
 async function loadAll(){
-  const [p,e,a,tr]=await Promise.all([dbGet("customers"),dbGet("deals"),dbGet("tasks"),dbGet("history")]);
+  // Treatments are only loaded on initial login (when state.treatments is empty).
+  // Subsequent polls skip the DB fetch to prevent network failures from overwriting
+  // user's in-session edits (deletions, additions, edits).
+  const needsTrFetch=state.treatments.length===0;
+  const [p,e,a,tr]=await Promise.all([dbGet("customers"),dbGet("deals"),dbGet("tasks"),needsTrFetch?dbGet("history"):Promise.resolve(null)]);
   // Tüm Firmalar modunda (activeCompanyId=null) tüm şirketlerin verisini birleştir
   const mergeRows=(rows,seed)=>{
     if(!Array.isArray(rows)||!rows.length)return seed||[];
@@ -935,12 +939,14 @@ async function loadAll(){
   state.patients=mergeRows(p,activeCompanyId===1?SEED_PATIENTS:[]);
   state.events=mergeRows(e,activeCompanyId===1?SEED_EVENTS:[]);
   state.appointments=mergeRows(a,activeCompanyId===1?SEED_APPOINTMENTS:[]);
-  const loadedTr=Array.isArray(tr?.[0]?.data)?tr[0].data:null;
-  state.treatments=loadedTr||SEED_TREATMENTS;
+  if(needsTrFetch){
+    const loadedTr=Array.isArray(tr?.[0]?.data)?tr[0].data:null;
+    state.treatments=loadedTr||SEED_TREATMENTS;
+    if(!loadedTr)dbSet("history",SEED_TREATMENTS);
+  }
   if(!p||!p[0])dbSet("customers",activeCompanyId===1?SEED_PATIENTS:[]);
   if(!e||!e[0])dbSet("deals",activeCompanyId===1?SEED_EVENTS:[]);
   if(!a||!a[0])dbSet("tasks",activeCompanyId===1?SEED_APPOINTMENTS:[]);
-  if(!loadedTr)dbSet("history",SEED_TREATMENTS);
 }
 async function loadUsers(){
   try{
