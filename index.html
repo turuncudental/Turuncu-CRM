@@ -1091,7 +1091,7 @@ async function doLogin(){
   }
   btn.textContent=t.loginBtn;btn.disabled=false;
 }
-function doLogout(){logAction('logout','');currentUser=null;activeCompanyId=null;sessionStorage.removeItem("crm_user");document.getElementById("app").style.display="none";document.getElementById("login-screen").style.display="flex";document.getElementById("login-password").value="";}
+function doLogout(){logAction('logout','');currentUser=null;activeCompanyId=null;sessionStorage.removeItem("crm_user");sessionStorage.removeItem("crm_tab");document.getElementById("app").style.display="none";document.getElementById("login-screen").style.display="flex";document.getElementById("login-password").value="";}
 async function showApp(){
   document.getElementById("login-screen").style.display="none";document.getElementById("app").style.display="flex";
   const color=ROLE_COLORS[currentUser.role]||"#f97316";
@@ -1111,7 +1111,7 @@ async function showApp(){
   const adminGroup=document.getElementById("nav-admin-group");
   if(adminGroup)adminGroup.style.display=(canSeeReports()||canSeeLogs()||canManageUsers()||isSuperAdmin())?"":"none";
   if(canManageUsers()){await loadUsers();await loadCompanies();loadCompanyStats().then(()=>render());}
-  render();
+  const _rt=sessionStorage.getItem('crm_tab');if(_rt){setTab(_rt);}else{render();}
   // Arka planda her 90 saniyede veriyi Supabase'den yenile
   if(window._syncInterval)clearInterval(window._syncInterval);
   window._syncInterval=setInterval(async()=>{
@@ -1184,6 +1184,7 @@ function toggleSidebar(){const s=document.getElementById('sidebar'),b=document.g
 function closeSidebar(){document.getElementById('sidebar').classList.remove('mob-open');document.getElementById('sidebar-backdrop').classList.remove('mob-open');}
 function setTab(tab){
   currentTab=tab;
+  sessionStorage.setItem('crm_tab',tab);
   document.getElementById("page-title").textContent=t["nav"+tab.charAt(0).toUpperCase()+tab.slice(1)]||tab;
   document.querySelectorAll("nav button[data-tab]").forEach(b=>b.className=b.dataset.tab===tab?"active":"");
   const adminTabs=["reports","users","logs","trash","snapshots"];
