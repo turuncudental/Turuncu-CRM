@@ -3429,7 +3429,7 @@ function openTreatmentBrochure(patientId){
   const jawTxMap=(a.jawTx||{})[planKey]||{};
   Object.entries(jawTxMap).forEach(([jaw,txId])=>{
     const tx=allTx.find(t=>t.id===+txId);if(!tx)return;
-    const jawLabel=jaw==='upper'?(isTR?'Üst Çene':'Upper Jaw'):(isTR?'Alt Çene':'Lower Jaw');
+    const jawLabel=jaw==='upper'?t.upperJaw:t.lowerJaw;
     rows.push({name:`${tx.name} (${jawLabel})`,qty:1,price:getEffectivePrice(tx)});
   });
   const toothTxMap=(a.toothTx||{})[planKey]||{};
@@ -3446,22 +3446,105 @@ function openTreatmentBrochure(patientId){
   });
 
   const txSub=rows.reduce((s,r)=>s+r.qty*r.price,0);
-  const sub=txSub;
+  const acSub=(b.accommodations||[]).reduce((s,ac)=>s+(ac.nights||1)*(ac.pricePerNight||0),0);
+  const trSub=(b.travels||[]).reduce((s,tr)=>s+(tr.persons||1)*(tr.price||0),0);
+  const sub=txSub+acSub+trSub;
   const discount=b.discount||0;
   const total=sub-discount;
   const balance=total-(b.deposit||0);
   const cs=currSym();
-  const dName=settings.doctorName||(isTR?'Dr. Diş Hekimi':'Dr. Dentist');
-  const dTitle=settings.doctorTitle||(isTR?'Diş Hekimi':'Dentist');
-  const dBio=settings.doctorBio||(isTR?'Uzman diş hekimimiz, yılların deneyimi ile size en iyi tedaviyi sunmaktadır.':'Our expert dentist provides the best treatment with years of experience.');
-  const statPats=settings.statPatients||'2500+';
-  const statYrs=settings.statYears||'15+';
-  const statSat=settings.statSatisfaction||'99.7%';
-  const website=settings.website||'www.turuncudental.com';
-  const instagram=settings.instagram||'@turuncudental';
   const companyName=company.name||'Turuncu Dental';
 
-  // Tooth chart SVG generator
+  // All rows including accommodations and travels (same as downloadQuotePDF)
+  const allRows=[
+    ...rows.map(r=>({name:r.name,qty:r.qty,price:r.price,unit:''})),
+    ...(b.accommodations||[]).map(ac=>({name:'🏨 '+ac.name,qty:ac.nights||1,price:ac.pricePerNight||0,unit:t.nights.toLowerCase()})),
+    ...(b.travels||[]).map(tr=>({name:'✈️ '+tr.name,qty:tr.persons||1,price:tr.price||0,unit:t.persons.toLowerCase()}))
+  ];
+  const rowsHTML=allRows.length?allRows.map((r,i)=>`<tr style="background:${i%2?'#fff8f0':'#fff'}">
+    <td style="padding:9px 12px;font-size:12px">${r.name}</td>
+    <td style="padding:9px 12px;text-align:center;font-size:12px;color:#555">${r.qty}${r.unit?' '+r.unit:''}</td>
+    <td style="padding:9px 12px;text-align:right;font-size:12px;color:#555">${cs}${(r.price||0).toLocaleString()}</td>
+    <td style="padding:9px 12px;text-align:right;font-size:12px;font-weight:700">${cs}${(r.qty*r.price).toLocaleString()}</td>
+  </tr>`).join(''):`<tr><td colspan="4" style="padding:16px;text-align:center;color:#888;font-size:12px">${t.noTreatments}</td></tr>`;
+
+  // === SAYFA 1: TEKLİF FORMU (downloadQuotePDF ile aynı format) ===
+  const pgQuote=`<div style="width:794px;box-sizing:border-box;background:#fff;font-family:Arial,Helvetica,sans-serif;padding:48px;color:#1a1a2e;margin-bottom:8px;box-shadow:0 4px 20px #0008;page-break-after:always">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:28px;padding-bottom:18px;border-bottom:3px solid #f97316">
+      <div><div style="font-size:24px;font-weight:900;color:#f97316">🦷 ${companyName}</div><div style="font-size:11px;color:#888;margin-top:3px">${t.dentalTourism}</div></div>
+      <div style="text-align:right"><div style="font-size:20px;font-weight:900;color:#1a1a2e;letter-spacing:3px">${t.quoteTitle}</div><div style="font-size:10px;color:#777;margin-top:8px">${t.dateLabel} ${dateStr}</div></div>
+    </div>
+    <div style="margin-bottom:20px;padding:14px 16px;background:#fff8f0;border-radius:6px;border-left:3px solid #f97316">
+      <div style="font-size:9px;font-weight:700;color:#f97316;letter-spacing:1px;margin-bottom:6px">${t.patientInfoHeader}</div>
+      <div style="font-size:15px;font-weight:700">${p.name}</div>
+      ${p.country?`<div style="font-size:12px;color:#555;margin-top:2px">${p.country}</div>`:''}
+      ${p.email?`<div style="font-size:11px;color:#777;margin-top:2px">${p.email}</div>`:''}
+      ${p.phone?`<div style="font-size:11px;color:#777">${p.phone}</div>`:''}
+    </div>
+    <table style="width:100%;border-collapse:collapse;margin-bottom:18px">
+      <thead><tr style="background:#f97316">
+        <th style="padding:9px 12px;text-align:left;font-size:10px;font-weight:700;color:#fff">${t.treatmentHeader}</th>
+        <th style="padding:9px 12px;text-align:center;font-size:10px;font-weight:700;color:#fff;width:60px">${t.qtyHeader}</th>
+        <th style="padding:9px 12px;text-align:right;font-size:10px;font-weight:700;color:#fff;width:120px">${t.unitPriceHeader}</th>
+        <th style="padding:9px 12px;text-align:right;font-size:10px;font-weight:700;color:#fff;width:120px">${t.total.toUpperCase()}</th>
+      </tr></thead>
+      <tbody>${rowsHTML}</tbody>
+    </table>
+    <div style="display:flex;justify-content:flex-end;margin-bottom:20px">
+      <div style="min-width:220px">
+        <div style="display:flex;justify-content:space-between;padding:7px 12px;background:#f8f9fa;border:1px solid #e9ecef;border-bottom:none;border-radius:4px 4px 0 0"><span style="font-size:11px;color:#777">${t.subtotal}</span><span style="font-size:12px;font-weight:600">${cs}${sub.toLocaleString()}</span></div>
+        ${b.discount?`<div style="display:flex;justify-content:space-between;padding:7px 12px;background:#f8f9fa;border:1px solid #e9ecef;border-bottom:none"><span style="font-size:11px;color:#777">${t.discount}</span><span style="font-size:12px;font-weight:600;color:#e55">-${cs}${(b.discount).toLocaleString()}</span></div>`:''}
+        <div style="display:grid;grid-template-columns:${b.showCard===false?'1fr':'1fr 1fr'};gap:10px;margin-top:6px;margin-bottom:8px">
+          <div style="background:#fff7ed;border:2px solid #f97316;border-radius:8px;padding:12px;text-align:center">
+            <div style="font-size:9px;color:#9a3412;font-weight:700;letter-spacing:.5px;margin-bottom:6px">💵 CASH</div>
+            <div style="font-size:18px;font-weight:900;color:#c2410c">${cs}${total.toLocaleString()}</div>
+          </div>
+          ${b.showCard===false?'':`<div style="background:#eff6ff;border:2px solid #3b5bdb;border-radius:8px;padding:12px;text-align:center">
+            <div style="font-size:9px;color:#1e40af;font-weight:700;letter-spacing:.5px;margin-bottom:6px">💳 CARD (+2%)</div>
+            <div style="font-size:18px;font-weight:900;color:#1d4ed8">${cs}${Math.round(total*1.02).toLocaleString()}</div>
+          </div>`}
+        </div>
+        ${b.deposit?`<div style="display:flex;justify-content:space-between;padding:7px 12px;background:#f0fff4;border:1px solid #c6f6d5;border-radius:4px 4px 0 0"><span style="font-size:11px;color:#777">${t.depositReceived}</span><span style="font-size:12px;font-weight:600;color:#22863a">${cs}${(b.deposit).toLocaleString()}</span></div>
+        <div style="display:flex;justify-content:space-between;padding:7px 12px;background:#fff8f0;border:1px solid #fed7aa;border-top:none;border-radius:0 0 4px 4px;margin-bottom:6px"><span style="font-size:11px;color:#777;font-weight:600">${t.remainingCash}</span><span style="font-size:13px;font-weight:800;color:#c2410c">${cs}${balance.toLocaleString()}</span></div>`:''}
+        ${hasImplantInPlan(p)?`<div style="border-top:2px solid #e9ecef;margin:8px 0 6px"></div>
+        <div style="font-size:9px;font-weight:700;color:#f97316;letter-spacing:1px;margin-bottom:8px">${t.twoVisitPlan}</div>
+        <div style="display:grid;grid-template-columns:${b.showCard===false?'1fr':'1fr 1fr'};gap:8px">
+          <div>
+            <div style="font-size:9px;color:#166534;font-weight:700;text-align:center;margin-bottom:4px">💵 CASH</div>
+            <div style="background:#f0fff4;border:1px solid #c6f6d5;border-radius:6px;padding:8px;text-align:center;margin-bottom:4px">
+              <div style="font-size:8px;color:#888;margin-bottom:2px">1st Visit — 60%</div>
+              <div style="font-size:13px;font-weight:800;color:#166534">${cs}${Math.round(balance*0.6).toLocaleString()}</div>
+            </div>
+            <div style="background:#f0fff4;border:1px solid #c6f6d5;border-radius:6px;padding:8px;text-align:center">
+              <div style="font-size:8px;color:#888;margin-bottom:2px">2nd Visit — 40%</div>
+              <div style="font-size:13px;font-weight:800;color:#166534">${cs}${Math.round(balance*0.4).toLocaleString()}</div>
+            </div>
+          </div>
+          ${b.showCard===false?'':`<div>
+            <div style="font-size:9px;color:#1d4ed8;font-weight:700;text-align:center;margin-bottom:4px">💳 CARD +2%</div>
+            <div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:6px;padding:8px;text-align:center;margin-bottom:4px">
+              <div style="font-size:8px;color:#888;margin-bottom:2px">1st Visit — 60%</div>
+              <div style="font-size:12px;font-weight:700;color:#1d4ed8">${cs}${Math.round(balance*0.6*1.02).toLocaleString()}</div>
+            </div>
+            <div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:6px;padding:8px;text-align:center">
+              <div style="font-size:8px;color:#888;margin-bottom:2px">2nd Visit — 40%</div>
+              <div style="font-size:12px;font-weight:700;color:#1d4ed8">${cs}${Math.round(balance*0.4*1.02).toLocaleString()}</div>
+            </div>
+          </div>`}
+        </div>`:''}
+      </div>
+    </div>
+    <div style="margin-top:24px;padding-top:12px;border-top:1px solid #e9ecef;text-align:center;font-size:9px;color:#aaa">
+      ${t.preparedBy} ${currentUser.display_name||currentUser.username} · ${t.dateLabel} ${dateStr} · ${companyName} CRM
+    </div>
+  </div>`;
+
+  // === SAYFA 2: KLİNİK TANITIM PDF ===
+  const pgPDF=`<div style="width:794px;height:1123px;box-sizing:border-box;display:flex;flex-direction:column;background:#fff;box-shadow:0 4px 20px #0008;page-break-after:always">
+    <iframe src="turuncu-tanitim.pdf" style="flex:1;width:100%;border:none" allowfullscreen></iframe>
+  </div>`;
+
+  // Tooth chart SVG generator (unused but kept for compatibility)
   function toothChartSVG(chartData,planMode){
     const upper=[18,17,16,15,14,13,12,11,21,22,23,24,25,26,27,28];
     const lower=[48,47,46,45,44,43,42,41,31,32,33,34,35,36,37,38];
@@ -3750,7 +3833,7 @@ function openTreatmentBrochure(patientId){
   `;
 
   const wrapper=document.createElement('div');
-  wrapper.innerHTML=`<style>@media print{body>*:not([data-brochure]){display:none!important}[data-brochure]{display:block!important;position:static!important;overflow:visible!important;background:none!important;padding:0!important}.no-print{display:none!important}.brochure-page{page-break-after:always;margin:0!important;box-shadow:none!important}}</style>${pg1}${pg2}${pg3}${pg4}${pg5}${pg6}${pg7}${pgTanitim}${pg8}`;
+  wrapper.innerHTML=`<style>@media print{body>*:not([data-brochure]){display:none!important}[data-brochure]{display:block!important;position:static!important;overflow:visible!important;background:none!important;padding:0!important}.no-print{display:none!important}}</style>${pgQuote}${pgPDF}`;
 
   ov.appendChild(btnBar);
   ov.appendChild(wrapper);
