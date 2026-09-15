@@ -3705,7 +3705,7 @@ function openTreatmentBrochure(patientId){
 
   // === PAGE 6: SUGGESTED TREATMENT ===
   const planChartData=a[planKey]||{};
-  const rowsHTML=rows.length?rows.map((r,i)=>`<tr style="background:${i%2?'#fff7ed':'#fff'}">
+  const rowsHTML6=rows.length?rows.map((r,i)=>`<tr style="background:${i%2?'#fff7ed':'#fff'}">
     <td style="padding:8px 12px;font-size:12px;color:#1e293b">${r.name}</td>
     <td style="padding:8px 12px;text-align:center;font-size:12px;color:#64748b">${r.qty}</td>
     <td style="padding:8px 12px;text-align:right;font-size:12px;color:#64748b">${cs}${r.price.toLocaleString()}</td>
@@ -3726,7 +3726,7 @@ function openTreatmentBrochure(patientId){
         <th style="padding:9px 12px;text-align:right;font-size:11px;color:#fff;font-weight:700;width:100px">${isTR?'BİRİM FİYAT':'UNIT PRICE'}</th>
         <th style="padding:9px 12px;text-align:right;font-size:11px;color:#fff;font-weight:700;width:100px">TOPLAM/TOTAL</th>
       </tr></thead>
-      <tbody>${rowsHTML}</tbody>
+      <tbody>${rowsHTML6}</tbody>
       <tfoot><tr style="background:#f97316">
         <td colspan="3" style="padding:10px 12px;font-size:13px;font-weight:900;color:#fff">TOPLAM / TOTAL</td>
         <td style="padding:10px 12px;text-align:right;font-size:15px;font-weight:900;color:#fff">${cs}${txSub.toLocaleString()}</td>
