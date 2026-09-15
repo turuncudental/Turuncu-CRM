@@ -923,10 +923,15 @@ async function persist(table){
 }
 async function loadAll(){
   const [p,e,a,tr]=await Promise.all([dbGet("customers"),dbGet("deals"),dbGet("tasks"),dbGet("history")]);
-  // Guard: if data is not a valid array, fall back to seed (prevents crash from corrupted localStorage)
-  state.patients=Array.isArray(p?.[0]?.data)?p[0].data:(activeCompanyId===1?SEED_PATIENTS:[]);
-  state.events=Array.isArray(e?.[0]?.data)?e[0].data:(activeCompanyId===1?SEED_EVENTS:[]);
-  state.appointments=Array.isArray(a?.[0]?.data)?a[0].data:(activeCompanyId===1?SEED_APPOINTMENTS:[]);
+  // Tüm Firmalar modunda (activeCompanyId=null) tüm şirketlerin verisini birleştir
+  const mergeRows=(rows,seed)=>{
+    if(!Array.isArray(rows)||!rows.length)return seed||[];
+    if(activeCompanyId===null&&rows.length>1)return rows.flatMap(r=>Array.isArray(r.data)?r.data:[]);
+    return Array.isArray(rows[0]?.data)?rows[0].data:(seed||[]);
+  };
+  state.patients=mergeRows(p,activeCompanyId===1?SEED_PATIENTS:[]);
+  state.events=mergeRows(e,activeCompanyId===1?SEED_EVENTS:[]);
+  state.appointments=mergeRows(a,activeCompanyId===1?SEED_APPOINTMENTS:[]);
   const loadedTr=Array.isArray(tr?.[0]?.data)?tr[0].data:null;
   // Migrate: replace if fewer entries OR if EUR prices are missing/zero (price list update)
   const needsTrUpdate=!loadedTr||loadedTr.length<SEED_TREATMENTS.length||loadedTr.some(t=>t.type==='treatment'&&(!(t.salePriceEUR>0)||!(t.salePriceUSD>0)))||loadedTr.some(t=>t.type==='travel'&&t.category==='Uçuş');
