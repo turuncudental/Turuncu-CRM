@@ -894,12 +894,20 @@ function updateFooter(){if(!currentUser)return;document.getElementById("sidebar-
 
 // ── SUPABASE CRUD  (Supabase = primary; localStorage = offline fallback)
 async function dbGet(table){
-  // Always fetch fresh data from Supabase
   try{
     const cid=activeCompanyId;
     const filter=cid?`?id=eq.${cid}&select=*`:`?select=*`;
     const r=await fetch(`${SUPA_URL}/rest/v1/${table}${filter}`,{headers:H});
-    if(r.ok){const rows=await r.json();if(rows&&rows.length>0){localStorage.setItem(`crm_${table}_${cid||'all'}`,JSON.stringify(rows));return rows;}}
+    if(r.ok){
+      const rows=await r.json();
+      if(rows&&rows.length>0){
+        // Don't overwrite localStorage if there are unsynced local changes (_pending flag).
+        // This prevents stale Supabase data from erasing unsaved local edits.
+        const pending=localStorage.getItem(`crm_${table}_${cid||1}_pending`);
+        if(!pending)localStorage.setItem(`crm_${table}_${cid||'all'}`,JSON.stringify(rows));
+        return rows;
+      }
+    }
   }catch{}
   // Offline fallback: use company-specific localStorage cache
   try{const local=localStorage.getItem(`crm_${table}_${activeCompanyId||'all'}`);if(local)return JSON.parse(local);}catch{}
@@ -908,9 +916,12 @@ async function dbGet(table){
 async function dbSet(table,data){
   const cid=activeCompanyId||1;
   try{localStorage.setItem(`crm_${table}_${cid}`,JSON.stringify([{id:cid,data}]));}catch{}
+  // Mark as pending until Supabase confirms the save
+  try{localStorage.setItem(`crm_${table}_${cid}_pending`,'1');}catch{}
   try{
     const r=await fetch(`${SUPA_URL}/rest/v1/${table}`,{method:"POST",headers:{...H,"Prefer":"resolution=merge-duplicates,return=minimal"},body:JSON.stringify({id:cid,data})});
-    if(!r.ok){window._supaOffline=true;}else{window._supaOffline=false;}
+    if(!r.ok){window._supaOffline=true;}
+    else{window._supaOffline=false;try{localStorage.removeItem(`crm_${table}_${cid}_pending`);}catch{}}
   }catch{window._supaOffline=true;}
 }
 const TABLE_STATE={customers:"patients",deals:"events",tasks:"appointments",history:"treatments"};
@@ -925,16 +936,8 @@ async function persist(table){
   updateFooter();
 }
 async function loadAll(){
-  // Treatments only loaded on first call (state.treatments empty = fresh page load).
-  const needsTrFetch=state.treatments.length===0;
-  // Snapshot localStorage for history BEFORE dbGet overwrites it with stale Supabase data.
-  // If Supabase returns older data than what's in localStorage, we use the local snapshot
-  // and re-sync Supabase so both stay consistent.
-  let _localTrSnap=null;
-  if(needsTrFetch){
-    try{const _raw=localStorage.getItem(`crm_history_${activeCompanyId||1}`);if(_raw){const _rows=JSON.parse(_raw);_localTrSnap=Array.isArray(_rows?.[0]?.data)?_rows[0].data:null;}}catch{}
-  }
-  const [p,e,a,tr]=await Promise.all([dbGet("customers"),dbGet("deals"),dbGet("tasks"),needsTrFetch?dbGet("history"):Promise.resolve(null)]);
+  // Always fetch all tables including treatments (for cross-device sync).
+  const [p,e,a,tr]=await Promise.all([dbGet("customers"),dbGet("deals"),dbGet("tasks"),dbGet("history")]);
   // Tüm Firmalar modunda (activeCompanyId=null) tüm şirketlerin verisini birleştir
   const mergeRows=(rows,seed)=>{
     if(!Array.isArray(rows)||!rows.length)return seed||[];
@@ -944,17 +947,21 @@ async function loadAll(){
   state.patients=mergeRows(p,activeCompanyId===1?SEED_PATIENTS:[]);
   state.events=mergeRows(e,activeCompanyId===1?SEED_EVENTS:[]);
   state.appointments=mergeRows(a,activeCompanyId===1?SEED_APPOINTMENTS:[]);
-  if(needsTrFetch){
-    const loadedTr=Array.isArray(tr?.[0]?.data)?tr[0].data:null;
-    if(_localTrSnap){
-      // Local data exists: use it as source of truth (may be newer than Supabase).
-      state.treatments=_localTrSnap;
-      // If Supabase has different data, re-sync it with the local version.
-      if(loadedTr&&JSON.stringify(loadedTr)!==JSON.stringify(_localTrSnap))dbSet("history",_localTrSnap);
-    }else{
-      state.treatments=loadedTr||SEED_TREATMENTS;
-      if(!loadedTr)dbSet("history",SEED_TREATMENTS);
-    }
+  const trCid=activeCompanyId||1;
+  const trPending=localStorage.getItem(`crm_history_${trCid}_pending`);
+  const loadedTr=Array.isArray(tr?.[0]?.data)?tr[0].data:null;
+  if(trPending){
+    // Unsynced local changes exist: use localStorage and retry Supabase sync.
+    // The _pending flag is cleared by dbSet when Supabase confirms the save.
+    try{
+      const raw=localStorage.getItem(`crm_history_${trCid}`);
+      if(raw){const rows=JSON.parse(raw);const localTr=Array.isArray(rows?.[0]?.data)?rows[0].data:null;if(localTr){state.treatments=localTr;dbSet("history",localTr);}}
+    }catch{}
+    if(!state.treatments.length)state.treatments=loadedTr||SEED_TREATMENTS;
+  }else{
+    // No pending changes: use Supabase data (picks up changes from any device).
+    state.treatments=loadedTr||(state.treatments.length?state.treatments:SEED_TREATMENTS);
+    if(!loadedTr&&!state.treatments.length)dbSet("history",SEED_TREATMENTS);
   }
   if(!p||!p[0])dbSet("customers",activeCompanyId===1?SEED_PATIENTS:[]);
   if(!e||!e[0])dbSet("deals",activeCompanyId===1?SEED_EVENTS:[]);
@@ -1130,14 +1137,17 @@ async function showApp(){
   if(adminGroup)adminGroup.style.display=(canSeeReports()||canSeeLogs()||canManageUsers()||isSuperAdmin())?"":"none";
   if(canManageUsers()){await loadUsers();await loadCompanies();loadCompanyStats().then(()=>render());}
   const _rt=sessionStorage.getItem('crm_tab');if(_rt){setTab(_rt);}else{render();}
-  // Arka planda her 90 saniyede veriyi Supabase'den yenile
+  // Arka planda her 20 saniyede veriyi Supabase'den yenile (cross-device sync)
   if(window._syncInterval)clearInterval(window._syncInterval);
   window._syncInterval=setInterval(async()=>{
     if(document.hidden)return;
+    const _trLen=state.treatments.filter(x=>!x.deleted).length;
     const before=JSON.stringify({p:state.patients,e:state.events,a:state.appointments});
     await loadAll();
-    if(JSON.stringify({p:state.patients,e:state.events,a:state.appointments})!==before)render();
-  },90000);
+    const changed=JSON.stringify({p:state.patients,e:state.events,a:state.appointments})!==before
+      ||state.treatments.filter(x=>!x.deleted).length!==_trLen;
+    if(changed)render();
+  },20000);
 }
 
 async function setCompany(cid){
