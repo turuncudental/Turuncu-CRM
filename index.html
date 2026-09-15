@@ -904,13 +904,13 @@ async function dbGet(table){
         // Don't overwrite localStorage if there are unsynced local changes (_pending flag).
         // This prevents stale Supabase data from erasing unsaved local edits.
         const pending=localStorage.getItem(`crm_${table}_${cid||1}_pending`);
-        if(!pending)localStorage.setItem(`crm_${table}_${cid||'all'}`,JSON.stringify(rows));
+        if(!pending)localStorage.setItem(`crm_${table}_${cid||1}`,JSON.stringify(rows));
         return rows;
       }
     }
   }catch{}
   // Offline fallback: use company-specific localStorage cache
-  try{const local=localStorage.getItem(`crm_${table}_${activeCompanyId||'all'}`);if(local)return JSON.parse(local);}catch{}
+  try{const local=localStorage.getItem(`crm_${table}_${activeCompanyId||1}`);if(local)return JSON.parse(local);}catch{}
   return null;
 }
 async function dbSet(table,data){
