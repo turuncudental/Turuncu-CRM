@@ -936,13 +936,11 @@ async function loadAll(){
   state.events=mergeRows(e,activeCompanyId===1?SEED_EVENTS:[]);
   state.appointments=mergeRows(a,activeCompanyId===1?SEED_APPOINTMENTS:[]);
   const loadedTr=Array.isArray(tr?.[0]?.data)?tr[0].data:null;
-  // Migrate: replace if fewer entries OR if EUR prices are missing/zero (price list update)
-  const needsTrUpdate=!loadedTr||loadedTr.length<SEED_TREATMENTS.length||loadedTr.some(t=>t.type==='treatment'&&(!(t.salePriceEUR>0)||!(t.salePriceUSD>0)))||loadedTr.some(t=>t.type==='travel'&&t.category==='Uçuş');
-  state.treatments=needsTrUpdate?SEED_TREATMENTS:loadedTr;
+  state.treatments=loadedTr||SEED_TREATMENTS;
   if(!p||!p[0])dbSet("customers",activeCompanyId===1?SEED_PATIENTS:[]);
   if(!e||!e[0])dbSet("deals",activeCompanyId===1?SEED_EVENTS:[]);
   if(!a||!a[0])dbSet("tasks",activeCompanyId===1?SEED_APPOINTMENTS:[]);
-  if(needsTrUpdate)dbSet("history",SEED_TREATMENTS);
+  if(!loadedTr)dbSet("history",SEED_TREATMENTS);
 }
 async function loadUsers(){
   try{
