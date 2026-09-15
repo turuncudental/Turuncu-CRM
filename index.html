@@ -925,10 +925,15 @@ async function persist(table){
   updateFooter();
 }
 async function loadAll(){
-  // Treatments are only loaded on initial login (when state.treatments is empty).
-  // Subsequent polls skip the DB fetch to prevent network failures from overwriting
-  // user's in-session edits (deletions, additions, edits).
+  // Treatments only loaded on first call (state.treatments empty = fresh page load).
   const needsTrFetch=state.treatments.length===0;
+  // Snapshot localStorage for history BEFORE dbGet overwrites it with stale Supabase data.
+  // If Supabase returns older data than what's in localStorage, we use the local snapshot
+  // and re-sync Supabase so both stay consistent.
+  let _localTrSnap=null;
+  if(needsTrFetch){
+    try{const _raw=localStorage.getItem(`crm_history_${activeCompanyId||1}`);if(_raw){const _rows=JSON.parse(_raw);_localTrSnap=Array.isArray(_rows?.[0]?.data)?_rows[0].data:null;}}catch{}
+  }
   const [p,e,a,tr]=await Promise.all([dbGet("customers"),dbGet("deals"),dbGet("tasks"),needsTrFetch?dbGet("history"):Promise.resolve(null)]);
   // Tüm Firmalar modunda (activeCompanyId=null) tüm şirketlerin verisini birleştir
   const mergeRows=(rows,seed)=>{
@@ -941,8 +946,15 @@ async function loadAll(){
   state.appointments=mergeRows(a,activeCompanyId===1?SEED_APPOINTMENTS:[]);
   if(needsTrFetch){
     const loadedTr=Array.isArray(tr?.[0]?.data)?tr[0].data:null;
-    state.treatments=loadedTr||SEED_TREATMENTS;
-    if(!loadedTr)dbSet("history",SEED_TREATMENTS);
+    if(_localTrSnap){
+      // Local data exists: use it as source of truth (may be newer than Supabase).
+      state.treatments=_localTrSnap;
+      // If Supabase has different data, re-sync it with the local version.
+      if(loadedTr&&JSON.stringify(loadedTr)!==JSON.stringify(_localTrSnap))dbSet("history",_localTrSnap);
+    }else{
+      state.treatments=loadedTr||SEED_TREATMENTS;
+      if(!loadedTr)dbSet("history",SEED_TREATMENTS);
+    }
   }
   if(!p||!p[0])dbSet("customers",activeCompanyId===1?SEED_PATIENTS:[]);
   if(!e||!e[0])dbSet("deals",activeCompanyId===1?SEED_EVENTS:[]);
