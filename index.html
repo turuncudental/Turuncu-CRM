@@ -64,6 +64,10 @@ input,select,textarea{font-family:'DM Sans',sans-serif}
 #sidebar{width:210px;background:#0d1320;border-right:1px solid #1a2236;display:flex;flex-direction:column;flex-shrink:0;transition:transform .25s ease}
 #sidebar-backdrop{display:none;position:fixed;inset:0;background:#00000066;z-index:200;touch-action:none}
 #hamburger{display:none;align-items:center;justify-content:center;background:none;border:none;color:#dde4ef;font-size:22px;cursor:pointer;padding:4px 6px;margin-right:2px;flex-shrink:0}
+@media(max-width:1024px){
+  #sidebar{width:180px}
+  .search-wrap{max-width:200px}
+}
 @media(max-width:768px){
   #sidebar{position:fixed;top:0;left:0;bottom:0;z-index:300;width:230px;transform:translateX(-100%)}
   #sidebar.mob-open{transform:translateX(0)}
@@ -72,7 +76,7 @@ input,select,textarea{font-family:'DM Sans',sans-serif}
   #main{overflow-x:hidden}
   #content{padding:12px;overflow-x:hidden}
   #topbar{padding:8px 12px;gap:6px}
-  .search-wrap{max-width:180px}
+  .search-wrap{max-width:160px}
   .grid2,.grid4{grid-template-columns:1fr 1fr}
   .grid3{grid-template-columns:1fr}
   .grid7{grid-template-columns:repeat(4,1fr)}
@@ -94,9 +98,9 @@ input,select,textarea{font-family:'DM Sans',sans-serif}
   .kpi-lbl{font-size:10px}
   .data-table th,.data-table td{padding:5px 6px;font-size:11px}
 }
-#main{flex:1;display:flex;flex-direction:column;overflow:hidden}
-#topbar{background:#0d1320;border-bottom:1px solid #1a2236;padding:11px 20px;display:flex;align-items:center;gap:10px;flex-shrink:0}
-#content{flex:1;overflow-y:auto;padding:20px}
+#main{flex:1;display:flex;flex-direction:column;overflow:hidden;min-width:0}
+#topbar{background:#0d1320;border-bottom:1px solid #1a2236;padding:11px 20px;display:flex;align-items:center;gap:8px;flex-shrink:0;flex-wrap:wrap;row-gap:6px}
+#content{flex:1;overflow-y:auto;overflow-x:hidden;padding:20px}
 .logo{padding:16px 16px 10px;border-bottom:1px solid #1a2236}
 .logo h1{font-size:17px;font-weight:900;background:linear-gradient(135deg,#f97316,#fbbf24);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
 .logo-sub{font-size:10px;color:#3d5270;margin-top:1px}
@@ -117,7 +121,7 @@ nav button{width:100%;display:flex;align-items:center;gap:10px;padding:9px 16px;
 nav button.active{background:#1a1208;color:#f97316;font-weight:700;border-left-color:#f97316}
 nav button:hover:not(.active){color:#94a3b8}
 .sidebar-footer{padding:10px 14px;border-top:1px solid #1a2236;font-size:11px;color:#3d5270;margin-top:auto}
-.search-wrap{position:relative;max-width:300px;flex:1}
+.search-wrap{position:relative;max-width:300px;flex:1;min-width:80px;flex-shrink:1}
 .search-wrap input{width:100%;background:#131b2a;border:1px solid #1a2236;border-radius:8px;padding:7px 28px 7px 28px;color:#dde4ef;font-size:13px;outline:none}
 .search-icon{position:absolute;left:9px;top:50%;transform:translateY(-50%);color:#3d5270;font-size:13px;pointer-events:none}
 .search-clear{position:absolute;right:8px;top:50%;transform:translateY(-50%);background:none;border:none;color:#4a607d;cursor:pointer;font-size:13px}
@@ -275,15 +279,14 @@ nav button:hover:not(.active){color:#94a3b8}
   <div id="main">
     <div id="topbar">
       <button id="hamburger" onclick="toggleSidebar()">☰</button>
-      <div id="page-title" style="font-size:15px;font-weight:700;min-width:80px">Panel</div>
+      <div id="page-title" style="font-size:15px;font-weight:700;white-space:nowrap;flex-shrink:0">Panel</div>
       <div class="search-wrap">
         <span class="search-icon">🔍</span>
         <input type="text" id="search-input" placeholder="Ara..." oninput="onSearch(this.value)"/>
         <button class="search-clear" id="search-clear" style="display:none" onclick="clearSearch()">✕</button>
       </div>
-      <div style="flex:1"></div>
-      <button id="btn-undo-topbar" onclick="undoLastAction()" title="Geri Al" style="display:none;background:#0a1a2e;border:1.5px solid #60a5fa;border-radius:8px;color:#60a5fa;font-size:12px;font-weight:700;padding:5px 12px;cursor:pointer;font-family:'DM Sans',sans-serif">↩ Geri Al</button>
-      <div id="topbar-actions"></div>
+      <button id="btn-undo-topbar" onclick="undoLastAction()" title="Geri Al" style="display:none;background:#0a1a2e;border:1.5px solid #60a5fa;border-radius:8px;color:#60a5fa;font-size:12px;font-weight:700;padding:5px 12px;cursor:pointer;font-family:'DM Sans',sans-serif;white-space:nowrap;flex-shrink:0">↩ Geri Al</button>
+      <div id="topbar-actions" style="flex-shrink:0"></div>
     </div>
     <div id="company-banner" style="display:none;padding:8px 20px 0"></div>
     <div id="content"><div class="loading"><div class="spinner">🦷</div></div></div>
