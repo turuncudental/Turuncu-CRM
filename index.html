@@ -3289,6 +3289,14 @@ async function downloadQuotePDF(patientId){
     const _warnMsg=t.pdfMissingWarning+'<br><br>• '+_pdfWarnings.join('<br>• ')+'<br><br>'+t.pdfProceed;
     if(!await confirmDialog(_warnMsg))return;
   }
+  // Warn if implant patient has no 2nd visit accommodation
+  if(hasImplantInPlan(p)){
+    const hasV2=(b.accommodations||[]).some(ac=>(ac.visit??0)===1);
+    if(!hasV2){
+      const go=await confirmDialog(`⚠️ 2. Visit Eklenmedi!\n\nBu hasta implant tedavisi (All on 4 / All on 6 veya implant) planlı.\nBu hastalar kliniğe 2 kez gelmek zorundadır.\n\n2. visit için henüz konaklama eklenmemiş.\n\nYine de teklif oluşturmak istiyor musunuz?`,false);
+      if(!go)return;
+    }
+  }
   const planKey=a.activePlan||'treatmentPlan';
   const allTx=state.treatments.filter(tx=>tx.type==='treatment'&&tx.active);
 
@@ -3422,11 +3430,19 @@ async function downloadQuotePDF(patientId){
   ov.appendChild(el);
   document.body.appendChild(ov);
 }
-function openTreatmentBrochure(patientId){
+async function openTreatmentBrochure(patientId){
   const p=getPatient(patientId);if(!p)return;
   const company=state.companies.find(c=>c.id===activeCompanyId)||{};
   const settings=company.settings||{};
   const a=p.assessment||{};const b=p.booking||{};
+  // Warn if implant patient has no 2nd visit accommodation
+  if(hasImplantInPlan(p)){
+    const hasV2=(b.accommodations||[]).some(ac=>(ac.visit??0)===1);
+    if(!hasV2){
+      const go=await confirmDialog(`⚠️ 2. Visit Eklenmedi!\n\nBu hasta implant tedavisi (All on 4 / All on 6 veya implant) planlı.\nBu hastalar kliniğe 2 kez gelmek zorundadır.\n\n2. visit için henüz konaklama eklenmemiş.\n\nYine de teklif oluşturmak istiyor musunuz?`,false);
+      if(!go)return;
+    }
+  }
   const planKey=a.activePlan||'treatmentPlan';
   const allTx=state.treatments.filter(tx=>tx.type==='treatment'&&tx.active);
   const isTR=lang==='tr';
