@@ -888,7 +888,7 @@ async function deleteTreatmentPlan(pl){
   if(p.assessment.activePlan===pl)p.assessment.activePlan=p.assessment.createdPlans[0];
   persist("customers");renderPtBody();
 }
-function getCatalogByType(type){return state.treatments.filter(tr=>(tr.type||"treatment")===type&&tr.active);}
+function getCatalogByType(type){return state.treatments.filter(tr=>(tr.type||"treatment")===type&&tr.active&&!tr.deleted);}
 function condLabel(k){return{healthy:t.condHealthy,cavity:t.condCavity,crown:t.condCrown,zircrown:"Zirkon/E-Max",missing:t.condMissing,implant:t.condImplant,root_canal:t.condRootCanal,veneer:t.condVeneer,filling:t.condFilling,bridge:t.condBridge,extraction:t.condExtraction,root:t.condRoot}[k]||k;}
 function updateFooter(){if(!currentUser)return;document.getElementById("sidebar-footer").textContent=`${state.patients.length} ${t.footerPatients} · ${state.patients.filter(p=>p.status==="booked").length} ${t.footerBooked}`;}
 
@@ -3029,8 +3029,8 @@ function addBookingItem(type,treatmentId){
 function addBookingAccommodation(visitIdx){
   const p=getPatient(currentPatientId);if(!p)return;
   const isImpl=hasImplantInPlan(p);
-  const selId=isImpl&&visitIdx!=null?`pb-accom-sel-${visitIdx}`:'pb-accom-sel';
-  const nigId=isImpl&&visitIdx!=null?`pb-accom-nights-${visitIdx}`:'pb-accom-nights';
+  const selId=visitIdx!=null?`pb-accom-sel-${visitIdx}`:'pb-accom-sel';
+  const nigId=visitIdx!=null?`pb-accom-nights-${visitIdx}`:'pb-accom-nights';
   const id=+document.getElementById(selId)?.value;if(!id)return;
   const nights=+document.getElementById(nigId)?.value||1;
   const prov=getTreatment(id);if(!prov)return;
