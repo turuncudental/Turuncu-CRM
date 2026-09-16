@@ -951,11 +951,12 @@ async function loadAll(){
   const trPending=localStorage.getItem(`crm_history_${trCid}_pending`);
   const loadedTr=Array.isArray(tr?.[0]?.data)?tr[0].data:null;
   if(trPending){
-    // Unsynced local changes exist: use localStorage and retry Supabase sync.
-    // The _pending flag is cleared by dbSet when Supabase confirms the save.
+    // Unsynced local changes exist: restore from localStorage.
+    // Retry is done by the polling interval (using state.treatments = latest) to avoid
+    // a race where a concurrent loadAll retry could overwrite a more recent user save.
     try{
       const raw=localStorage.getItem(`crm_history_${trCid}`);
-      if(raw){const rows=JSON.parse(raw);const localTr=Array.isArray(rows?.[0]?.data)?rows[0].data:null;if(localTr){state.treatments=localTr;dbSet("history",localTr);}}
+      if(raw){const rows=JSON.parse(raw);const localTr=Array.isArray(rows?.[0]?.data)?rows[0].data:null;if(localTr)state.treatments=localTr;}
     }catch{}
     if(!state.treatments.length)state.treatments=loadedTr||SEED_TREATMENTS;
   }else{
@@ -1282,7 +1283,17 @@ function renderTopbarActions(){
   else if(canManageUsers()&&currentTab==="users")html=`<button class="btn" onclick="openUserModal(0)">${t.addUser}</button>`;
   el.innerHTML=html;
 }
-setInterval(async()=>{if(!currentUser)return;await loadAll();if(!document.getElementById("patient-overlay").style.display||document.getElementById("patient-overlay").style.display==="none")render();},15000);
+setInterval(async()=>{
+  if(!currentUser)return;
+  await loadAll();
+  // Retry any pending history save using the latest in-memory state (not a stale localStorage snapshot).
+  // This is the ONLY place retries happen — loadAll itself no longer calls dbSet for treatments.
+  const _tCid=activeCompanyId||1;
+  if(localStorage.getItem(`crm_history_${_tCid}_pending`)&&state.treatments.length>0){
+    dbSet("history",state.treatments);
+  }
+  if(!document.getElementById("patient-overlay").style.display||document.getElementById("patient-overlay").style.display==="none")render();
+},15000);
 // ==RENDER_DASH==
 function renderDashboard(){
   const activePts=state.patients.filter(p=>!p.deleted);
