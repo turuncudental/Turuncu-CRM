@@ -914,12 +914,21 @@ async function dbGet(table){
   return null;
 }
 async function dbSet(table,data){
-  const cid=activeCompanyId||1;
+  const cid=activeCompanyId||currentUser?.company_id||1;
   try{localStorage.setItem(`crm_${table}_${cid}`,JSON.stringify([{id:cid,data}]));}catch{}
-  // Mark as pending until Supabase confirms the save
   try{localStorage.setItem(`crm_${table}_${cid}_pending`,'1');}catch{}
   try{
-    const r=await fetch(`${SUPA_URL}/rest/v1/${table}`,{method:"POST",headers:{...H,"Prefer":"resolution=merge-duplicates,return=minimal"},body:JSON.stringify({id:cid,data})});
+    // Try PATCH first (update existing row). If no row exists (0 rows updated), fall back to POST (insert).
+    const pr=await fetch(`${SUPA_URL}/rest/v1/${table}?id=eq.${cid}`,{method:"PATCH",headers:{...H,"Prefer":"return=representation"},body:JSON.stringify({data})});
+    if(pr.ok){
+      const patched=await pr.json();
+      if(patched&&patched.length>0){
+        window._supaOffline=false;try{localStorage.removeItem(`crm_${table}_${cid}_pending`);}catch{}
+        return;
+      }
+    }
+    // Row doesn't exist yet — insert it
+    const r=await fetch(`${SUPA_URL}/rest/v1/${table}`,{method:"POST",headers:{...H,"Prefer":"return=minimal"},body:JSON.stringify({id:cid,data})});
     if(!r.ok){window._supaOffline=true;}
     else{window._supaOffline=false;try{localStorage.removeItem(`crm_${table}_${cid}_pending`);}catch{}}
   }catch{window._supaOffline=true;}
@@ -947,20 +956,18 @@ async function loadAll(){
   state.patients=mergeRows(p,activeCompanyId===1?SEED_PATIENTS:[]);
   state.events=mergeRows(e,activeCompanyId===1?SEED_EVENTS:[]);
   state.appointments=mergeRows(a,activeCompanyId===1?SEED_APPOINTMENTS:[]);
-  const trCid=activeCompanyId||1;
+  const trCid=activeCompanyId||currentUser?.company_id||1;
   const trPending=localStorage.getItem(`crm_history_${trCid}_pending`);
-  const loadedTr=Array.isArray(tr?.[0]?.data)?tr[0].data:null;
+  // Find this company's row by id (not [0] which may be a different company's old row)
+  const trRow=Array.isArray(tr)?tr.find(r=>r.id==trCid)||tr[0]:null;
+  const loadedTr=Array.isArray(trRow?.data)?trRow.data:null;
   if(trPending){
-    // Unsynced local changes exist: restore from localStorage.
-    // Retry is done by the polling interval (using state.treatments = latest) to avoid
-    // a race where a concurrent loadAll retry could overwrite a more recent user save.
     try{
       const raw=localStorage.getItem(`crm_history_${trCid}`);
-      if(raw){const rows=JSON.parse(raw);const localTr=Array.isArray(rows?.[0]?.data)?rows[0].data:null;if(localTr)state.treatments=localTr;}
+      if(raw){const rows=JSON.parse(raw);const trR=Array.isArray(rows)?rows.find(r=>r.id==trCid)||rows[0]:null;const localTr=Array.isArray(trR?.data)?trR.data:null;if(localTr)state.treatments=localTr;}
     }catch{}
     if(!state.treatments.length)state.treatments=loadedTr||SEED_TREATMENTS;
   }else{
-    // No pending changes: use Supabase data (picks up changes from any device).
     state.treatments=loadedTr||(state.treatments.length?state.treatments:SEED_TREATMENTS);
     if(!loadedTr&&!state.treatments.length)dbSet("history",SEED_TREATMENTS);
   }
