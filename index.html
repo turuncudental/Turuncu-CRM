@@ -3367,17 +3367,17 @@ async function downloadQuotePDF(patientId){
   });
   // Per-tooth treatments (grouped by tx)
   const toothTxMap=(a.toothTx||{})[planKey]||{};
-  const txGroups={};
-  Object.values(toothTxMap).flatMap(v=>Array.isArray(v)?v:[v]).forEach(txId=>{const k=+txId;txGroups[k]=(txGroups[k]||0)+1;});
+  const txGroups={};const txToTeeth={};
+  Object.entries(toothTxMap).forEach(([tooth,txIds])=>{(Array.isArray(txIds)?txIds:[txIds]).forEach(txId=>{const k=+txId;txGroups[k]=(txGroups[k]||0)+1;if(!txToTeeth[k])txToTeeth[k]=[];txToTeeth[k].push(+tooth);});});
   Object.entries(txGroups).forEach(([txId,cnt])=>{
     const tx=allTx.find(t=>t.id===+txId);if(!tx)return;
-    rows.push({name:tx.name,qty:cnt,price:getEffectivePrice(tx)});
+    rows.push({name:tx.name,qty:cnt,price:getEffectivePrice(tx),teeth:(txToTeeth[+txId]||[]).sort((a,b)=>a-b)});
   });
   // Extras
   const extras=(a.planExtras||{})[planKey]||[];
   extras.forEach(e=>{
-    if(e.customName){rows.push({name:e.customName,qty:e.qty||1,price:e.price||0});}
-    else{const tx=allTx.find(t=>t.id===e.txId);if(tx)rows.push({name:tx.name,qty:e.qty||1,price:getEffectivePrice(tx)});}
+    if(e.customName){rows.push({name:e.customName,qty:e.qty||1,price:e.price||0,teeth:[]});}
+    else{const tx=allTx.find(t=>t.id===e.txId);if(tx)rows.push({name:tx.name,qty:e.qty||1,price:getEffectivePrice(tx),teeth:[]});}
   });
 
   const txSub=rows.reduce((s,r)=>s+r.qty*r.price,0);
@@ -3396,7 +3396,6 @@ async function downloadQuotePDF(patientId){
     <div style="margin-bottom:20px;padding:14px 16px;background:#fff8f0;border-radius:6px;border-left:3px solid #f97316">
       <div style="font-size:9px;font-weight:700;color:#f97316;letter-spacing:1px;margin-bottom:6px">${t.patientInfoHeader}</div>
       <div style="font-size:15px;font-weight:700">${p.name}</div>
-      ${p.country?`<div style="font-size:12px;color:#555;margin-top:2px">${p.country}</div>`:""}
       ${p.email?`<div style="font-size:11px;color:#777;margin-top:2px">${p.email}</div>`:""}
       ${p.phone?`<div style="font-size:11px;color:#777">${p.phone}</div>`:""}
     </div>
@@ -3408,9 +3407,10 @@ async function downloadQuotePDF(patientId){
         <th class="qp-price" style="padding:9px 12px;text-align:right;font-size:10px;font-weight:700;color:#fff;width:120px">${t.total.toUpperCase()}</th>
       </tr></thead>
       <tbody>${(()=>{
-        const allRows=[...rows.map(r=>({name:r.name,qty:r.qty,price:r.price,unit:''})),...(b.accommodations||[]).map(ac=>({name:'🏨 '+ac.name,qty:ac.nights||1,price:ac.pricePerNight||0,unit:t.nights.toLowerCase()})),...(b.travels||[]).map(tr=>({name:'✈️ '+tr.name,qty:tr.persons||1,price:tr.price||0,unit:t.persons.toLowerCase()}))];
+        const _implPdf=hasImplantInPlan(p);
+        const allRows=[...rows.map(r=>({name:r.name,qty:r.qty,price:r.price,unit:'',teeth:r.teeth||[]})),...(b.accommodations||[]).map(ac=>({name:'🏨 '+ac.name+(_implPdf?` — ${(ac.visit??0)===0?'1. Visit':'2. Visit'}`:''),qty:ac.nights||1,price:ac.pricePerNight||0,unit:t.nights.toLowerCase(),teeth:[]})),...(b.travels||[]).map(tr=>({name:'✈️ '+tr.name,qty:tr.persons||1,price:tr.price||0,unit:'',teeth:[]}))];
         return allRows.length?allRows.map((r,i)=>`<tr style="background:${i%2?"#fff8f0":"#fff"}">
-          <td style="padding:9px 12px;font-size:12px">${r.name}</td>
+          <td style="padding:9px 12px;font-size:12px">${r.name}${r.teeth&&r.teeth.length?`<div style="font-size:9px;color:#888;margin-top:1px">${lang==='tr'?'Diş':'Teeth'}: ${r.teeth.join(', ')}</div>`:''}</td>
           <td style="padding:9px 12px;text-align:center;font-size:12px;color:#555">${r.qty}${r.unit?' '+r.unit:''}</td>
           <td class="qp-price" style="padding:9px 12px;text-align:right;font-size:12px;color:#555">${currSym()}${(r.price||0).toLocaleString()}</td>
           <td class="qp-price" style="padding:9px 12px;text-align:right;font-size:12px;font-weight:700">${currSym()}${(r.qty*r.price).toLocaleString()}</td>
@@ -3462,7 +3462,10 @@ async function downloadQuotePDF(patientId){
 
       </div>
     </div>
-    <div style="margin-top:24px;padding-top:12px;border-top:1px solid #e9ecef;text-align:center;font-size:9px;color:#aaa">
+    <div style="margin-top:16px;padding:12px 16px;background:#fff8f0;border:1px solid #fed7aa;border-radius:6px;font-size:10px;color:#92400e;line-height:1.7">
+      📋 <strong>${lang==='tr'?'Önemli Bilgi':'Important Note'}:</strong> ${lang==='tr'?'Bu teklif tahmini bir tedavi planlamasıdır ve düzenlenme tarihinden itibaren 30 gün geçerlidir. Klinik muayene sonucunda ek işlemler gerekebilir ve fiyatlar değişkenlik gösterebilir. Uzman ekibimiz her hastamıza özel yaklaşmaktadır; sorularınız için bizimle iletişime geçmekten çekinmeyiniz.':'This is an estimated treatment plan, valid for 30 days from the date of issue. Following a clinical examination, additional procedures may be required and prices may be subject to change. Our specialist team provides a personalized approach to each patient — please do not hesitate to contact us with any questions.'}
+    </div>
+    <div style="margin-top:12px;padding-top:12px;border-top:1px solid #e9ecef;text-align:center;font-size:9px;color:#aaa">
       ${t.preparedBy} ${currentUser.display_name||currentUser.username} · ${t.dateLabel} ${dateStr} · Turuncu Dental CRM
     </div>`;
   // Inject hide-prices style (default: hidden)
@@ -3513,16 +3516,16 @@ async function openTreatmentBrochure(patientId){
     rows.push({name:`${tx.name} (${jawLabel})`,qty:1,price:getEffectivePrice(tx)});
   });
   const toothTxMap=(a.toothTx||{})[planKey]||{};
-  const txGroups={};
-  Object.values(toothTxMap).flatMap(v=>Array.isArray(v)?v:[v]).forEach(txId=>{const k=+txId;txGroups[k]=(txGroups[k]||0)+1;});
+  const txGroups={};const txToTeeth={};
+  Object.entries(toothTxMap).forEach(([tooth,txIds])=>{(Array.isArray(txIds)?txIds:[txIds]).forEach(txId=>{const k=+txId;txGroups[k]=(txGroups[k]||0)+1;if(!txToTeeth[k])txToTeeth[k]=[];txToTeeth[k].push(+tooth);});});
   Object.entries(txGroups).forEach(([txId,cnt])=>{
     const tx=allTx.find(t=>t.id===+txId);if(!tx)return;
-    rows.push({name:tx.name,qty:cnt,price:getEffectivePrice(tx)});
+    rows.push({name:tx.name,qty:cnt,price:getEffectivePrice(tx),teeth:(txToTeeth[+txId]||[]).sort((a,b)=>a-b)});
   });
   const extras=(a.planExtras||{})[planKey]||[];
   extras.forEach(e=>{
-    if(e.customName){rows.push({name:e.customName,qty:e.qty||1,price:e.price||0});}
-    else{const tx=allTx.find(t=>t.id===e.txId);if(tx)rows.push({name:tx.name,qty:e.qty||1,price:getEffectivePrice(tx)});}
+    if(e.customName){rows.push({name:e.customName,qty:e.qty||1,price:e.price||0,teeth:[]});}
+    else{const tx=allTx.find(t=>t.id===e.txId);if(tx)rows.push({name:tx.name,qty:e.qty||1,price:getEffectivePrice(tx),teeth:[]});}
   });
 
   const txSub=rows.reduce((s,r)=>s+r.qty*r.price,0);
@@ -3536,13 +3539,14 @@ async function openTreatmentBrochure(patientId){
   const companyName=company.name||'Turuncu Dental';
 
   // All rows including accommodations and travels (same as downloadQuotePDF)
+  const _implBro=hasImplantInPlan(p);
   const allRows=[
-    ...rows.map(r=>({name:r.name,qty:r.qty,price:r.price,unit:''})),
-    ...(b.accommodations||[]).map(ac=>({name:'🏨 '+ac.name,qty:ac.nights||1,price:ac.pricePerNight||0,unit:t.nights.toLowerCase()})),
-    ...(b.travels||[]).map(tr=>({name:'✈️ '+tr.name,qty:tr.persons||1,price:tr.price||0,unit:t.persons.toLowerCase()}))
+    ...rows.map(r=>({name:r.name,qty:r.qty,price:r.price,unit:'',teeth:r.teeth||[]})),
+    ...(b.accommodations||[]).map(ac=>({name:'🏨 '+ac.name+(_implBro?` — ${(ac.visit??0)===0?'1. Visit':'2. Visit'}`:''),qty:ac.nights||1,price:ac.pricePerNight||0,unit:t.nights.toLowerCase(),teeth:[]})),
+    ...(b.travels||[]).map(tr=>({name:'✈️ '+tr.name,qty:tr.persons||1,price:tr.price||0,unit:'',teeth:[]}))
   ];
   const rowsHTML=allRows.length?allRows.map((r,i)=>`<tr style="background:${i%2?'#fff8f0':'#fff'}">
-    <td style="padding:9px 12px;font-size:12px">${r.name}</td>
+    <td style="padding:9px 12px;font-size:12px">${r.name}${r.teeth&&r.teeth.length?`<div style="font-size:9px;color:#888;margin-top:1px">${isTR?'Diş':'Teeth'}: ${r.teeth.join(', ')}</div>`:''}</td>
     <td style="padding:9px 12px;text-align:center;font-size:12px;color:#555">${r.qty}${r.unit?' '+r.unit:''}</td>
     <td style="padding:9px 12px;text-align:right;font-size:12px;color:#555">${cs}${(r.price||0).toLocaleString()}</td>
     <td style="padding:9px 12px;text-align:right;font-size:12px;font-weight:700">${cs}${(r.qty*r.price).toLocaleString()}</td>
@@ -3557,7 +3561,6 @@ async function openTreatmentBrochure(patientId){
     <div style="margin-bottom:20px;padding:14px 16px;background:#fff8f0;border-radius:6px;border-left:3px solid #f97316">
       <div style="font-size:9px;font-weight:700;color:#f97316;letter-spacing:1px;margin-bottom:6px">${t.patientInfoHeader}</div>
       <div style="font-size:15px;font-weight:700">${p.name}</div>
-      ${p.country?`<div style="font-size:12px;color:#555;margin-top:2px">${p.country}</div>`:''}
       ${p.email?`<div style="font-size:11px;color:#777;margin-top:2px">${p.email}</div>`:''}
       ${p.phone?`<div style="font-size:11px;color:#777">${p.phone}</div>`:''}
     </div>
@@ -3614,7 +3617,10 @@ async function openTreatmentBrochure(patientId){
         </div>`})():''}
       </div>
     </div>
-    <div style="margin-top:24px;padding-top:12px;border-top:1px solid #e9ecef;text-align:center;font-size:9px;color:#aaa">
+    <div style="margin-top:16px;padding:12px 16px;background:#fff8f0;border:1px solid #fed7aa;border-radius:6px;font-size:10px;color:#92400e;line-height:1.7">
+      📋 <strong>${isTR?'Önemli Bilgi':'Important Note'}:</strong> ${isTR?'Bu teklif tahmini bir tedavi planlamasıdır ve düzenlenme tarihinden itibaren 30 gün geçerlidir. Klinik muayene sonucunda ek işlemler gerekebilir ve fiyatlar değişkenlik gösterebilir. Uzman ekibimiz her hastamıza özel yaklaşmaktadır; sorularınız için bizimle iletişime geçmekten çekinmeyiniz.':'This is an estimated treatment plan, valid for 30 days from the date of issue. Following a clinical examination, additional procedures may be required and prices may be subject to change. Our specialist team provides a personalized approach to each patient — please do not hesitate to contact us with any questions.'}
+    </div>
+    <div style="margin-top:12px;padding-top:12px;border-top:1px solid #e9ecef;text-align:center;font-size:9px;color:#aaa">
       ${t.preparedBy} ${currentUser.display_name||currentUser.username} · ${t.dateLabel} ${dateStr} · ${companyName} CRM
     </div>
   </div>`;
@@ -3786,7 +3792,7 @@ async function openTreatmentBrochure(patientId){
   // === PAGE 6: SUGGESTED TREATMENT ===
   const planChartData=a[planKey]||{};
   const rowsHTML6=rows.length?rows.map((r,i)=>`<tr style="background:${i%2?'#fff7ed':'#fff'}">
-    <td style="padding:8px 12px;font-size:12px;color:#1e293b">${r.name}</td>
+    <td style="padding:8px 12px;font-size:12px;color:#1e293b">${r.name}${r.teeth&&r.teeth.length?`<div style="font-size:9px;color:#888;margin-top:1px">${isTR?'Diş':'Teeth'}: ${r.teeth.join(', ')}</div>`:''}</td>
     <td style="padding:8px 12px;text-align:center;font-size:12px;color:#64748b">${r.qty}</td>
     <td style="padding:8px 12px;text-align:right;font-size:12px;color:#64748b">${cs}${r.price.toLocaleString()}</td>
     <td style="padding:8px 12px;text-align:right;font-size:12px;font-weight:700;color:#c2410c">${cs}${(r.qty*r.price).toLocaleString()}</td>
@@ -3860,8 +3866,8 @@ async function openTreatmentBrochure(patientId){
           </div>
         </div>
       </div>`;})():''}
-      <div style="text-align:center;padding:16px;background:#f8fafc;border-radius:8px;border:1px dashed #e2e8f0">
-        <div style="font-size:12px;color:#64748b">${isTR?`Bu teklif 30 gün geçerlidir — ${dateStr} tarihinden itibaren`:`This quote is valid for 30 days — from ${dateStr}`}</div>
+      <div style="padding:14px 16px;background:#fff8f0;border:1px solid #fed7aa;border-radius:8px;font-size:11px;color:#92400e;line-height:1.7">
+        📋 <strong>${isTR?'Önemli Bilgi':'Important Note'}:</strong> ${isTR?`Bu teklif tahmini bir tedavi planlamasıdır ve ${dateStr} tarihinden itibaren 30 gün geçerlidir. Klinik muayene sonucunda ek işlemler gerekebilir ve fiyatlar değişkenlik gösterebilir. Uzman ekibimiz her hastamıza özel yaklaşmaktadır; sorularınız için bizimle iletişime geçmekten çekinmeyiniz.`:`This is an estimated treatment plan, valid for 30 days from ${dateStr}. Following a clinical examination, additional procedures may be required and prices may be subject to change. Our specialist team provides a personalized approach to each patient — please do not hesitate to contact us with any questions.`}
       </div>
     </div>
   </div>
