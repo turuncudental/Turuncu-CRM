@@ -1752,6 +1752,7 @@ function renderPtAssessment(p){
       ${activeTxBrush==='__manual__'?`<div style="display:flex;gap:8px;align-items:center;margin-top:6px;flex-wrap:wrap">
         <input id="pa-manual-name" placeholder="${t.txNamePlaceholder}" style="background:#131b2a;border:1px solid #1a2236;border-radius:8px;padding:6px 10px;color:#dde4ef;font-size:12px;outline:none;flex:1;min-width:150px"/>
         <input id="pa-manual-price" type="number" min="0" placeholder="${t.pricePlaceholder}" style="background:#131b2a;border:1px solid #1a2236;border-radius:8px;padding:6px 10px;color:#dde4ef;font-size:12px;outline:none;width:100px"/>
+        <input id="pa-manual-teeth" placeholder="Diş No: 11,21" style="background:#131b2a;border:1px solid #1a2236;border-radius:8px;padding:6px 10px;color:#22c55e;font-size:12px;outline:none;width:110px"/>
         <button class="sm-btn success" onclick="addManualTreatment()">+ ${t.addBtn}</button>
       </div>`:''}
     </div>
@@ -1778,7 +1779,7 @@ function renderPtAssessment(p){
             <td><button class="sm-btn danger" onclick="removeTxGroup(${r.txId})" title="${t.removeAll}">✕</button></td>
           </tr>`).join('')}
           ${extraRows.map(r=>{const uPrice=r.price||getEffectivePrice(r.tx);return`<tr>
-            <td style="font-weight:600">${r.tx.name} <span style="color:#4a607d;font-size:10px">${r.customName?t.manualLabel:t.extraLabel}</span></td>
+            <td style="font-weight:600;line-height:1.4">${r.tx.name} <span style="color:#4a607d;font-size:10px">${r.customName?t.manualLabel:t.extraLabel}</span>${r.teeth&&r.teeth.length?`<br/><span style="font-size:9px;color:#22c55e;font-weight:400">${[...r.teeth].sort((a,b)=>a-b).join(', ')}</span>`:''}</td>
             <td><input type="number" min="1" value="${r.qty||1}" onchange="updateExtraTxQty(${r.idx},+this.value)" style="${inStyle};text-align:center"/></td>
             <td style="font-size:12px">${currSym()}${uPrice.toLocaleString()}</td>
             <td style="font-weight:700;color:#34d399">${currSym()}${((r.qty||1)*uPrice).toLocaleString()}</td>
@@ -1828,16 +1829,17 @@ function renderPtAssessment(p){
         <div class="stat-row" style="align-items:center">
           <span>${t.discount}</span>
           <span style="display:flex;align-items:center;gap:5px">
-            <input type="number" min="0" max="100" step="0.5" value="${discountRate||''}" placeholder="%" onchange="updateBookingDiscountRate(+this.value,${sub})" style="width:52px;background:#131b2a;border:1px solid #1a2236;border-radius:6px;padding:3px 5px;color:#fbbf24;font-size:12px;text-align:right"/>
+            <input type="number" min="0" max="100" step="0.5" value="${discountRate||''}" placeholder="%" onchange="updateBookingDiscountRate(+this.value,${txSub})" style="width:52px;background:#131b2a;border:1px solid #1a2236;border-radius:6px;padding:3px 5px;color:#fbbf24;font-size:12px;text-align:right"/>
             <span style="font-size:11px;color:#4a607d">%  veya</span>
-            <input type="number" min="0" value="${discountAmt||''}" placeholder="${currSym()}" onchange="updateBookingDiscountAmt(+this.value,${sub})" style="width:72px;background:#131b2a;border:1px solid #1a2236;border-radius:6px;padding:3px 5px;color:#fbbf24;font-size:12px;text-align:right"/>
+            <input type="number" min="0" value="${discountAmt||''}" placeholder="${currSym()}" onchange="updateBookingDiscountAmt(+this.value,${txSub})" style="width:72px;background:#131b2a;border:1px solid #1a2236;border-radius:6px;padding:3px 5px;color:#fbbf24;font-size:12px;text-align:right"/>
           </span>
         </div>
         ${discountAmt>0?`<div class="stat-row"><span style="font-size:11px;color:#4a607d">${t.discountApplied}</span><span style="color:#fbbf24;font-weight:700">−${currSym()}${discountAmt.toLocaleString()}${discountRate>0?` (%${discountRate})`:"" }</span></div>`:""}
         <div class="stat-row"><span style="font-weight:700;color:#dde4ef">${t.totalCost}</span><span style="font-weight:800;color:#34d399;font-size:15px">${currSym()}${total.toLocaleString()}</span></div>
         <div class="stat-row"><span>${t.deposit}</span><span><input type="number" min="0" value="${b.deposit||''}" placeholder="0" onchange="updateBookingDeposit(+this.value)" style="width:80px;background:#131b2a;border:1px solid #1a2236;border-radius:6px;padding:3px 6px;color:#dde4ef;font-size:12px;text-align:right"/></span></div>
         <div style="border-top:2px solid #1a2236;margin:6px 0"></div>
-        <div style="display:flex;align-items:center;justify-content:flex-end;margin-bottom:6px">
+        <div style="display:flex;align-items:center;justify-content:flex-end;gap:6px;margin-bottom:6px">
+          <button onclick="toggleServices()" style="padding:3px 10px;border-radius:14px;border:1px solid ${b.showServices===false?'#3d5270':'#166534'};background:${b.showServices===false?'#131b2a':'#0a2a1a'};color:${b.showServices===false?'#3d5270':'#34d399'};font-size:10px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif">${b.showServices===false?'🏨 Hizm. Göster':'🏨 Hizm. Gizle'}</button>
           <button onclick="toggleCardPayment()" style="padding:3px 10px;border-radius:14px;border:1px solid ${b.showCard===false?'#3d5270':'#1e3a5f'};background:${b.showCard===false?'#131b2a':'#050f1e'};color:${b.showCard===false?'#3d5270':'#60a5fa'};font-size:10px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif">${b.showCard===false?'💳 Kart Göster':'💳 Kart Gizle'}</button>
         </div>
         <div style="display:grid;grid-template-columns:${b.showCard===false?'1fr':'1fr 1fr'};gap:8px;margin:0 0 8px">
@@ -1955,12 +1957,14 @@ function setTxBrush(txId){activeTxBrush=(txId==='__manual__')?'__manual__':(+txI
 function addManualTreatment(){
   const name=(document.getElementById('pa-manual-name')?.value||'').trim();
   const price=+(document.getElementById('pa-manual-price')?.value)||0;
+  const teethRaw=(document.getElementById('pa-manual-teeth')?.value||'').trim();
+  const teeth=teethRaw?teethRaw.split(/[,\s]+/).map(n=>+n).filter(n=>n>0):[];
   if(!name)return;
   const p=getPatient(currentPatientId);if(!p)return;
   if(!p.assessment)p.assessment={};
   if(!p.assessment.planExtras)p.assessment.planExtras={};
   if(!p.assessment.planExtras[activePlan])p.assessment.planExtras[activePlan]=[];
-  p.assessment.planExtras[activePlan].push({customName:name,price,qty:1});
+  p.assessment.planExtras[activePlan].push({customName:name,price,qty:1,teeth});
   logAction('plan_save',buildPlanDetail(p));markPtDirty();persist("customers");renderPtBody();
 }
 function applyTxToTooth(num,txId){
@@ -2149,6 +2153,12 @@ function toggleCardPayment(){
   p.booking.showCard=p.booking.showCard===false?true:false;
   persist("customers");renderPtBody();
 }
+function toggleServices(){
+  const p=getPatient(currentPatientId);if(!p)return;
+  if(!p.booking)p.booking={};
+  p.booking.showServices=p.booking.showServices===false?true:false;
+  persist("customers");renderPtBody();
+}
 function addVisit(){
   const p=getPatient(currentPatientId);if(!p)return;
   if(!p.booking)p.booking={};
@@ -2292,17 +2302,18 @@ function renderPtBooking(p){
         <div class="stat-row" style="align-items:center">
           <span>${t.discount}</span>
           <span style="display:flex;align-items:center;gap:6px">
-            <input type="number" min="0" max="100" step="0.5" value="${discountRate||''}" placeholder="%" onchange="updateBookingDiscountRate(+this.value,${sub})" style="width:54px;background:#131b2a;border:1px solid #1a2236;border-radius:6px;padding:3px 6px;color:#fbbf24;font-size:12px;text-align:right"/>
+            <input type="number" min="0" max="100" step="0.5" value="${discountRate||''}" placeholder="%" onchange="updateBookingDiscountRate(+this.value,${txSub})" style="width:54px;background:#131b2a;border:1px solid #1a2236;border-radius:6px;padding:3px 6px;color:#fbbf24;font-size:12px;text-align:right"/>
             <span style="font-size:11px;color:#4a607d">%</span>
             <span style="font-size:11px;color:#4a607d">veya</span>
-            <input type="number" min="0" value="${discountAmt||''}" placeholder="${currSym()}" onchange="updateBookingDiscountAmt(+this.value,${sub})" style="width:72px;background:#131b2a;border:1px solid #1a2236;border-radius:6px;padding:3px 6px;color:#fbbf24;font-size:12px;text-align:right"/>
+            <input type="number" min="0" value="${discountAmt||''}" placeholder="${currSym()}" onchange="updateBookingDiscountAmt(+this.value,${txSub})" style="width:72px;background:#131b2a;border:1px solid #1a2236;border-radius:6px;padding:3px 6px;color:#fbbf24;font-size:12px;text-align:right"/>
           </span>
         </div>
         ${discountAmt>0?`<div class="stat-row"><span style="font-size:11px;color:#4a607d">${t.discountApplied}</span><span style="color:#fbbf24;font-weight:700">−${currSym()}${discountAmt.toLocaleString()}${discountRate>0?` (%${discountRate})`:"" }</span></div>`:""}
         <div class="stat-row"><span style="font-weight:700;color:#dde4ef">${t.totalCost}</span><span style="font-weight:800;color:#34d399;font-size:15px">${currSym()}${total.toLocaleString()}</span></div>
         <div class="stat-row"><span>${t.deposit}</span><span><input type="number" min="0" value="${b.deposit||''}" placeholder="0" onchange="updateBookingDeposit(+this.value)" style="width:80px;background:#131b2a;border:1px solid #1a2236;border-radius:6px;padding:3px 6px;color:#dde4ef;font-size:12px;text-align:right"/></span></div>
         <div style="border-top:2px solid #f97316;margin:8px 0"></div>
-        <div style="display:flex;align-items:center;justify-content:flex-end;margin-bottom:6px">
+        <div style="display:flex;align-items:center;justify-content:flex-end;gap:6px;margin-bottom:6px">
+          <button onclick="toggleServices()" style="padding:3px 10px;border-radius:14px;border:1px solid ${b.showServices===false?'#3d5270':'#166534'};background:${b.showServices===false?'#131b2a':'#0a2a1a'};color:${b.showServices===false?'#3d5270':'#34d399'};font-size:10px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif">${b.showServices===false?'🏨 Hizm. Göster':'🏨 Hizm. Gizle'}</button>
           <button onclick="toggleCardPayment()" style="padding:3px 10px;border-radius:14px;border:1px solid ${b.showCard===false?'#3d5270':'#1e3a5f'};background:${b.showCard===false?'#131b2a':'#050f1e'};color:${b.showCard===false?'#3d5270':'#60a5fa'};font-size:10px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif">${b.showCard===false?'💳 Kart Göster':'💳 Kart Gizle'}</button>
         </div>
         <div style="display:grid;grid-template-columns:${b.showCard===false?'1fr':'1fr 1fr'};gap:8px;margin:0 0 8px">
@@ -3376,13 +3387,14 @@ async function downloadQuotePDF(patientId){
   // Extras
   const extras=(a.planExtras||{})[planKey]||[];
   extras.forEach(e=>{
-    if(e.customName){rows.push({name:e.customName,qty:e.qty||1,price:e.price||0,teeth:[]});}
+    if(e.customName){rows.push({name:e.customName,qty:e.qty||1,price:e.price||0,teeth:(e.teeth||[]).sort((a,b)=>a-b)});}
     else{const tx=allTx.find(t=>t.id===e.txId);if(tx)rows.push({name:tx.name,qty:e.qty||1,price:getEffectivePrice(tx),teeth:[]});}
   });
 
   const txSub=rows.reduce((s,r)=>s+r.qty*r.price,0);
-  const acSub=(b.accommodations||[]).reduce((s,ac)=>s+(ac.nights||1)*(ac.pricePerNight||0),0);
-  const trSub=(b.travels||[]).reduce((s,tr)=>s+(tr.persons||1)*(tr.price||0),0);
+  const _showSvc=b.showServices!==false;
+  const acSub=_showSvc?(b.accommodations||[]).reduce((s,ac)=>s+(ac.nights||1)*(ac.pricePerNight||0),0):0;
+  const trSub=_showSvc?(b.travels||[]).reduce((s,tr)=>s+(tr.persons||1)*(tr.price||0),0):0;
   const sub=txSub+acSub+trSub;
   const total=sub-(b.discount||0);const balance=total-(b.deposit||0);
   const dateStr=new Date().toLocaleDateString("tr-TR");
@@ -3408,7 +3420,8 @@ async function downloadQuotePDF(patientId){
       </tr></thead>
       <tbody>${(()=>{
         const _implPdf=hasImplantInPlan(p);
-        const allRows=[...rows.map(r=>({name:r.name,qty:r.qty,price:r.price,unit:'',teeth:r.teeth||[]})),...(b.accommodations||[]).map(ac=>({name:'🏨 '+ac.name+(_implPdf?` — ${(ac.visit??0)===0?'1. Visit':'2. Visit'}`:''),qty:ac.nights||1,price:ac.pricePerNight||0,unit:t.nights.toLowerCase(),teeth:[]})),...(b.travels||[]).map(tr=>({name:'✈️ '+tr.name,qty:tr.persons||1,price:tr.price||0,unit:'',teeth:[]}))];
+        const _showSvcPdf=b.showServices!==false;
+        const allRows=[...rows.map(r=>({name:r.name,qty:r.qty,price:r.price,unit:'',teeth:r.teeth||[]})),...(_showSvcPdf?(b.accommodations||[]).map(ac=>({name:'🏨 '+ac.name+(_implPdf?` — ${(ac.visit??0)===0?'1. Visit':'2. Visit'}`:''),qty:ac.nights||1,price:ac.pricePerNight||0,unit:t.nights.toLowerCase(),teeth:[]})):[]),...(_showSvcPdf?(b.travels||[]).map(tr=>({name:'✈️ '+tr.name,qty:tr.persons||1,price:tr.price||0,unit:'',teeth:[]})):[])];
         return allRows.length?allRows.map((r,i)=>`<tr style="background:${i%2?"#fff8f0":"#fff"}">
           <td style="padding:9px 12px;font-size:12px">${r.name}${r.teeth&&r.teeth.length?`<div style="font-size:9px;color:#888;margin-top:1px">${lang==='tr'?'Diş':'Teeth'}: ${r.teeth.join(', ')}</div>`:''}</td>
           <td style="padding:9px 12px;text-align:center;font-size:12px;color:#555">${r.qty}${r.unit?' '+r.unit:''}</td>
@@ -3524,13 +3537,14 @@ async function openTreatmentBrochure(patientId){
   });
   const extras=(a.planExtras||{})[planKey]||[];
   extras.forEach(e=>{
-    if(e.customName){rows.push({name:e.customName,qty:e.qty||1,price:e.price||0,teeth:[]});}
+    if(e.customName){rows.push({name:e.customName,qty:e.qty||1,price:e.price||0,teeth:(e.teeth||[]).sort((a,b)=>a-b)});}
     else{const tx=allTx.find(t=>t.id===e.txId);if(tx)rows.push({name:tx.name,qty:e.qty||1,price:getEffectivePrice(tx),teeth:[]});}
   });
 
   const txSub=rows.reduce((s,r)=>s+r.qty*r.price,0);
-  const acSub=(b.accommodations||[]).reduce((s,ac)=>s+(ac.nights||1)*(ac.pricePerNight||0),0);
-  const trSub=(b.travels||[]).reduce((s,tr)=>s+(tr.persons||1)*(tr.price||0),0);
+  const _showSvcBro=b.showServices!==false;
+  const acSub=_showSvcBro?(b.accommodations||[]).reduce((s,ac)=>s+(ac.nights||1)*(ac.pricePerNight||0),0):0;
+  const trSub=_showSvcBro?(b.travels||[]).reduce((s,tr)=>s+(tr.persons||1)*(tr.price||0),0):0;
   const sub=txSub+acSub+trSub;
   const discount=b.discount||0;
   const total=sub-discount;
@@ -3542,8 +3556,8 @@ async function openTreatmentBrochure(patientId){
   const _implBro=hasImplantInPlan(p);
   const allRows=[
     ...rows.map(r=>({name:r.name,qty:r.qty,price:r.price,unit:'',teeth:r.teeth||[]})),
-    ...(b.accommodations||[]).map(ac=>({name:'🏨 '+ac.name+(_implBro?` — ${(ac.visit??0)===0?'1. Visit':'2. Visit'}`:''),qty:ac.nights||1,price:ac.pricePerNight||0,unit:t.nights.toLowerCase(),teeth:[]})),
-    ...(b.travels||[]).map(tr=>({name:'✈️ '+tr.name,qty:tr.persons||1,price:tr.price||0,unit:'',teeth:[]}))
+    ...(_showSvcBro?(b.accommodations||[]).map(ac=>({name:'🏨 '+ac.name+(_implBro?` — ${(ac.visit??0)===0?'1. Visit':'2. Visit'}`:''),qty:ac.nights||1,price:ac.pricePerNight||0,unit:t.nights.toLowerCase(),teeth:[]})):[]),
+    ...(_showSvcBro?(b.travels||[]).map(tr=>({name:'✈️ '+tr.name,qty:tr.persons||1,price:tr.price||0,unit:'',teeth:[]})):[])
   ];
   const rowsHTML=allRows.length?allRows.map((r,i)=>`<tr style="background:${i%2?'#fff8f0':'#fff'}">
     <td style="padding:9px 12px;font-size:12px">${r.name}${r.teeth&&r.teeth.length?`<div style="font-size:9px;color:#888;margin-top:1px">${isTR?'Diş':'Teeth'}: ${r.teeth.join(', ')}</div>`:''}</td>
