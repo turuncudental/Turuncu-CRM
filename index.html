@@ -1822,21 +1822,20 @@ function renderPtAssessment(p){
     ${canSeeFinancials()?`<div class="card">
       <div class="section-title">${t.financialSummary}</div>
       <div style="max-width:400px">
-        ${txSub?`<div class="stat-row"><span>${t.treatmentsLine}</span><span>${currSym()}${txSub.toLocaleString()}</span></div>`:""}
+        ${txSub?`<div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:6px;padding:5px 0;border-bottom:1px solid #0d1630;margin-bottom:4px">
+          <span style="font-size:12px;color:#8899b4">${t.treatmentsLine}</span>
+          <span style="display:flex;align-items:center;gap:4px;flex-wrap:wrap;justify-content:flex-end">
+            <span style="font-size:11px;color:${discountAmt>0?'#4a607d':'#dde4ef'};${discountAmt>0?'text-decoration:line-through':''}">${currSym()}${txSub.toLocaleString()}</span>
+            <input type="number" min="0" max="100" step="0.5" id="pc-disc-rate" value="${discountRate||''}" placeholder="%" onchange="updateBookingDiscountRate(+this.value,${txSub})" style="width:44px;background:#131b2a;border:1px solid #2a1a00;border-radius:6px;padding:3px 4px;color:#fbbf24;font-size:11px;text-align:right"/>
+            <span style="font-size:10px;color:#4a607d">%−</span>
+            <input type="number" min="0" id="pc-disc-amt" value="${discountAmt||''}" placeholder="${currSym()}" onchange="updateBookingDiscountAmt(+this.value,${txSub})" style="width:64px;background:#131b2a;border:1px solid #2a1a00;border-radius:6px;padding:3px 4px;color:#fbbf24;font-size:11px;text-align:right"/>
+            ${discountAmt>0?`<span style="font-size:13px;font-weight:700;color:#34d399">${currSym()}${(txSub-discountAmt).toLocaleString()}</span>`:''}
+          </span>
+        </div>`:``}
         ${acSub?`<div class="stat-row"><span>${t.accommodationLine}</span><span>${currSym()}${acSub.toLocaleString()}</span></div>`:""}
         ${trSub?`<div class="stat-row"><span>${t.transferLine}</span><span>${currSym()}${trSub.toLocaleString()}</span></div>`:""}
-        <div class="stat-row"><span>${t.subtotal}</span><span style="font-weight:700">${currSym()}${sub.toLocaleString()}</span></div>
-        <div class="stat-row" style="align-items:center">
-          <span>${t.discount}</span>
-          <span style="display:flex;align-items:center;gap:5px">
-            <input type="number" min="0" max="100" step="0.5" value="${discountRate||''}" placeholder="%" onchange="updateBookingDiscountRate(+this.value,${txSub})" style="width:52px;background:#131b2a;border:1px solid #1a2236;border-radius:6px;padding:3px 5px;color:#fbbf24;font-size:12px;text-align:right"/>
-            <span style="font-size:11px;color:#4a607d">%  veya</span>
-            <input type="number" min="0" value="${discountAmt||''}" placeholder="${currSym()}" onchange="updateBookingDiscountAmt(+this.value,${txSub})" style="width:72px;background:#131b2a;border:1px solid #1a2236;border-radius:6px;padding:3px 5px;color:#fbbf24;font-size:12px;text-align:right"/>
-          </span>
-        </div>
-        ${discountAmt>0?`<div class="stat-row"><span style="font-size:11px;color:#4a607d">${t.discountApplied}</span><span style="color:#fbbf24;font-weight:700">−${currSym()}${discountAmt.toLocaleString()}${discountRate>0?` (%${discountRate})`:"" }</span></div>`:""}
         <div class="stat-row"><span style="font-weight:700;color:#dde4ef">${t.totalCost}</span><span style="font-weight:800;color:#34d399;font-size:15px">${currSym()}${total.toLocaleString()}</span></div>
-        <div class="stat-row"><span>${t.deposit}</span><span><input type="number" min="0" value="${b.deposit||''}" placeholder="0" onchange="updateBookingDeposit(+this.value)" style="width:80px;background:#131b2a;border:1px solid #1a2236;border-radius:6px;padding:3px 6px;color:#dde4ef;font-size:12px;text-align:right"/></span></div>
+        <div class="stat-row"><span>${t.deposit}</span><span><input type="number" min="0" id="pc-deposit" value="${b.deposit||''}" placeholder="0" onchange="updateBookingDeposit(+this.value)" style="width:80px;background:#131b2a;border:1px solid #1a2236;border-radius:6px;padding:3px 6px;color:#dde4ef;font-size:12px;text-align:right"/></span></div>
         <div style="border-top:2px solid #1a2236;margin:6px 0"></div>
         <div style="display:flex;align-items:center;justify-content:flex-end;gap:6px;margin-bottom:6px">
           <button onclick="toggleServices()" style="padding:3px 10px;border-radius:14px;border:1px solid ${b.showServices===false?'#3d5270':'#166534'};background:${b.showServices===false?'#131b2a':'#0a2a1a'};color:${b.showServices===false?'#3d5270':'#34d399'};font-size:10px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif">${b.showServices===false?'🏨 Hizm. Göster':'🏨 Hizm. Gizle'}</button>
@@ -2295,22 +2294,20 @@ function renderPtBooking(p){
     <div class="card">
       <div class="section-title">${t.financialSummary}</div>
       <div style="max-width:380px">
-        ${txSub?`<div class="stat-row"><span>${t.treatmentsLine}</span><span>${currSym()}${txSub.toLocaleString()}</span></div>`:""}
+        ${txSub?`<div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:6px;padding:5px 0;border-bottom:1px solid #0d1630;margin-bottom:4px">
+          <span style="font-size:12px;color:#8899b4">${t.treatmentsLine}</span>
+          <span style="display:flex;align-items:center;gap:4px;flex-wrap:wrap;justify-content:flex-end">
+            <span style="font-size:11px;color:${discountAmt>0?'#4a607d':'#dde4ef'};${discountAmt>0?'text-decoration:line-through':''}">${currSym()}${txSub.toLocaleString()}</span>
+            <input type="number" min="0" max="100" step="0.5" id="pb-disc-rate" value="${discountRate||''}" placeholder="%" onchange="updateBookingDiscountRate(+this.value,${txSub})" style="width:44px;background:#131b2a;border:1px solid #2a1a00;border-radius:6px;padding:3px 4px;color:#fbbf24;font-size:11px;text-align:right"/>
+            <span style="font-size:10px;color:#4a607d">%−</span>
+            <input type="number" min="0" id="pb-disc-amt" value="${discountAmt||''}" placeholder="${currSym()}" onchange="updateBookingDiscountAmt(+this.value,${txSub})" style="width:64px;background:#131b2a;border:1px solid #2a1a00;border-radius:6px;padding:3px 4px;color:#fbbf24;font-size:11px;text-align:right"/>
+            ${discountAmt>0?`<span style="font-size:13px;font-weight:700;color:#34d399">${currSym()}${(txSub-discountAmt).toLocaleString()}</span>`:''}
+          </span>
+        </div>`:``}
         ${acSub?`<div class="stat-row"><span>${t.accommodationLine}</span><span>${currSym()}${acSub.toLocaleString()}</span></div>`:""}
         ${trSub?`<div class="stat-row"><span>${t.transferLine}</span><span>${currSym()}${trSub.toLocaleString()}</span></div>`:""}
-        <div class="stat-row"><span>${t.subtotal}</span><span style="font-weight:700">${currSym()}${sub.toLocaleString()}</span></div>
-        <div class="stat-row" style="align-items:center">
-          <span>${t.discount}</span>
-          <span style="display:flex;align-items:center;gap:6px">
-            <input type="number" min="0" max="100" step="0.5" value="${discountRate||''}" placeholder="%" onchange="updateBookingDiscountRate(+this.value,${txSub})" style="width:54px;background:#131b2a;border:1px solid #1a2236;border-radius:6px;padding:3px 6px;color:#fbbf24;font-size:12px;text-align:right"/>
-            <span style="font-size:11px;color:#4a607d">%</span>
-            <span style="font-size:11px;color:#4a607d">veya</span>
-            <input type="number" min="0" value="${discountAmt||''}" placeholder="${currSym()}" onchange="updateBookingDiscountAmt(+this.value,${txSub})" style="width:72px;background:#131b2a;border:1px solid #1a2236;border-radius:6px;padding:3px 6px;color:#fbbf24;font-size:12px;text-align:right"/>
-          </span>
-        </div>
-        ${discountAmt>0?`<div class="stat-row"><span style="font-size:11px;color:#4a607d">${t.discountApplied}</span><span style="color:#fbbf24;font-weight:700">−${currSym()}${discountAmt.toLocaleString()}${discountRate>0?` (%${discountRate})`:"" }</span></div>`:""}
         <div class="stat-row"><span style="font-weight:700;color:#dde4ef">${t.totalCost}</span><span style="font-weight:800;color:#34d399;font-size:15px">${currSym()}${total.toLocaleString()}</span></div>
-        <div class="stat-row"><span>${t.deposit}</span><span><input type="number" min="0" value="${b.deposit||''}" placeholder="0" onchange="updateBookingDeposit(+this.value)" style="width:80px;background:#131b2a;border:1px solid #1a2236;border-radius:6px;padding:3px 6px;color:#dde4ef;font-size:12px;text-align:right"/></span></div>
+        <div class="stat-row"><span>${t.deposit}</span><span><input type="number" min="0" id="pb-deposit" value="${b.deposit||''}" placeholder="0" onchange="updateBookingDeposit(+this.value)" style="width:80px;background:#131b2a;border:1px solid #1a2236;border-radius:6px;padding:3px 6px;color:#dde4ef;font-size:12px;text-align:right"/></span></div>
         <div style="border-top:2px solid #f97316;margin:8px 0"></div>
         <div style="display:flex;align-items:center;justify-content:flex-end;gap:6px;margin-bottom:6px">
           <button onclick="toggleServices()" style="padding:3px 10px;border-radius:14px;border:1px solid ${b.showServices===false?'#3d5270':'#166534'};background:${b.showServices===false?'#131b2a':'#0a2a1a'};color:${b.showServices===false?'#3d5270':'#34d399'};font-size:10px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif">${b.showServices===false?'🏨 Hizm. Göster':'🏨 Hizm. Gizle'}</button>
