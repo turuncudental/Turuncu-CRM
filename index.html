@@ -708,7 +708,7 @@ let editingNoteId=null;
 let activeCurrency='GBP';
 const CURR_SYM={GBP:'£',EUR:'€',USD:'$'};
 function currSym(){return CURR_SYM[activeCurrency]||'£';}
-function setCurrency(c){activeCurrency=c;render();if(currentPatientId)renderPtBody();}
+function setCurrency(c){activeCurrency=c;if(currentPatientId){const _p=getPatient(currentPatientId);if(_p){ensureBooking(_p);_p.booking.currency=c;persist("customers");}}render();if(currentPatientId)renderPtBody();}
 function getEffectivePrice(item){
   if(!item)return 0;
   if(activeCurrency==='EUR'&&(item.salePriceEUR||0)>0)return item.salePriceEUR;
@@ -1441,6 +1441,7 @@ function setFilterStatus(s){filterStatus=s;render();}
 function openPatient(id){
   currentPatientId=id;currentPtTab="consultation";ptFormDirty=false;
   const _op=getPatient(id);activePlan=_op?.assessment?.activePlan||'treatmentPlan';
+  if(_op?.booking?.currency&&CURR_SYM[_op.booking.currency])activeCurrency=_op.booking.currency;
   const overlay=document.getElementById("patient-overlay");updateUndoBtn();
   overlay.style.display="flex";
   const _db=document.getElementById("btn-delete-patient");if(_db)_db.style.display=isSuperAdmin()?"":"none";
@@ -3080,8 +3081,8 @@ function updateBookingQty(arr,idx,val,field="qty"){
 let _discountRerendering=false;
 function updateBookingDiscount(val){const p=getPatient(currentPatientId);if(!p?.booking)return;p.booking.discount=val||0;p.booking.discountRate=0;_discountRerendering=true;markPtDirty();renderPtBody();setTimeout(()=>{_discountRerendering=false;},150);}
 function updateBookingDeposit(val){if(_discountRerendering)return;const p=getPatient(currentPatientId);if(!p?.booking)return;p.booking.deposit=val||0;markPtDirty();persist("customers");renderPtBody();}
-function updateBookingDiscountRate(rate,sub){const p=getPatient(currentPatientId);if(!p?.booking)return;p.booking.discountRate=rate||0;p.booking.discount=rate>0?Math.round(sub*rate/100):0;if(rate>0)logAction('discount_applied',`${p.name} — %${rate} (${currSym()}${p.booking.discount})`);_discountRerendering=true;markPtDirty();renderPtBody();setTimeout(()=>{_discountRerendering=false;},150);}
-function updateBookingDiscountAmt(amt,sub){const p=getPatient(currentPatientId);if(!p?.booking)return;p.booking.discount=amt||0;p.booking.discountRate=sub>0?+((amt/sub)*100).toFixed(1):0;_discountRerendering=true;markPtDirty();renderPtBody();setTimeout(()=>{_discountRerendering=false;},150);}
+function updateBookingDiscountRate(rate,sub){const p=getPatient(currentPatientId);if(!p?.booking)return;p.booking.discountRate=rate||0;p.booking.discount=rate>0?Math.round(sub*rate/100):0;if(rate>0)logAction('discount_applied',`${p.name} — %${rate} (${currSym()}${p.booking.discount})`);_discountRerendering=true;markPtDirty();persist("customers");renderPtBody();setTimeout(()=>{_discountRerendering=false;},150);}
+function updateBookingDiscountAmt(amt,sub){const p=getPatient(currentPatientId);if(!p?.booking)return;p.booking.discount=amt||0;p.booking.discountRate=sub>0?+((amt/sub)*100).toFixed(1):0;_discountRerendering=true;markPtDirty();persist("customers");renderPtBody();setTimeout(()=>{_discountRerendering=false;},150);}
 
 // ── NOTES
 async function addPatientNote(){
