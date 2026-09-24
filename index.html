@@ -1835,7 +1835,7 @@ function renderPtAssessment(p){
         ${acSub?`<div class="stat-row"><span>${t.accommodationLine}</span><span>${currSym()}${acSub.toLocaleString()}</span></div>`:""}
         ${trSub?`<div class="stat-row"><span>${t.transferLine}</span><span>${currSym()}${trSub.toLocaleString()}</span></div>`:""}
         <div class="stat-row"><span style="font-weight:700;color:#dde4ef">${t.totalCost}</span><span style="font-weight:800;color:#34d399;font-size:15px">${currSym()}${total.toLocaleString()}</span></div>
-        <div class="stat-row"><span>${t.deposit}</span><span><input type="number" min="0" id="pc-deposit" autocomplete="off" value="${b.deposit||''}" placeholder="0" onchange="updateBookingDeposit(+this.value)" style="width:80px;background:#131b2a;border:1px solid #1a2236;border-radius:6px;padding:3px 6px;color:#dde4ef;font-size:12px;text-align:right"/></span></div>
+        <div class="stat-row"><span>${t.deposit}</span><span><input type="number" min="0" id="pc-deposit" autocomplete="off" value="${b.deposit||''}" placeholder="0" oninput="this.dataset.touched='1'" onchange="if(this.dataset.touched)updateBookingDeposit(+this.value)" style="width:80px;background:#131b2a;border:1px solid #1a2236;border-radius:6px;padding:3px 6px;color:#dde4ef;font-size:12px;text-align:right"/></span></div>
         <div style="border-top:2px solid #1a2236;margin:6px 0"></div>
         <div style="display:flex;align-items:center;justify-content:flex-end;gap:6px;margin-bottom:6px">
           <button onclick="toggleServices()" style="padding:3px 10px;border-radius:14px;border:1px solid ${b.showServices===false?'#3d5270':'#166534'};background:${b.showServices===false?'#131b2a':'#0a2a1a'};color:${b.showServices===false?'#3d5270':'#34d399'};font-size:10px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif">${b.showServices===false?'🏨 Hizm. Göster':'🏨 Hizm. Gizle'}</button>
@@ -2307,7 +2307,7 @@ function renderPtBooking(p){
         ${acSub?`<div class="stat-row"><span>${t.accommodationLine}</span><span>${currSym()}${acSub.toLocaleString()}</span></div>`:""}
         ${trSub?`<div class="stat-row"><span>${t.transferLine}</span><span>${currSym()}${trSub.toLocaleString()}</span></div>`:""}
         <div class="stat-row"><span style="font-weight:700;color:#dde4ef">${t.totalCost}</span><span style="font-weight:800;color:#34d399;font-size:15px">${currSym()}${total.toLocaleString()}</span></div>
-        <div class="stat-row"><span>${t.deposit}</span><span><input type="number" min="0" id="pb-deposit" autocomplete="off" value="${b.deposit||''}" placeholder="0" onchange="updateBookingDeposit(+this.value)" style="width:80px;background:#131b2a;border:1px solid #1a2236;border-radius:6px;padding:3px 6px;color:#dde4ef;font-size:12px;text-align:right"/></span></div>
+        <div class="stat-row"><span>${t.deposit}</span><span><input type="number" min="0" id="pb-deposit" autocomplete="off" value="${b.deposit||''}" placeholder="0" oninput="this.dataset.touched='1'" onchange="if(this.dataset.touched)updateBookingDeposit(+this.value)" style="width:80px;background:#131b2a;border:1px solid #1a2236;border-radius:6px;padding:3px 6px;color:#dde4ef;font-size:12px;text-align:right"/></span></div>
         <div style="border-top:2px solid #f97316;margin:8px 0"></div>
         <div style="display:flex;align-items:center;justify-content:flex-end;gap:6px;margin-bottom:6px">
           <button onclick="toggleServices()" style="padding:3px 10px;border-radius:14px;border:1px solid ${b.showServices===false?'#3d5270':'#166534'};background:${b.showServices===false?'#131b2a':'#0a2a1a'};color:${b.showServices===false?'#3d5270':'#34d399'};font-size:10px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif">${b.showServices===false?'🏨 Hizm. Göster':'🏨 Hizm. Gizle'}</button>
@@ -3079,7 +3079,7 @@ function updateBookingQty(arr,idx,val,field="qty"){
 }
 let _discountRerendering=false;
 function updateBookingDiscount(val){const p=getPatient(currentPatientId);if(!p?.booking)return;p.booking.discount=val||0;p.booking.discountRate=0;_discountRerendering=true;markPtDirty();renderPtBody();setTimeout(()=>{_discountRerendering=false;},150);}
-function updateBookingDeposit(val){if(_discountRerendering)return;const p=getPatient(currentPatientId);if(!p?.booking)return;p.booking.deposit=val||0;markPtDirty();renderPtBody();}
+function updateBookingDeposit(val){if(_discountRerendering)return;const p=getPatient(currentPatientId);if(!p?.booking)return;p.booking.deposit=val||0;markPtDirty();persist("customers");renderPtBody();}
 function updateBookingDiscountRate(rate,sub){const p=getPatient(currentPatientId);if(!p?.booking)return;p.booking.discountRate=rate||0;p.booking.discount=rate>0?Math.round(sub*rate/100):0;if(rate>0)logAction('discount_applied',`${p.name} — %${rate} (${currSym()}${p.booking.discount})`);_discountRerendering=true;markPtDirty();renderPtBody();setTimeout(()=>{_discountRerendering=false;},150);}
 function updateBookingDiscountAmt(amt,sub){const p=getPatient(currentPatientId);if(!p?.booking)return;p.booking.discount=amt||0;p.booking.discountRate=sub>0?+((amt/sub)*100).toFixed(1):0;_discountRerendering=true;markPtDirty();renderPtBody();setTimeout(()=>{_discountRerendering=false;},150);}
 
