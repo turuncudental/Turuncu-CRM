@@ -2829,7 +2829,7 @@ async function saveCompany(editId){
   } else {
     try{
       const r=await fetch(`${SUPA_URL}/rest/v1/crm_companies`,{method:"POST",headers:{...H,"Prefer":"return=representation"},body:JSON.stringify({name})});
-      if(!r.ok){toast(t.addFailed||"Hata","err");return;}
+      if(!r.ok){const _err=await r.json().catch(()=>({}));toast(`HTTP ${r.status}: ${_err?.message||_err?.hint||JSON.stringify(_err)}`,"err");return;}
       const added=await r.json();const newC=Array.isArray(added)?added[0]:added;
       state.companies.push(newC);logAction('company_add',name);toast("✅ "+(t.companyAdded||"Firma eklendi"));
     }catch{toast(t.errorMsg||"Hata","err");return;}
