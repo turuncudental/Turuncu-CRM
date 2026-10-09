@@ -1308,7 +1308,7 @@ function render(){
 function renderTopbarActions(){
   const el=document.getElementById("topbar-actions");let html="";
   if(canEdit()&&currentTab==="patients")html=`<div style="display:flex;gap:6px;align-items:center"><button onclick="patientViewMode=patientViewMode==='grid'?'list':'grid';render()" style="padding:6px 10px;border-radius:8px;border:1px solid #1a2236;background:#1a2236;color:#dde4ef;font-size:15px;cursor:pointer;line-height:1" title="${patientViewMode==='grid'?t.listView:t.gridView}">${patientViewMode==='grid'?'≡':'⊞'}</button><button class="btn" onclick="openPatientModal(0)">${t.addPatient}</button></div>`;
-  else if(canEdit()&&currentTab==="events")html=`<button class="btn" onclick="openEventModal(0)">${t.addEvent}</button>`;
+  else if(canEdit()&&currentTab==="events")html=currentEventDetailId?`<button class="btn" onclick="openPatientModal(0,${currentEventDetailId})">${t.addPatient}</button>`:`<button class="btn" onclick="openEventModal(0)">${t.addEvent}</button>`;
   else if(canEdit()&&currentTab==="appointments")html=`<button class="btn" onclick="openAppointmentModal()">${t.addAppointment}</button>`;
   else if(canEdit()&&currentTab==="treatments"){
     if(catalogTab==="treatment")html=`<button class="btn" onclick="openTreatmentModal(0,'treatment')">${t.addTreatment}</button>`;
@@ -3015,9 +3015,10 @@ function makeModal(title,body,onSave,saveLabel){
 }
 
 // ── PATIENT MODAL
-function openPatientModal(editId){
+function openPatientModal(editId,presetEventId=null){
   const p=editId?getPatient(editId):null;
-  const evtOpts=state.events.map(e=>`<option value="${e.id}"${p?.eventId==e.id?" selected":""}>${e.name}</option>`).join("");
+  const preEid=p?.eventId||presetEventId;
+  const evtOpts=state.events.filter(e=>!e.deleted).map(e=>`<option value="${e.id}"${preEid==e.id?" selected":""}>${e.name}</option>`).join("");
   const statusOpts=["walkin","consultation","assessed","pricing","booked","cancelled"].map(s=>`<option value="${s}"${(p?.status||"walkin")===s?" selected":""}>${statusLabel(s)}</option>`).join("");
   const body=`
     <div class="field-row"><div class="field"><label>${t.fname}</label><input id="pm-name" value="${p?.name||""}"/></div><div class="field"><label>${t.fphone}</label><input id="pm-phone" value="${p?.phone||""}"/></div></div>
