@@ -1817,8 +1817,8 @@ function renderPtAssessment(p){
         <tbody>${(b.travels||[]).map((tr,i)=>`<tr>
           <td style="font-weight:600">✈️ ${tr.name}</td>
           <td><input type="number" min="1" value="${tr.persons||1}" onchange="updateBookingQty('travels',${i},+this.value,'persons')" style="${inStyle}"/></td>
-          <td>${currSym()}${(tr.price||0).toLocaleString()}</td>
-          <td style="font-weight:700;color:#f97316">${currSym()}${((tr.persons||1)*(tr.price||0)).toLocaleString()}</td>
+          <td>${currSym()}${(getEffectivePrice(getTreatment(tr.providerId))||tr.price||0).toLocaleString()}</td>
+          <td style="font-weight:700;color:#f97316">${currSym()}${((tr.persons||1)*(getEffectivePrice(getTreatment(tr.providerId))||tr.price||0)).toLocaleString()}</td>
           <td><button class="sm-btn danger" onclick="removeBookingItem('travels',${i})">✕</button></td>
         </tr>`).join("")}</tbody>
       </table>`:""}
@@ -2213,8 +2213,8 @@ function buildAccomSections(p,b,visitCount,activeAc,inStyle){
         <tbody>${vEntries.map(({a,i})=>`<tr>
           <td style="font-weight:600">🏨 ${a.name}</td>
           <td><input type="number" min="1" value="${a.nights||1}" onchange="updateBookingQty('accommodations',${i},+this.value,'nights')" style="${inStyle}"/></td>
-          <td>${currSym()}${(a.pricePerNight||0).toLocaleString()}</td>
-          <td style="font-weight:700;color:${viColor}">${currSym()}${((a.nights||1)*(a.pricePerNight||0)).toLocaleString()}</td>
+          <td>${currSym()}${(getEffectivePrice(getTreatment(a.providerId))||a.pricePerNight||0).toLocaleString()}</td>
+          <td style="font-weight:700;color:${viColor}">${currSym()}${((a.nights||1)*(getEffectivePrice(getTreatment(a.providerId))||a.pricePerNight||0)).toLocaleString()}</td>
           <td><button class="sm-btn danger" onclick="removeBookingItem('accommodations',${i})">✕</button></td>
         </tr>`).join("")}</tbody>
       </table>`:''}
@@ -2229,8 +2229,8 @@ function buildAccomSections(p,b,visitCount,activeAc,inStyle){
 function renderPtBooking(p){
   const b=p.booking||{treatments:[],accommodations:[],travels:[],discount:0,deposit:0,notes:""};
   const txSub=(b.treatments||[]).reduce((s,tr)=>s+(tr.qty||1)*(tr.price||0),0);
-  const acSub=(b.accommodations||[]).reduce((s,a)=>s+(a.nights||1)*(a.pricePerNight||0),0);
-  const trSub=(b.travels||[]).reduce((s,tr)=>s+(tr.persons||1)*(tr.price||0),0);
+  const acSub=(b.accommodations||[]).reduce((s,a)=>s+(a.nights||1)*(getEffectivePrice(getTreatment(a.providerId))||a.pricePerNight||0),0);
+  const trSub=(b.travels||[]).reduce((s,tr)=>s+(tr.persons||1)*(getEffectivePrice(getTreatment(tr.providerId))||tr.price||0),0);
   const sub=txSub+acSub+trSub;
   const discountAmt=b.discount||0;const discountRate=b.discountRate||0;
   const total=sub-discountAmt;
@@ -2288,8 +2288,8 @@ function renderPtBooking(p){
         <tbody>${(b.travels||[]).map((tr,i)=>`<tr>
           <td style="font-weight:600">✈️ ${tr.name}</td>
           <td><input type="number" min="1" value="${tr.persons||1}" onchange="updateBookingQty('travels',${i},+this.value,'persons')" style="${inStyle}"/></td>
-          <td>${currSym()}${(tr.price||0).toLocaleString()}</td>
-          <td style="font-weight:700;color:#f97316">${currSym()}${((tr.persons||1)*(tr.price||0)).toLocaleString()}</td>
+          <td>${currSym()}${(getEffectivePrice(getTreatment(tr.providerId))||tr.price||0).toLocaleString()}</td>
+          <td style="font-weight:700;color:#f97316">${currSym()}${((tr.persons||1)*(getEffectivePrice(getTreatment(tr.providerId))||tr.price||0)).toLocaleString()}</td>
           <td><button class="sm-btn danger" onclick="removeBookingItem('travels',${i})">✕</button></td>
         </tr>`).join("")}</tbody>
       </table>`:""}
@@ -3177,14 +3177,22 @@ function openTreatmentModal(editId,forcedType){
       <div class="field"><label>${t.aname}</label><input id="trm-name" value="${tr?.name||""}" placeholder="${t.phAccomName||'Hilton, Marriott...'}"/></div>
       <div class="field"><label>${t.tdesc}</label><input id="trm-desc" value="${tr?.description||""}" placeholder="${t.phAccomDesc||'5 yıldızlı otel, özel suit...'}"/></div>
       <div class="field"><label>${t.acity} / ${t.regionLabel||'Region'}</label><input id="trm-cat" value="${tr?.category||""}" placeholder="${t.phAccomCity||'İstanbul, Antalya...'}"/></div>
-      <div class="field"><label>${t.apricePerNight}</label><input type="number" id="trm-salePrice" value="${tr?.salePrice||0}"/></div>
+      <div class="field-row">
+        <div class="field"><label>${t.apricePerNight} (£ GBP)</label><input type="number" id="trm-salePrice" value="${tr?.salePrice||0}"/></div>
+        <div class="field"><label>${t.apricePerNight} (€ EUR)</label><input type="number" id="trm-salePriceEUR" value="${tr?.salePriceEUR||0}"/></div>
+        <div class="field"><label>${t.apricePerNight} ($ USD)</label><input type="number" id="trm-salePriceUSD" value="${tr?.salePriceUSD||0}"/></div>
+      </div>
       <input type="hidden" id="trm-clinicCost" value="0"/>`;
   } else {
     body=`
       <div class="field"><label>${t.trvName}</label><input id="trm-name" value="${tr?.name||""}" placeholder="${t.phTravelName||'Firma adı...'}"/></div>
       <div class="field"><label>${t.trvRoute}</label><input id="trm-desc" value="${tr?.description||""}" placeholder="${t.phTravelDesc||'Havalimanı transferi, VIP servis...'}"/></div>
       <div class="field"><label>${t.trvType}</label><input id="trm-cat" value="${tr?.category||""}" placeholder="${t.phTravelType||'Transfer, VIP Transfer, Kiralık Araç...'}"/></div>
-      <div class="field"><label>${t.trvPrice}</label><input type="number" id="trm-salePrice" value="${tr?.salePrice||0}"/></div>
+      <div class="field-row">
+        <div class="field"><label>${t.trvPrice} (£ GBP)</label><input type="number" id="trm-salePrice" value="${tr?.salePrice||0}"/></div>
+        <div class="field"><label>${t.trvPrice} (€ EUR)</label><input type="number" id="trm-salePriceEUR" value="${tr?.salePriceEUR||0}"/></div>
+        <div class="field"><label>${t.trvPrice} ($ USD)</label><input type="number" id="trm-salePriceUSD" value="${tr?.salePriceUSD||0}"/></div>
+      </div>
       <input type="hidden" id="trm-clinicCost" value="0"/>`;
   }
   body+=`<div style="display:flex;align-items:center;gap:8px;margin-top:8px"><input type="checkbox" id="trm-active" ${tr?.active!==false?"checked":""} style="accent-color:#f97316;width:15px;height:15px"/><label style="font-size:13px;cursor:pointer">${t.tactive}</label></div>`;
@@ -3364,8 +3372,8 @@ async function downloadQuotePDF(patientId){
 
   const txSub=rows.reduce((s,r)=>s+r.qty*r.price,0);
   const _showSvc=b.showServices!==false;
-  const acSub=_showSvc?(b.accommodations||[]).reduce((s,ac)=>s+(ac.nights||1)*(ac.pricePerNight||0),0):0;
-  const trSub=_showSvc?(b.travels||[]).reduce((s,tr)=>s+(tr.persons||1)*(tr.price||0),0):0;
+  const acSub=_showSvc?(b.accommodations||[]).reduce((s,ac)=>s+(ac.nights||1)*(getEffectivePrice(getTreatment(ac.providerId))||ac.pricePerNight||0),0):0;
+  const trSub=_showSvc?(b.travels||[]).reduce((s,tr)=>s+(tr.persons||1)*(getEffectivePrice(getTreatment(tr.providerId))||tr.price||0),0):0;
   const sub=txSub+acSub+trSub;
   const total=sub-(b.discount||0);const balance=total-(b.deposit||0);
   const dateStr=new Date().toLocaleDateString("tr-TR");
@@ -3514,8 +3522,8 @@ async function openTreatmentBrochure(patientId){
 
   const txSub=rows.reduce((s,r)=>s+r.qty*r.price,0);
   const _showSvcBro=b.showServices!==false;
-  const acSub=_showSvcBro?(b.accommodations||[]).reduce((s,ac)=>s+(ac.nights||1)*(ac.pricePerNight||0),0):0;
-  const trSub=_showSvcBro?(b.travels||[]).reduce((s,tr)=>s+(tr.persons||1)*(tr.price||0),0):0;
+  const acSub=_showSvcBro?(b.accommodations||[]).reduce((s,ac)=>s+(ac.nights||1)*(getEffectivePrice(getTreatment(ac.providerId))||ac.pricePerNight||0),0):0;
+  const trSub=_showSvcBro?(b.travels||[]).reduce((s,tr)=>s+(tr.persons||1)*(getEffectivePrice(getTreatment(tr.providerId))||tr.price||0),0):0;
   const sub=txSub+acSub+trSub;
   const discount=b.discount||0;
   const total=sub-discount;
