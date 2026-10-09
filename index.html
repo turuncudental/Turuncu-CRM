@@ -2812,64 +2812,26 @@ function renderCompanies(){
 }
 function openCompanyModal(editId){
   const c=editId?state.companies.find(c=>c.id===editId):null;
-  const s=c?.settings||{};
-  const body=`
-<div class="field"><label>${t.fcompanyName||"Firma Adı"}</label><input id="cm-name" value="${c?.name||""}"/></div>
-<div class="field"><label>Doktor Adı</label><input id="co-doctor-name" value="${s.doctorName||''}"/></div>
-<div class="field"><label>Doktor Ünvanı</label><input id="co-doctor-title" placeholder="Diş Hekimi" value="${s.doctorTitle||''}"/></div>
-<div class="field"><label>Doktor Biyografi</label><textarea id="co-doctor-bio" rows="3">${s.doctorBio||''}</textarea></div>
-<div class="field"><label>Doktor Fotoğrafı</label><input type="file" id="co-doctor-photo-input" accept="image/*" onchange="handleCoPhoto(this,'co-doctor-photo-preview','_coDoctorPhotoB64')"/><br><img id="co-doctor-photo-preview" src="${s.doctorPhoto||''}" style="max-width:120px;max-height:80px;margin-top:6px;border-radius:6px;display:${s.doctorPhoto?'block':'none'}"/></div>
-<div class="field"><label>Klinik Fotoğrafı</label><input type="file" id="co-clinic-photo-input" accept="image/*" onchange="handleCoPhoto(this,'co-clinic-photo-preview','_coClinicPhotoB64')"/><br><img id="co-clinic-photo-preview" src="${s.clinicPhoto||''}" style="max-width:120px;max-height:80px;margin-top:6px;border-radius:6px;display:${s.clinicPhoto?'block':'none'}"/></div>
-<div class="field"><label>Klinik İstatistikleri — Hasta Sayısı</label><input id="co-stat-patients" placeholder="2500+" value="${s.statPatients||''}"/></div>
-<div class="field"><label>Yıl</label><input id="co-stat-years" placeholder="15+" value="${s.statYears||''}"/></div>
-<div class="field"><label>Memnuniyet</label><input id="co-stat-satisfaction" placeholder="99.7%" value="${s.statSatisfaction||''}"/></div>
-<div class="field"><label>Website</label><input id="co-website" value="${s.website||''}"/></div>
-<div class="field"><label>Instagram</label><input id="co-instagram" value="${s.instagram||''}"/></div>`;
-  window._coDoctorPhotoB64=null;window._coClinicPhotoB64=null;
+  const body=`<div class="field"><label>${t.fcompanyName||"Firma Adı"}</label><input id="cm-name" value="${c?.name||""}"/></div>`;
   makeModal(editId?t.editCompany||"Firma Düzenle":t.newCompany||"Yeni Firma",body,`saveCompany(${editId||0})`);
-}
-function handleCoPhoto(input,previewId,globalVar){
-  const file=input.files[0];if(!file)return;
-  const reader=new FileReader();
-  reader.onload=e=>{
-    window[globalVar]=e.target.result;
-    const prev=document.getElementById(previewId);
-    if(prev){prev.src=e.target.result;prev.style.display='block';}
-  };
-  reader.readAsDataURL(file);
 }
 async function saveCompany(editId){
   const name=document.getElementById("cm-name")?.value?.trim();if(!name)return;
-  const existC=editId?state.companies.find(c=>c.id===editId):null;
-  const oldSettings=existC?.settings||{};
-  const newSettings={
-    doctorName:document.getElementById('co-doctor-name')?.value||oldSettings.doctorName||'',
-    doctorTitle:document.getElementById('co-doctor-title')?.value||oldSettings.doctorTitle||'',
-    doctorBio:document.getElementById('co-doctor-bio')?.value||oldSettings.doctorBio||'',
-    doctorPhoto:window._coDoctorPhotoB64||oldSettings.doctorPhoto||'',
-    clinicPhoto:window._coClinicPhotoB64||oldSettings.clinicPhoto||'',
-    statPatients:document.getElementById('co-stat-patients')?.value||oldSettings.statPatients||'',
-    statYears:document.getElementById('co-stat-years')?.value||oldSettings.statYears||'',
-    statSatisfaction:document.getElementById('co-stat-satisfaction')?.value||oldSettings.statSatisfaction||'',
-    website:document.getElementById('co-website')?.value||oldSettings.website||'',
-    instagram:document.getElementById('co-instagram')?.value||oldSettings.instagram||''
-  };
-  const _hasSettingsCol=state.companies.length===0||'settings' in (state.companies[0]||{});
   if(editId){
     try{
-      let r=await fetch(`${SUPA_URL}/rest/v1/crm_companies?id=eq.${editId}`,{method:"PATCH",headers:{...H,"Prefer":"return=minimal"},body:JSON.stringify(_hasSettingsCol?{name,settings:newSettings}:{name})});
-      if(!r.ok){r=await fetch(`${SUPA_URL}/rest/v1/crm_companies?id=eq.${editId}`,{method:"PATCH",headers:{...H,"Prefer":"return=minimal"},body:JSON.stringify({name})});if(!r.ok){toast(t.updateFailed||"Hata","err");return;}}
-      state.companies=state.companies.map(c=>c.id===editId?{...c,name,settings:newSettings}:c);
+      const r=await fetch(`${SUPA_URL}/rest/v1/crm_companies?id=eq.${editId}`,{method:"PATCH",headers:{...H,"Prefer":"return=minimal"},body:JSON.stringify({name})});
+      if(!r.ok){toast(t.updateFailed||"Hata","err");return;}
+      state.companies=state.companies.map(c=>c.id===editId?{...c,name}:c);
       await fetch(`${SUPA_URL}/rest/v1/crm_users?company_id=eq.${editId}`,{method:"PATCH",headers:{...H,"Prefer":"return=minimal"},body:JSON.stringify({company_name:name})});
       state.users=state.users.map(u=>u.company_id===editId?{...u,company_name:name}:u);
       logAction('company_edit',name);toast("✅ "+(t.companyUpdated||"Firma güncellendi"));
     }catch{toast(t.errorMsg||"Hata","err");return;}
   } else {
     try{
-      let r=await fetch(`${SUPA_URL}/rest/v1/crm_companies`,{method:"POST",headers:{...H,"Prefer":"return=representation"},body:JSON.stringify(_hasSettingsCol?{name,settings:newSettings}:{name})});
-      if(!r.ok){r=await fetch(`${SUPA_URL}/rest/v1/crm_companies`,{method:"POST",headers:{...H,"Prefer":"return=representation"},body:JSON.stringify({name})});if(!r.ok){toast(t.addFailed||"Hata","err");return;}}
+      const r=await fetch(`${SUPA_URL}/rest/v1/crm_companies`,{method:"POST",headers:{...H,"Prefer":"return=representation"},body:JSON.stringify({name})});
+      if(!r.ok){toast(t.addFailed||"Hata","err");return;}
       const added=await r.json();const newC=Array.isArray(added)?added[0]:added;
-      newC.settings=newSettings;state.companies.push(newC);logAction('company_add',name);toast("✅ "+(t.companyAdded||"Firma eklendi"));
+      state.companies.push(newC);logAction('company_add',name);toast("✅ "+(t.companyAdded||"Firma eklendi"));
     }catch{toast(t.errorMsg||"Hata","err");return;}
   }
   closeModal();render();loadCompanyStats().then(()=>render());
