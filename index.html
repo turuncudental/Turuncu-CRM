@@ -573,6 +573,7 @@ tr:{
   addVisit:"+ Ziyaret Ekle",removeVisit:"× Visit Kaldır",facility:"Tesis",
   companiesLabel:"firma",patientsLabel:"hasta",eventsLabel:"etkinlik",usersLabel:"kullanıcı",
   openPanel:"Paneli aç",moreResults:"daha",recordsLabel:"kayıt",brochureBtn:"Bröşür",
+  showServices:"🏨 Hizm. Göster",hideServices:"🏨 Hizm. Gizle",showCard:"💳 Kart Göster",hideCard:"💳 Kart Gizle",
   implant2VisitWarningFull:"⚠️ 2. Visit Eklenmedi!\n\nBu hasta implant tedavisi (All on 4 / All on 6 veya implant) planlı.\nBu hastalar kliniğe 2 kez gelmek zorundadır.\n\n2. visit için henüz konaklama eklenmemiş.\n\nYine de teklif oluşturmak istiyor musunuz?",
 },
 en:{
@@ -697,6 +698,7 @@ en:{
   addVisit:"+ Add Visit",removeVisit:"× Remove Visit",facility:"Facility",
   companiesLabel:"companies",patientsLabel:"patients",eventsLabel:"events",usersLabel:"users",
   openPanel:"Open panel",moreResults:"more",recordsLabel:"records",brochureBtn:"Brochure",
+  showServices:"🏨 Show Svc.",hideServices:"🏨 Hide Svc.",showCard:"💳 Show Card",hideCard:"💳 Hide Card",
   implant2VisitWarningFull:"⚠️ 2nd Visit Not Added!\n\nThis patient has an implant treatment (All on 4 / All on 6 or implant) planned.\nThese patients must visit the clinic twice.\n\nNo accommodation has been added for the 2nd visit.\n\nGenerate quote anyway?",
 }};
 
@@ -1854,8 +1856,8 @@ function renderPtAssessment(p){
         <div class="stat-row"><span>${t.deposit}</span><span><input type="number" min="0" id="pc-deposit" autocomplete="off" value="${b.deposit||''}" placeholder="0" oninput="this.dataset.touched='1'" onchange="if(this.dataset.touched)updateBookingDeposit(+this.value)" style="width:80px;background:#131b2a;border:1px solid #1a2236;border-radius:6px;padding:3px 6px;color:#dde4ef;font-size:12px;text-align:right"/></span></div>
         <div style="border-top:2px solid #1a2236;margin:6px 0"></div>
         <div style="display:flex;align-items:center;justify-content:flex-end;gap:6px;margin-bottom:6px">
-          <button onclick="toggleServices()" style="padding:3px 10px;border-radius:14px;border:1px solid ${b.showServices===false?'#3d5270':'#166534'};background:${b.showServices===false?'#131b2a':'#0a2a1a'};color:${b.showServices===false?'#3d5270':'#34d399'};font-size:10px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif">${b.showServices===false?'🏨 Hizm. Göster':'🏨 Hizm. Gizle'}</button>
-          <button onclick="toggleCardPayment()" style="padding:3px 10px;border-radius:14px;border:1px solid ${b.showCard===false?'#3d5270':'#1e3a5f'};background:${b.showCard===false?'#131b2a':'#050f1e'};color:${b.showCard===false?'#3d5270':'#60a5fa'};font-size:10px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif">${b.showCard===false?'💳 Kart Göster':'💳 Kart Gizle'}</button>
+          <button onclick="toggleServices()" style="padding:3px 10px;border-radius:14px;border:1px solid ${b.showServices===false?'#3d5270':'#166534'};background:${b.showServices===false?'#131b2a':'#0a2a1a'};color:${b.showServices===false?'#3d5270':'#34d399'};font-size:10px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif">${b.showServices===false?t.showServices:t.hideServices}</button>
+          <button onclick="toggleCardPayment()" style="padding:3px 10px;border-radius:14px;border:1px solid ${b.showCard===false?'#3d5270':'#1e3a5f'};background:${b.showCard===false?'#131b2a':'#050f1e'};color:${b.showCard===false?'#3d5270':'#60a5fa'};font-size:10px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif">${b.showCard===false?t.showCard:t.hideCard}</button>
         </div>
         <div style="display:grid;grid-template-columns:${b.showCard===false?'1fr':'1fr 1fr'};gap:8px;margin:0 0 8px">
           <div style="background:#1a0d00;border:2px solid #f97316;border-radius:10px;padding:12px;text-align:center">
@@ -2326,8 +2328,8 @@ function renderPtBooking(p){
         <div class="stat-row"><span>${t.deposit}</span><span><input type="number" min="0" id="pb-deposit" autocomplete="off" value="${b.deposit||''}" placeholder="0" oninput="this.dataset.touched='1'" onchange="if(this.dataset.touched)updateBookingDeposit(+this.value)" style="width:80px;background:#131b2a;border:1px solid #1a2236;border-radius:6px;padding:3px 6px;color:#dde4ef;font-size:12px;text-align:right"/></span></div>
         <div style="border-top:2px solid #f97316;margin:8px 0"></div>
         <div style="display:flex;align-items:center;justify-content:flex-end;gap:6px;margin-bottom:6px">
-          <button onclick="toggleServices()" style="padding:3px 10px;border-radius:14px;border:1px solid ${b.showServices===false?'#3d5270':'#166534'};background:${b.showServices===false?'#131b2a':'#0a2a1a'};color:${b.showServices===false?'#3d5270':'#34d399'};font-size:10px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif">${b.showServices===false?'🏨 Hizm. Göster':'🏨 Hizm. Gizle'}</button>
-          <button onclick="toggleCardPayment()" style="padding:3px 10px;border-radius:14px;border:1px solid ${b.showCard===false?'#3d5270':'#1e3a5f'};background:${b.showCard===false?'#131b2a':'#050f1e'};color:${b.showCard===false?'#3d5270':'#60a5fa'};font-size:10px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif">${b.showCard===false?'💳 Kart Göster':'💳 Kart Gizle'}</button>
+          <button onclick="toggleServices()" style="padding:3px 10px;border-radius:14px;border:1px solid ${b.showServices===false?'#3d5270':'#166534'};background:${b.showServices===false?'#131b2a':'#0a2a1a'};color:${b.showServices===false?'#3d5270':'#34d399'};font-size:10px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif">${b.showServices===false?t.showServices:t.hideServices}</button>
+          <button onclick="toggleCardPayment()" style="padding:3px 10px;border-radius:14px;border:1px solid ${b.showCard===false?'#3d5270':'#1e3a5f'};background:${b.showCard===false?'#131b2a':'#050f1e'};color:${b.showCard===false?'#3d5270':'#60a5fa'};font-size:10px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif">${b.showCard===false?t.showCard:t.hideCard}</button>
         </div>
         <div style="display:grid;grid-template-columns:${b.showCard===false?'1fr':'1fr 1fr'};gap:8px;margin:0 0 8px">
           <div style="background:#1a0d00;border:2px solid #f97316;border-radius:10px;padding:12px;text-align:center">
