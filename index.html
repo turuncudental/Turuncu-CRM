@@ -951,7 +951,7 @@ async function loadAll(){
   // Tüm Firmalar modunda (activeCompanyId=null) tüm şirketlerin verisini birleştir
   const mergeRows=(rows,seed)=>{
     if(!Array.isArray(rows)||!rows.length)return seed||[];
-    if(activeCompanyId===null&&rows.length>1)return rows.flatMap(r=>Array.isArray(r.data)?r.data:[]);
+    if(activeCompanyId===null&&rows.length>1)return rows.flatMap(r=>Array.isArray(r.data)?r.data.map(p=>({...p,_cid:r.id})):[]);
     return Array.isArray(rows[0]?.data)?rows[0].data:(seed||[]);
   };
   state.patients=mergeRows(p,activeCompanyId===1?SEED_PATIENTS:[]);
@@ -1345,9 +1345,10 @@ function renderDashboard(){
     <div class="card">
       <div class="section-title">${t.recentPatients}</div>
       <table class="data-table" style="width:100%">
-        <thead><tr><th>${t.fname}</th><th>${t.fcountry}</th><th>${t.fstatus}</th><th>${t.eventSingle}</th><th>${t.edate}</th><th></th></tr></thead>
+        <thead><tr><th>${t.fname}</th>${allCompaniesMode?`<th style="color:#60a5fa">${t.navCompanies||'Firma'}</th>`:''}<th>${t.fcountry}</th><th>${t.fstatus}</th><th>${t.eventSingle}</th><th>${t.edate}</th><th></th></tr></thead>
         <tbody>${recent.map(p=>`<tr>
           <td style="font-weight:600">${p.name}</td>
+          ${allCompaniesMode?`<td style="font-size:11px;font-weight:700;color:#60a5fa">${state.companies.find(c=>c.id===p._cid)?.name||'—'}</td>`:''}
           <td>${flag(p.country)} ${p.country||""}</td>
           <td>${statusBadge(p.status)}</td>
           <td style="font-size:12px;color:#4a607d">${getEvent(p.eventId)?.name||"—"}</td>
