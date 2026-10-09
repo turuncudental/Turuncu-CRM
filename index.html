@@ -1159,6 +1159,11 @@ async function showApp(){
   document.getElementById("user-role").textContent=roleLabel(currentUser.role);
   document.getElementById("user-role").style.color=color;
   await loadAll();
+  // Her girişte otomatik yedekleme al
+  if(activeCompanyId){
+    takeSnapshot('customers',state.patients);
+    takeSnapshot('deals',state.events);
+  }
   const _bb2=document.getElementById("btn-back");if(_bb2)_bb2.textContent=t.backBtn;
   const _sb2=document.getElementById("btn-save-patient");if(_sb2)_sb2.textContent=t.saveBtn;
   const _lc2=document.getElementById("logo-sub-crm");if(_lc2)_lc2.textContent=t.logoCRM;
