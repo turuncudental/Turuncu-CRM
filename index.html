@@ -1389,8 +1389,8 @@ function renderPatients(){
     const matchSearch=matches([p.name,p.email,p.phone,p.country,p.nationality]);
     return matchStatus&&matchSearch;
   });
-  const counts={all:state.patients.length};
-  ["walkin","consultation","assessed","pricing","booked","cancelled"].forEach(s=>counts[s]=state.patients.filter(p=>p.status===s).length);
+  const counts={all:state.patients.filter(p=>!p.deleted).length};
+  ["walkin","consultation","assessed","pricing","booked","cancelled"].forEach(s=>counts[s]=state.patients.filter(p=>!p.deleted&&p.status===s).length);
 
   if(!filtered.length)return`<div>
     <div class="status-tabs">${statuses.map(s=>`<button class="status-tab${filterStatus===s?" active":""}" onclick="setFilterStatus('${s}')">${s==="all"?t.statusAll:statusLabel(s)} <span style="font-size:10px;opacity:.7">${counts[s]}</span></button>`).join("")}</div>
