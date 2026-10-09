@@ -1204,6 +1204,7 @@ async function undoLastAction(){
 // ── LANG
 function setLang(l){
   lang=l;t=T[l];localStorage.setItem('crm_lang',l);
+  document.documentElement.lang=l==='en'?'en':'tr';
   document.getElementById("lang-tr").className="lang-btn"+(l==="tr"?" active":"");
   document.getElementById("lang-en").className="lang-btn"+(l==="en"?" active":"");
   document.querySelectorAll(".nav-lbl").forEach(el=>el.textContent=t[el.dataset.key]||el.dataset.key);
