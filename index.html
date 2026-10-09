@@ -2854,16 +2854,23 @@ async function saveCompany(editId){
     website:document.getElementById('co-website')?.value||oldSettings.website||'',
     instagram:document.getElementById('co-instagram')?.value||oldSettings.instagram||''
   };
+  const _hasSettingsCol=state.companies.length===0||'settings' in (state.companies[0]||{});
   if(editId){
-    try{const r=await fetch(`${SUPA_URL}/rest/v1/crm_companies?id=eq.${editId}`,{method:"PATCH",headers:{...H,"Prefer":"return=minimal"},body:JSON.stringify({name,settings:newSettings})});if(!r.ok){toast(t.updateFailed||"Hata","err");return;}
-    state.companies=state.companies.map(c=>c.id===editId?{...c,name,settings:newSettings}:c);
-    await fetch(`${SUPA_URL}/rest/v1/crm_users?company_id=eq.${editId}`,{method:"PATCH",headers:{...H,"Prefer":"return=minimal"},body:JSON.stringify({company_name:name})});
-    state.users=state.users.map(u=>u.company_id===editId?{...u,company_name:name}:u);
-    logAction('company_edit',name);toast("✅ "+(t.companyUpdated||"Firma güncellendi"));}catch{toast(t.errorMsg||"Hata","err");return;}
+    try{
+      let r=await fetch(`${SUPA_URL}/rest/v1/crm_companies?id=eq.${editId}`,{method:"PATCH",headers:{...H,"Prefer":"return=minimal"},body:JSON.stringify(_hasSettingsCol?{name,settings:newSettings}:{name})});
+      if(!r.ok){r=await fetch(`${SUPA_URL}/rest/v1/crm_companies?id=eq.${editId}`,{method:"PATCH",headers:{...H,"Prefer":"return=minimal"},body:JSON.stringify({name})});if(!r.ok){toast(t.updateFailed||"Hata","err");return;}}
+      state.companies=state.companies.map(c=>c.id===editId?{...c,name,settings:newSettings}:c);
+      await fetch(`${SUPA_URL}/rest/v1/crm_users?company_id=eq.${editId}`,{method:"PATCH",headers:{...H,"Prefer":"return=minimal"},body:JSON.stringify({company_name:name})});
+      state.users=state.users.map(u=>u.company_id===editId?{...u,company_name:name}:u);
+      logAction('company_edit',name);toast("✅ "+(t.companyUpdated||"Firma güncellendi"));
+    }catch{toast(t.errorMsg||"Hata","err");return;}
   } else {
-    try{const r=await fetch(`${SUPA_URL}/rest/v1/crm_companies`,{method:"POST",headers:{...H,"Prefer":"return=representation"},body:JSON.stringify({name,settings:newSettings})});if(!r.ok){toast(t.addFailed||"Hata","err");return;}
-    const added=await r.json();const newC=Array.isArray(added)?added[0]:added;
-    newC.settings=newSettings;state.companies.push(newC);logAction('company_add',name);toast("✅ "+(t.companyAdded||"Firma eklendi"));}catch{toast(t.errorMsg||"Hata","err");return;}
+    try{
+      let r=await fetch(`${SUPA_URL}/rest/v1/crm_companies`,{method:"POST",headers:{...H,"Prefer":"return=representation"},body:JSON.stringify(_hasSettingsCol?{name,settings:newSettings}:{name})});
+      if(!r.ok){r=await fetch(`${SUPA_URL}/rest/v1/crm_companies`,{method:"POST",headers:{...H,"Prefer":"return=representation"},body:JSON.stringify({name})});if(!r.ok){toast(t.addFailed||"Hata","err");return;}}
+      const added=await r.json();const newC=Array.isArray(added)?added[0]:added;
+      newC.settings=newSettings;state.companies.push(newC);logAction('company_add',name);toast("✅ "+(t.companyAdded||"Firma eklendi"));
+    }catch{toast(t.errorMsg||"Hata","err");return;}
   }
   closeModal();render();loadCompanyStats().then(()=>render());
 }
