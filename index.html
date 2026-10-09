@@ -4002,5 +4002,37 @@ async function openTreatmentBrochure(patientId){
 document.addEventListener("click",e=>{const dp=document.getElementById("dp-overlay");if(dp&&dp.style.display!=="none"&&!dp.contains(e.target)&&!e.target.classList.contains("dp-input"))_dpClose();});
 </script>
 <div id="dp-overlay"></div>
+
+<!-- TEMP DEBUG PANEL -->
+<div id="debug-panel" style="display:none;position:fixed;bottom:0;left:0;right:0;background:#1a2236;border-top:2px solid #f97316;z-index:99999;padding:16px;max-height:60vh;overflow:auto;">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+    <span style="color:#f97316;font-weight:700;font-size:14px;">LocalStorage Önbellek Verisi</span>
+    <button onclick="document.getElementById('debug-panel').style.display='none'" style="background:#f97316;border:none;color:#fff;border-radius:6px;padding:4px 12px;cursor:pointer;">Kapat</button>
+  </div>
+  <div id="debug-content" style="color:#dde4ef;font-size:11px;font-family:monospace;white-space:pre-wrap;word-break:break-all;"></div>
+</div>
+<button id="debug-btn" onclick="showDebug()" style="display:none;position:fixed;bottom:16px;right:16px;background:#f97316;border:none;color:#fff;border-radius:50%;width:48px;height:48px;font-size:20px;cursor:pointer;z-index:99998;box-shadow:0 4px 12px rgba(0,0,0,.5);">🔍</button>
+
+<script>
+function showDebug(){
+  const keys=['crm_deals_1','crm_deals_2','crm_deals_3','crm_deals_all','crm_customers_1','crm_customers_2','crm_customers_3','crm_customers_all'];
+  let out='';
+  keys.forEach(k=>{
+    const v=localStorage.getItem(k);
+    if(v){
+      out+=`\n=== ${k} ===\n`;
+      try{const parsed=JSON.parse(v);out+=`(${parsed.length} kayıt)\n${JSON.stringify(parsed,null,2).substring(0,2000)}${JSON.stringify(parsed).length>2000?'\n...(devamı var)':''}\n`;}
+      catch{out+=v.substring(0,500)+'\n';}
+    }else{
+      out+=`\n=== ${k} === BOŞ\n`;
+    }
+  });
+  document.getElementById('debug-content').textContent=out||'Tüm önbellek anahtarları boş.';
+  document.getElementById('debug-panel').style.display='block';
+}
+// Show debug button only for superadmin
+setTimeout(()=>{if(typeof activeCompanyId!=='undefined'&&activeCompanyId===null){document.getElementById('debug-btn').style.display='block';}},2000);
+</script>
+
 </body>
 </html>
