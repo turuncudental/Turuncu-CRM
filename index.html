@@ -211,6 +211,16 @@ nav button:hover:not(.active){color:#94a3b8}
 .legend-dot{width:12px;height:12px;border-radius:3px;flex-shrink:0}
 .tooth.paint-mode{cursor:crosshair!important}
 .paint-hint{font-size:11px;color:#f97316;background:#1a223666;border:1px solid #f9731655;border-radius:8px;padding:5px 12px;display:flex;align-items:center;gap:6px;animation:fadeIn .2s ease}
+#dp-overlay{position:fixed;z-index:99999;background:#1a2236;border:1px solid #2a3a5c;border-radius:12px;box-shadow:0 8px 32px rgba(0,0,0,.6);width:252px;display:none;user-select:none}
+.dp-header{display:flex;align-items:center;justify-content:space-between;padding:10px 12px;border-bottom:1px solid #2a3a5c;font-weight:600;color:#dde4ef;font-size:14px}
+.dp-nav{background:none;border:none;color:#f97316;font-size:22px;cursor:pointer;padding:0 8px;line-height:1}
+.dp-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:1px;padding:8px 6px}
+.dp-dayname{text-align:center;font-size:10px;color:#64748b;padding:3px 0;font-weight:600}
+.dp-day{text-align:center;font-size:13px;color:#dde4ef;padding:6px 2px;border-radius:6px;cursor:pointer}
+.dp-day:hover{background:#f97316;color:#fff}
+.dp-today{color:#f97316;font-weight:700}
+.dp-sel{background:#f97316 !important;color:#fff !important}
+.dp-input{cursor:pointer;background:#0f1623 !important}
 </style>
 </head>
 <body>
@@ -1528,7 +1538,7 @@ function renderPtConsultation(p){
       </div>
       <div class="field-row">
         <div class="field"><label>${t.fphone}</label><input id="pc-phone" value="${p.phone||""}"/></div>
-        <div class="field"><label>${t.fdob}</label><input type="date" id="pc-dob" value="${p.dob||""}"/></div>
+        <div class="field"><label>${t.fdob}</label><input class="dp-input" readonly id="pc-dob" data-val="${p.dob||''}" value="${p.dob?dpFmt(p.dob):''}" onclick="openDatePicker('pc-dob')" placeholder="Select date"/></div>
       </div>
       <div class="field-row">
         <div class="field"><label>${t.fnationality}</label><select id="pc-nationality">${countryOpts(p.country||p.nationality||"")}</select></div>
@@ -2952,6 +2962,51 @@ function renderSnapshots(){
 // ==ACTIONS==
 // ── MODAL HELPERS
 function closeModal(){const m=document.getElementById("modal-overlay");if(m)m.remove();}
+// Custom date picker — bypasses iOS native picker which ignores app language
+const DP_MONTHS={en:["January","February","March","April","May","June","July","August","September","October","November","December"],tr:["Ocak","Şubat","Mart","Nisan","Mayıs","Haziran","Temmuz","Ağustos","Eylül","Ekim","Kasım","Aralık"]};
+const DP_DAYS={en:["Mo","Tu","We","Th","Fr","Sa","Su"],tr:["Pt","Sa","Ça","Pe","Cu","Ct","Pz"]};
+let _dpTarget=null,_dpY=0,_dpM=0,_dpSel="";
+function dpFmt(iso){if(!iso)return"";const[y,m,d]=iso.split("-");const mn=(DP_MONTHS[lang]||DP_MONTHS.en)[+m-1];return`${+d} ${mn} ${y}`;}
+function openDatePicker(inputId){
+  _dpTarget=inputId;
+  const inp=document.getElementById(inputId);
+  const val=inp.dataset.val||"";
+  _dpSel=val;
+  const d=val?new Date(val+"T00:00:00"):new Date();
+  _dpY=d.getFullYear();_dpM=d.getMonth();
+  _dpDraw();
+  const el=document.getElementById("dp-overlay");
+  el.style.display="block";
+  const rect=inp.getBoundingClientRect();
+  const top=rect.bottom+4;
+  const left=Math.min(rect.left,window.innerWidth-260);
+  el.style.top=top+"px";el.style.left=left+"px";
+}
+function _dpClose(){document.getElementById("dp-overlay").style.display="none";}
+function dpNav(dir){_dpM+=dir;if(_dpM>11){_dpM=0;_dpY++;}else if(_dpM<0){_dpM=11;_dpY--;}_dpDraw();}
+function dpPick(day){
+  const iso=`${_dpY}-${String(_dpM+1).padStart(2,"0")}-${String(day).padStart(2,"0")}`;
+  const inp=document.getElementById(_dpTarget);
+  inp.dataset.val=iso;inp.value=dpFmt(iso);_dpSel=iso;_dpClose();
+}
+function _dpDraw(){
+  const months=DP_MONTHS[lang]||DP_MONTHS.en;
+  const days=DP_DAYS[lang]||DP_DAYS.en;
+  const firstDay=(new Date(_dpY,_dpM,1).getDay()+6)%7;
+  const total=new Date(_dpY,_dpM+1,0).getDate();
+  const today=new Date();const ty=today.getFullYear(),tm=today.getMonth(),td=today.getDate();
+  const[sy,sm,sd]=_dpSel?_dpSel.split("-").map(Number):[0,0,0];
+  let cells="";for(let i=0;i<firstDay;i++)cells+="<div></div>";
+  for(let d=1;d<=total;d++){
+    const iT=_dpY===ty&&_dpM===tm&&d===td;
+    const iS=_dpY===sy&&_dpM+1===sm&&d===sd;
+    cells+=`<div class="dp-day${iT?" dp-today":""}${iS?" dp-sel":""}" onclick="dpPick(${d})">${d}</div>`;
+  }
+  document.getElementById("dp-overlay").innerHTML=`
+    <div class="dp-header"><button class="dp-nav" onclick="dpNav(-1)">‹</button><span>${months[_dpM]} ${_dpY}</span><button class="dp-nav" onclick="dpNav(1)">›</button></div>
+    <div class="dp-grid">${days.map(d=>`<div class="dp-dayname">${d}</div>`).join("")}${cells}</div>
+    <div style="text-align:center;padding:4px 0 8px"><button onclick="_dpClose()" style="background:none;border:none;color:#94a3b8;font-size:12px;cursor:pointer">${lang==='en'?'Cancel':'İptal'}</button></div>`;
+}
 function makeModal(title,body,onSave,saveLabel){
   const overlay=document.createElement("div");overlay.id="modal-overlay";overlay.className="modal-overlay";
   overlay.onclick=e=>{if(e.target===overlay)closeModal();};
@@ -2992,7 +3047,7 @@ async function saveCurrentPatient(){
     p.name=document.getElementById("pc-name")?.value||p.name;
     p.email=document.getElementById("pc-email")?.value||"";
     p.phone=document.getElementById("pc-phone")?.value||"";
-    p.dob=document.getElementById("pc-dob")?.value||"";
+    p.dob=document.getElementById("pc-dob")?.dataset?.val||"";
     p.country=document.getElementById("pc-nationality")?.value||"";
     p.nationality=document.getElementById("pc-nationality")?.value||"";
     p.status=document.getElementById("pc-status")?.value||p.status;
@@ -3125,8 +3180,8 @@ function openEventModal(editId){
     <div class="field"><label>${t.ename}</label><input id="em-name" value="${e?.name||""}"/></div>
     <div class="field-row"><div class="field"><label>${t.ecity}</label><input id="em-city" value="${e?.city||""}"/></div><div class="field"><label>${t.evenue}</label><input id="em-venue" value="${e?.venue||""}"/></div></div>
     <div class="field-row">
-      <div class="field"><label>${t.startDate}</label><input type="date" id="em-date-start" value="${ds}"/></div>
-      <div class="field"><label>${t.endDate}</label><input type="date" id="em-date-end" value="${de}"/></div>
+      <div class="field"><label>${t.startDate}</label><input class="dp-input" readonly id="em-date-start" data-val="${ds}" value="${ds?dpFmt(ds):''}" onclick="openDatePicker('em-date-start')" placeholder="Select date"/></div>
+      <div class="field"><label>${t.endDate}</label><input class="dp-input" readonly id="em-date-end" data-val="${de}" value="${de?dpFmt(de):''}" onclick="openDatePicker('em-date-end')" placeholder="Select date"/></div>
     </div>
     <div style="display:flex;align-items:center;gap:8px"><input type="checkbox" id="em-active" ${e?.active!==false?"checked":""} style="accent-color:#f97316;width:15px;height:15px"/><label style="font-size:13px;cursor:pointer">${t.eactive}</label></div>`;
   makeModal(editId?t.editEvent:t.newEvent,body,`saveEvent(${editId||0})`);
@@ -3134,8 +3189,8 @@ function openEventModal(editId){
 async function saveEvent(editId){
   const name=document.getElementById("em-name")?.value?.trim();if(!name)return;
   if(!await confirmDialog(editId?t.confirmSaveEvent:t.confirmAddEvent))return;
-  const dateStart=document.getElementById("em-date-start").value;
-  const dateEnd=document.getElementById("em-date-end").value||dateStart;
+  const dateStart=document.getElementById("em-date-start").dataset.val||"";
+  const dateEnd=document.getElementById("em-date-end").dataset.val||dateStart;
   const item={name,city:document.getElementById("em-city").value,venue:document.getElementById("em-venue").value,dateStart,dateEnd,date:dateStart,active:document.getElementById("em-active").checked};
   pushUndo('events',editId?(t.editEvent||'Etkinlik düzenle'):(t.newEvent||'Etkinlik ekle'));
   if(editId){state.events=state.events.map(e=>e.id==editId?{...e,...item}:e);logAction('event_edit',name);}
@@ -3943,6 +3998,8 @@ async function openTreatmentBrochure(patientId){
   const saved=sessionStorage.getItem("crm_user");
   if(saved){try{currentUser=JSON.parse(saved);activeCompanyId=isSuperAdmin()?null:(currentUser.company_id!=null?+currentUser.company_id:-1);await showApp();}catch{sessionStorage.removeItem("crm_user");}}
 })();
+document.addEventListener("click",e=>{const dp=document.getElementById("dp-overlay");if(dp&&dp.style.display!=="none"&&!dp.contains(e.target)&&!e.target.classList.contains("dp-input"))_dpClose();});
 </script>
+<div id="dp-overlay"></div>
 </body>
 </html>
