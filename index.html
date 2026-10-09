@@ -3202,7 +3202,7 @@ async function deleteEvent(id){if(!isSuperAdmin())return;if(!await confirmDialog
 
 // ── APPOINTMENTS
 function openAppointmentModal(){
-  const patOpts=state.patients.map(p=>`<option value="${p.id}">${p.name}</option>`).join("");
+  const patOpts=state.patients.filter(p=>!p.deleted).map(p=>`<option value="${p.id}">${p.name}</option>`).join("");
   const evtOpts=state.events.filter(e=>!e.deleted).map(e=>`<option value="${e.id}"${selectedEventId==e.id?" selected":""}>${e.name}</option>`).join("");
   const body=`
     <div class="field"><label>${t.fevent}</label><select id="am-eventId"><option value="">—</option>${evtOpts}</select></div>
