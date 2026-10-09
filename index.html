@@ -914,7 +914,8 @@ async function dbGet(table){
   return null;
 }
 async function dbSet(table,data){
-  const cid=activeCompanyId||currentUser?.company_id||1;
+  const cid=activeCompanyId!=null&&activeCompanyId>0?activeCompanyId:(currentUser?.company_id!=null&&currentUser.company_id>0?+currentUser.company_id:1);
+  if(cid<0)return;
   try{localStorage.setItem(`crm_${table}_${cid}`,JSON.stringify([{id:cid,data}]));}catch{}
   try{localStorage.setItem(`crm_${table}_${cid}_pending`,'1');}catch{}
   try{
@@ -1100,7 +1101,7 @@ async function doLogin(){
         const usr=data[0];let ok=false;
         if(usr.password&&usr.password.startsWith('$pbkdf2$')){ok=await bcrypt.compare(password,usr.password);}
         else{ok=(usr.password===password);if(ok){const h=await bcrypt.hash(password,10);fetch(`${SUPA_URL}/rest/v1/crm_users?id=eq.${usr.id}`,{method:'PATCH',headers:{...H,'Prefer':'return=minimal'},body:JSON.stringify({password:h})}).catch(()=>{});}}
-        if(ok){loginOk=true;clearAttempts(username);currentUser=usr;activeCompanyId=isSuperAdmin()?null:(currentUser.company_id||1);sessionStorage.setItem("crm_user",JSON.stringify(currentUser));await showApp();logAction('login','');btn.textContent=t.loginBtn;btn.disabled=false;return;}
+        if(ok){loginOk=true;clearAttempts(username);currentUser=usr;activeCompanyId=isSuperAdmin()?null:(currentUser.company_id!=null?+currentUser.company_id:-1);sessionStorage.setItem("crm_user",JSON.stringify(currentUser));await showApp();logAction('login','');btn.textContent=t.loginBtn;btn.disabled=false;return;}
       }
     }
   }catch{}
@@ -1109,7 +1110,7 @@ async function doLogin(){
   if(fallback){
     loginOk=true;clearAttempts(username);
     currentUser={id:fallback.id,username:fallback.username,role:fallback.role,display_name:fallback.display_name,company_id:fallback.company_id||1,company_name:fallback.company_name||'Turuncu Dental'};
-    activeCompanyId=isSuperAdmin()?null:(currentUser.company_id||1);
+    activeCompanyId=isSuperAdmin()?null:(currentUser.company_id!=null?+currentUser.company_id:-1);
     sessionStorage.setItem("crm_user",JSON.stringify(currentUser));
     await showApp();
     logAction('login','');
@@ -3913,7 +3914,7 @@ async function openTreatmentBrochure(patientId){
   const savedLang=localStorage.getItem('crm_lang');
   if(savedLang&&T[savedLang]){setLang(savedLang);setLoginLang(savedLang);}
   const saved=sessionStorage.getItem("crm_user");
-  if(saved){try{currentUser=JSON.parse(saved);activeCompanyId=isSuperAdmin()?null:(currentUser.company_id||1);await showApp();}catch{sessionStorage.removeItem("crm_user");}}
+  if(saved){try{currentUser=JSON.parse(saved);activeCompanyId=isSuperAdmin()?null:(currentUser.company_id!=null?+currentUser.company_id:-1);await showApp();}catch{sessionStorage.removeItem("crm_user");}}
 })();
 </script>
 </body>
