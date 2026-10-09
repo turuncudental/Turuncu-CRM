@@ -2632,7 +2632,7 @@ function renderEvents(){
 }
 
 function renderAppointments(){
-  const evtOpts=state.events.map(e=>`<option value="${e.id}"${selectedEventId==e.id?" selected":""}>${e.name}</option>`).join("");
+  const evtOpts=state.events.filter(e=>!e.deleted).map(e=>`<option value="${e.id}"${selectedEventId==e.id?" selected":""}>${e.name}</option>`).join("");
   const apts=(selectedEventId?state.appointments.filter(a=>a.eventId==selectedEventId):state.appointments).filter(a=>!a.deleted);
   const sorted=[...apts].sort((a,b)=>(a.time||"").localeCompare(b.time||""));
   const statusInfo={scheduled:{label:t.statusScheduled,color:"#4a607d"},turned_up:{label:t.statusTurnedUp,color:"#34d399"},did_not_turn_up:{label:t.statusDidNotCome,color:"#f87171"},cancelled:{label:t.statusCancelled,color:"#94a3b8"},no_answer:{label:t.statusNoAnswer,color:"#fbbf24"}};
@@ -3145,7 +3145,7 @@ async function deleteEvent(id){if(!isSuperAdmin())return;if(!await confirmDialog
 // ── APPOINTMENTS
 function openAppointmentModal(){
   const patOpts=state.patients.map(p=>`<option value="${p.id}">${p.name}</option>`).join("");
-  const evtOpts=state.events.map(e=>`<option value="${e.id}"${selectedEventId==e.id?" selected":""}>${e.name}</option>`).join("");
+  const evtOpts=state.events.filter(e=>!e.deleted).map(e=>`<option value="${e.id}"${selectedEventId==e.id?" selected":""}>${e.name}</option>`).join("");
   const body=`
     <div class="field"><label>${t.fevent}</label><select id="am-eventId"><option value="">—</option>${evtOpts}</select></div>
     <div class="field"><label>${t.aptPatient}</label><select id="am-patientId"><option value="">—</option>${patOpts}</select></div>
