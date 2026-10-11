@@ -1091,9 +1091,13 @@ async function dbGet(table){
 }
 const _persistDebounce={};
 const _persistControllers={};
+const _persistInFlight=new Set();
 function debouncedPersist(table,delay=400){
   if(_persistDebounce[table])clearTimeout(_persistDebounce[table]);
-  _persistDebounce[table]=setTimeout(()=>persist(table),delay);
+  _persistDebounce[table]=setTimeout(()=>{
+    delete _persistDebounce[table];
+    persist(table);
+  },delay);
 }
 async function dbSet(table,data){
   const cid=activeCompanyId!=null&&activeCompanyId>0?activeCompanyId:(currentUser?.company_id!=null&&currentUser.company_id>0?+currentUser.company_id:1);
@@ -1124,6 +1128,7 @@ async function dbSet(table,data){
 const TABLE_STATE={customers:"patients",deals:"events",tasks:"appointments",history:"treatments"};
 async function persist(table){
   const sl=document.getElementById("syncing-label");sl.textContent=t.saving;sl.style.display="inline";
+  _persistInFlight.add(table);
   let _data=state[TABLE_STATE[table]||table];
   // "Tüm Firmalar" modunda (activeCompanyId=null) sadece bu kullanıcının şirketine ait hastaları kaydet
   // Diğer şirketlerin _cid'li hastaları asla karışmasın; _cid alanı runtime-only, kaydetme
@@ -1132,6 +1137,7 @@ async function persist(table){
     _data=(_data||[]).filter(p=>!p._cid||+p._cid===_myCid).map(({_cid,...rest})=>rest);
   }
   await dbSet(table,_data);
+  _persistInFlight.delete(table);
   if(window._supaOffline){
     sl.textContent="⚠️ Supabase bağlantı yok — veriler geçici olarak tarayıcıda tutuluyor!";
     sl.style.display="inline";sl.style.color="#f97316";
@@ -1149,7 +1155,9 @@ async function loadAll(){
     return Array.isArray(rows[0]?.data)?rows[0].data:(seed||[]);
   };
   // Supabase başarısız olursa mevcut state korunur — asla SEED_PATIENTS yazılmaz
-  state.patients=mergeRows(p,state.patients.length?state.patients:[]);
+  // Eğer kullanıcı henüz kaydedilmemiş değişiklik yaptıysa (debounce/in-flight), eski veriyle ezme
+  const _customersDirty=_persistDebounce["customers"]||_persistInFlight.has("customers");
+  if(!_customersDirty)state.patients=mergeRows(p,state.patients.length?state.patients:[]);
   state.events=mergeRows(e,state.events.length?state.events:[]);
   state.appointments=mergeRows(a,state.appointments.length?state.appointments:[]);
   const trCid=activeCompanyId||currentUser?.company_id||1;
