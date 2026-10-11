@@ -1158,6 +1158,12 @@ async function showApp(){
   document.getElementById("user-name").textContent=currentUser.display_name||currentUser.username;
   document.getElementById("user-role").textContent=roleLabel(currentUser.role);
   document.getElementById("user-role").style.color=color;
+  // Login'de stale localStorage cache'i temizle — her zaman Supabase'den taze veri gelsin
+  if(activeCompanyId){
+    ['customers','deals','tasks','history'].forEach(tbl=>{
+      try{localStorage.removeItem(`crm_${tbl}_${activeCompanyId}`);localStorage.removeItem(`crm_${tbl}_${activeCompanyId}_pending`);}catch{}
+    });
+  }
   await loadAll();
   // Her girişte otomatik yedekleme al
   if(activeCompanyId){
@@ -2822,6 +2828,10 @@ function renderUsers(){
 }
 async function openCompanyPanel(cid){
   activeCompanyId=cid;allCompaniesMode=false;
+  // Eski localStorage cache'i temizle — stale veri Supabase'in önüne geçmesin
+  ['customers','deals','tasks','history'].forEach(tbl=>{
+    try{localStorage.removeItem(`crm_${tbl}_${cid}`);localStorage.removeItem(`crm_${tbl}_${cid}_pending`);}catch{}
+  });
   await loadAll();
   updateLocalCompanyStats();
   setTab('dashboard');
