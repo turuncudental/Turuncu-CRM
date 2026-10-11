@@ -3147,7 +3147,7 @@ function updateVisitSplit(v){
   const p=getPatient(currentPatientId);if(!p)return;
   ensureBooking(p);
   p.booking.visitSplit=Math.max(1,Math.min(99,Math.round(v)||60));
-  delete p.booking.visitSplitAmount; // % değişince manuel tutar sıfırlanır
+  delete p.booking.visitSplitAmount;
   markPtDirty();persist("customers");renderPtBody();
 }
 function updateVisitSplitByAmount(amount,total){
