@@ -1991,7 +1991,7 @@ function toothClick(e,num){
   const p=getPatient(currentPatientId);if(!p)return;
   const a=p.assessment||{currentCondition:{},treatmentPlan:{}};
   const chart=a[chartMode]||{};
-  const popupKeys=["crown","missing","implant","root_canal","filling","extraction"];
+  const popupKeys=["crown","zircrown","missing","implant","root_canal","filling","extraction"];
   const popup=document.createElement("div");
   popup.className="tooth-popup";
   const rect=e.currentTarget.getBoundingClientRect();
