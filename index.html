@@ -1505,13 +1505,41 @@ function renderPatientOverlay(){
 }
 async function setPtTab(tab){
   if(currentPtTab==="consultation"&&ptFormDirty&&tab!=="consultation"){
-    if(!await confirmDialog(t.unsavedChangesWarning))return;
+    const doSave=await confirmDialog(t.confirmSavePatient||t.unsavedChangesWarning);
+    if(doSave)await saveConsultationSilent();
   }
   if(currentPtTab==="assessment"&&ptFormDirty&&tab!=="assessment"){
     if(!await confirmDialog(t.unsavedPlanWarning))return;
     await saveAssessmentSilent();
   }
   ptFormDirty=false;currentPtTab=tab;renderPatientOverlay();
+}
+async function saveConsultationSilent(){
+  const p=getPatient(currentPatientId);if(!p)return;
+  await takeSnapshot('customers',state.patients);pushUndo('patients',t.saveBtn||'Hasta kaydet');
+  const _oldStatus=p.status;
+  p.name=document.getElementById("pc-name")?.value||p.name;
+  p.email=document.getElementById("pc-email")?.value||"";
+  p.phone=document.getElementById("pc-phone")?.value||"";
+  p.dob=document.getElementById("pc-dob")?.dataset?.val||"";
+  p.country=document.getElementById("pc-nationality")?.value||"";
+  p.nationality=document.getElementById("pc-nationality")?.value||"";
+  p.status=document.getElementById("pc-status")?.value||p.status;
+  if(p.status!==_oldStatus)logAction('status_change',`${p.name}: ${_oldStatus} → ${p.status}`);
+  p.eventId=+document.getElementById("pc-eventId")?.value||null;
+  if(!p.consultation)p.consultation={};
+  p.consultation.dentalConcerns=document.getElementById("pc-dentalConcerns")?.value||"";
+  p.consultation.medicalHistory=document.getElementById("pc-medicalHistory")?.value||"";
+  p.consultation.allergies=document.getElementById("pc-allergies")?.value||"";
+  p.consultation.medications=document.getElementById("pc-medications")?.value||"";
+  p.consultation.smoking=document.getElementById("pc-smoking")?.checked||false;
+  p.consultation.pregnant=document.getElementById("pc-pregnant")?.checked||false;
+  p.consultation.bisphosphonate=document.getElementById("pc-bisphosphonate")?.checked||false;
+  p.consultation.heartDisease=document.getElementById("pc-heartDisease")?.checked||false;
+  p.consultation.diabetes=document.getElementById("pc-diabetes")?.checked||false;
+  p.consultation.notes=document.getElementById("pc-notes")?.value||"";
+  ptFormDirty=false;
+  await persist("customers");logAction('patient_save',p.name||'');toast("✅ "+t.saved);
 }
 async function saveAssessmentSilent(){
   const p=getPatient(currentPatientId);if(!p)return;
