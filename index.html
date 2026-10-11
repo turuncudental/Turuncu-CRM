@@ -2210,7 +2210,7 @@ function txToCondition(tx){
   if(cat==='İmplant')return'implant';
   if(cat==='Endodonti')return'root_canal';
   if(name.includes('extraction'))return'extraction';
-  if(name.includes('filling')||name.includes('composite'))return'filling';
+  if(name.includes('filling')||name.includes('composite')||name.includes('buildup')||name.includes('build-up')||name.includes('build up')||name.includes('dolgu'))return'filling';
   if(name.includes('zirconium')||name.includes('zirkonyum')||name.includes('multilayer')||name.includes('laminate')||name.includes('lamine')||name.includes('e-max')||name.includes('emax')||name.includes('hollywood'))return'zircrown';
   if(cat==='Restorasyon'||cat==='Estetik'||name.includes('crown')||name.includes('veneer')||name.includes('laminate'))return'crown';
   return null;
@@ -2310,8 +2310,18 @@ function applyTxToTooth(num,txId){
   const _allTxList=state.treatments.filter(tx=>tx.type==='treatment'&&tx.active);
   const _newCond=txToCondition(tx);
   const _existConds=_existingIds.map(id=>txToCondition(_allTxList.find(t=>t.id===+id))).filter(Boolean);
-  if(_existConds.includes('implant')&&(_newCond==='root_canal'||_newCond==='filling')){toast("❌ İmplantlı dişe kanal veya dolgu eklenemez");return;}
-  if(_newCond==='implant'&&(_existConds.includes('root_canal')||_existConds.includes('filling'))){toast("❌ İmplantlı dişe kanal veya dolgu eklenemez");return;}
+  // Diş condition'ı doğrudan implant ise OR tedaviler arasında implant varsa
+  const _existCond=p.assessment[activePlan]?.[num]||'';
+  const _toothIsImplant=_existCond==='implant'||_existCond.startsWith('implant+')||_existConds.includes('implant');
+  const _implantIncompat=['root_canal','filling','extraction'];
+  if(_toothIsImplant&&_implantIncompat.includes(_newCond)){
+    toast(lang==='tr'?"⚠️ Bu diş implant! Dolgu, kanal veya çekim uygulanamaz — yalnızca zirkonyum/kron uygulanabilir.":"⚠️ This tooth has an implant! Filling, root canal or extraction cannot be applied — only zirconia/crown is possible.");
+    return;
+  }
+  if(_newCond==='implant'&&_existConds.some(c=>_implantIncompat.includes(c))){
+    toast(lang==='tr'?"⚠️ Bu dişte dolgu, kanal veya çekim tedavisi var. İmplant için önce bunları kaldırın.":"⚠️ This tooth has filling, root canal or extraction. Remove those treatments before adding an implant.");
+    return;
+  }
   const _idx=_existingIds.indexOf(txId);
   const _newIds=_idx>=0?_existingIds.filter(id=>id!==txId):[..._existingIds,txId];
   if(_newIds.length===0){
