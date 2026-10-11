@@ -372,23 +372,35 @@ const WORLD_COUNTRIES=[
   {n:"Mongolia",f:"🇲🇳",nat:"Mongolian"},{n:"Cambodia",f:"🇰🇭",nat:"Cambodian"},{n:"Myanmar",f:"🇲🇲",nat:"Burmese"},
 ];
 function countryOpts(sel=""){return`<option value="">${t.selectDefault}</option>`+WORLD_COUNTRIES.map(c=>`<option value="${c.n}"${c.n===sel?" selected":""}>${c.f} ${c.n}</option>`).join("");}
-function cityAutocompleteHTML(id,val=""){return`<div class="city-wrap"><input id="${id}" value="${(val||"").replace(/"/g,"&quot;")}" autocomplete="off" placeholder="..." oninput="cityInputHandler(this)" onblur="cityBlur(this)" onkeydown="cityKeydown(event,this)"/><div id="${id}-drop" class="city-drop" style="display:none"></div></div>`;}
+function cityAutocompleteHTML(id,val="",countryId=""){return`<div class="city-wrap"><input id="${id}" value="${(val||"").replace(/"/g,"&quot;")}" autocomplete="off" placeholder="..." data-country="${countryId}" oninput="cityInputHandler(this)" onblur="cityBlur(this)" onkeydown="cityKeydown(event,this)"/><div id="${id}-drop" class="city-drop" style="display:none"></div></div>`;}
 function cityInputHandler(inp){
   const q=inp.value.trim().toLowerCase();const drop=document.getElementById(inp.id+"-drop");
   if(q.length<2){drop.style.display="none";return;}
   const matches=WORLD_CITIES.filter(c=>c[0].toLowerCase().includes(q)).slice(0,60);
   if(!matches.length){drop.style.display="none";return;}
-  drop.innerHTML=matches.map((c,i)=>`<div class="city-drop-item" data-val="${c[0].replace(/"/g,"&quot;")}" onmousedown="cityPick(event,'${inp.id}')" data-idx="${i}"><span class="city-name">${c[1]} ${c[0]}</span><span class="city-meta">${c[2]}</span></div>`).join("");
+  drop.innerHTML=matches.map((c,i)=>`<div class="city-drop-item" data-val="${c[0].replace(/"/g,"&quot;")}" data-flag="${c[1]}" onmousedown="cityPick(event,'${inp.id}')" data-idx="${i}"><span class="city-name">${c[1]} ${c[0]}</span><span class="city-meta">${c[2]}</span></div>`).join("");
   drop.style.display="block";
 }
 function cityBlur(inp){setTimeout(()=>{const d=document.getElementById(inp.id+"-drop");if(d)d.style.display="none";},200);}
-function cityPick(e,id){e.preventDefault();const inp=document.getElementById(id);inp.value=e.currentTarget.dataset.val;const d=document.getElementById(id+"-drop");if(d)d.style.display="none";if(inp.oninput)inp.oninput({target:inp});}
+function cityAutoFillCountry(inp,flag){
+  const cid=inp.dataset?.country||inp.getAttribute?.("data-country");if(!cid)return;
+  const sel=document.getElementById(cid);if(!sel)return;
+  const country=WORLD_COUNTRIES.find(c=>c.f===flag);
+  if(country)sel.value=country.n;
+}
+function cityPick(e,id){
+  e.preventDefault();
+  const inp=document.getElementById(id);
+  inp.value=e.currentTarget.dataset.val;
+  const d=document.getElementById(id+"-drop");if(d)d.style.display="none";
+  cityAutoFillCountry(inp,e.currentTarget.dataset.flag);
+}
 function cityKeydown(e,inp){
   const drop=document.getElementById(inp.id+"-drop");if(!drop||drop.style.display==="none")return;
   const items=drop.querySelectorAll(".city-drop-item");let hi=drop.querySelector(".highlighted");
   if(e.key==="ArrowDown"){e.preventDefault();const next=hi?hi.nextElementSibling:items[0];if(hi)hi.classList.remove("highlighted");if(next){next.classList.add("highlighted");next.scrollIntoView({block:"nearest"});}}
   else if(e.key==="ArrowUp"){e.preventDefault();const prev=hi?hi.previousElementSibling:items[items.length-1];if(hi)hi.classList.remove("highlighted");if(prev){prev.classList.add("highlighted");prev.scrollIntoView({block:"nearest"});}}
-  else if(e.key==="Enter"&&hi){e.preventDefault();inp.value=hi.dataset.val;drop.style.display="none";}
+  else if(e.key==="Enter"&&hi){e.preventDefault();inp.value=hi.dataset.val;drop.style.display="none";cityAutoFillCountry(inp,hi.dataset.flag);}
   else if(e.key==="Escape"){drop.style.display="none";}
 }
 function nationalityOpts(sel=""){return`<option value="">${t.selectDefault}</option>`+WORLD_COUNTRIES.map(c=>`<option value="${c.nat}"${c.nat===sel?" selected":""}>${c.f} ${c.nat}</option>`).join("");}
@@ -1722,11 +1734,11 @@ function renderPtConsultation(p){
         <div class="field"><label>${t.fphone}</label><input id="pc-phone" value="${p.phone||""}"/></div>
         <div class="field"><label>${t.fdob}</label><input class="dp-input" readonly id="pc-dob" data-val="${p.dob||''}" value="${p.dob?dpFmt(p.dob):''}" onclick="openDatePicker('pc-dob')" placeholder="Select date"/></div>
       </div>
+      <div class="field"><label>${t.fcity}</label>${cityAutocompleteHTML("pc-city",p.city||"","pc-nationality")}</div>
       <div class="field-row">
         <div class="field"><label>${t.fcountry}</label><select id="pc-nationality">${countryOpts(p.country||p.nationality||"")}</select></div>
         <div class="field"><label>${t.freferral}</label><input id="pc-referral" value="${p.referral||""}"/></div>
       </div>
-      <div class="field"><label>${t.fcity}</label>${cityAutocompleteHTML("pc-city",p.city||"")}</div>
       <div class="field-row">
         <div class="field"><label>${t.fstatus}</label><select id="pc-status">${statusOpts}</select></div>
         <div class="field"><label>${t.fevent}</label><select id="pc-eventId"><option value="">—</option>${evtOpts}</select></div>
@@ -3254,8 +3266,8 @@ function openPatientModal(editId,presetEventId=null){
   const body=`
     <div class="field-row"><div class="field"><label>${t.fname}</label><input id="pm-name" value="${p?.name||""}"/></div><div class="field"><label>${t.fphone}</label><input id="pm-phone" value="${p?.phone||""}"/></div></div>
     <div class="field"><label>${t.femail}</label><input id="pm-email" value="${p?.email||""}"/></div>
+    <div class="field"><label>${t.fcity}</label>${cityAutocompleteHTML("pm-city",p?.city||"","pm-nationality")}</div>
     <div class="field-row"><div class="field"><label>${t.fcountry}</label><select id="pm-nationality">${countryOpts(p?.country||p?.nationality||"")}</select></div><div class="field"><label>${t.freferral}</label><input id="pm-referral" value="${p?.referral||""}"/></div></div>
-    <div class="field"><label>${t.fcity}</label>${cityAutocompleteHTML("pm-city",p?.city||"")}</div>
     <div class="field-row"><div class="field"><label>${t.fstatus}</label><select id="pm-status">${statusOpts}</select></div><div class="field"><label>${t.fevent}</label><select id="pm-eventId"><option value="">—</option>${evtOpts}</select></div></div>`;
   makeModal(editId?t.editPatient:t.newPatient,body,`savePatientModal(${editId||0})`);
 }
