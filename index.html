@@ -3773,34 +3773,52 @@ async function deleteUser(id){
 }
 
 // ── PDF QUOTE
+function quoteToggleSvc(patientId){
+  const p=getPatient(patientId);if(!p)return;
+  if(!p.booking)p.booking={};
+  p.booking.showServices=p.booking.showServices===false?true:false;
+  persist("customers");
+  document.getElementById('quote-overlay')?.remove();
+  downloadQuotePDF(patientId,true);
+}
+function quoteToggleCard(patientId){
+  const p=getPatient(patientId);if(!p)return;
+  if(!p.booking)p.booking={};
+  p.booking.showCard=p.booking.showCard===false?true:false;
+  persist("customers");
+  document.getElementById('quote-overlay')?.remove();
+  downloadQuotePDF(patientId,true);
+}
 function togglePdfPrices(){
   const s=document.getElementById('quote-price-style');
   const hidden=s.textContent.includes('none');
   s.textContent=hidden?'':'.qp-price{display:none!important}';
   document.getElementById('quote-toggle-prices').textContent=hidden?t.hidePrices:t.showPrices;
 }
-async function downloadQuotePDF(patientId){
+async function downloadQuotePDF(patientId,_noWarn=false){
   const p=getPatient(patientId);if(!p)return;
-  if(ptFormDirty&&currentPtTab==="assessment"){
+  if(!_noWarn&&ptFormDirty&&currentPtTab==="assessment"){
     if(!await confirmDialog(t.unsavedPlanWarning))return;
     await saveAssessmentSilent();
   }
   logAction('quote_download',p.name);
   const a=p.assessment||{};const b=p.booking||{};
-  // Warn if accommodation or transfer is missing before generating PDF
-  const _pdfWarnings=[];
-  if(!(b.accommodations||[]).length) _pdfWarnings.push(t.noAccomSelected);
-  if(!(b.travels||[]).length) _pdfWarnings.push(t.noTransferSelected);
-  if(_pdfWarnings.length){
-    const _warnMsg=t.pdfMissingWarning+'<br><br>• '+_pdfWarnings.join('<br>• ')+'<br><br>'+t.pdfProceed;
-    if(!await confirmDialog(_warnMsg))return;
-  }
-  // Warn if implant patient has no 2nd visit accommodation
-  if(hasImplantInPlan(p)){
-    const hasV2=(b.accommodations||[]).some(ac=>(ac.visit??0)===1);
-    if(!hasV2){
-      const go=await confirmDialog(t.implant2VisitWarningFull,false);
-      if(!go)return;
+  if(!_noWarn){
+    // Warn if accommodation or transfer is missing before generating PDF
+    const _pdfWarnings=[];
+    if(!(b.accommodations||[]).length) _pdfWarnings.push(t.noAccomSelected);
+    if(!(b.travels||[]).length) _pdfWarnings.push(t.noTransferSelected);
+    if(_pdfWarnings.length){
+      const _warnMsg=t.pdfMissingWarning+'<br><br>• '+_pdfWarnings.join('<br>• ')+'<br><br>'+t.pdfProceed;
+      if(!await confirmDialog(_warnMsg))return;
+    }
+    // Warn if implant patient has no 2nd visit accommodation
+    if(hasImplantInPlan(p)){
+      const hasV2=(b.accommodations||[]).some(ac=>(ac.visit??0)===1);
+      if(!hasV2){
+        const go=await confirmDialog(t.implant2VisitWarningFull,false);
+        if(!go)return;
+      }
     }
   }
   const planKey=a.activePlan||'treatmentPlan';
@@ -3935,7 +3953,9 @@ async function downloadQuotePDF(patientId){
   btnBar.id='quote-print-btns';
   btnBar.style.cssText='display:flex;gap:10px;justify-content:flex-end;flex-wrap:wrap;margin-bottom:12px;flex-shrink:0';
   btnBar.innerHTML=`
-    <button id="quote-toggle-prices" onclick="togglePdfPrices()" style="padding:9px 20px;border-radius:8px;border:1px solid #60a5fa44;background:#0a1a2e;color:#60a5fa;font-size:13px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif">${t.showPrices}</button>
+    <button onclick="quoteToggleSvc(${patientId})" style="padding:9px 16px;border-radius:8px;border:1px solid ${b.showServices===false?'#3d527044':'#34d39944'};background:${b.showServices===false?'#131b2a':'#0a2a1a'};color:${b.showServices===false?'#4a607d':'#34d399'};font-size:13px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif">${b.showServices===false?t.showServices:t.hideServices}</button>
+    <button onclick="quoteToggleCard(${patientId})" style="padding:9px 16px;border-radius:8px;border:1px solid ${b.showCard===false?'#3d527044':'#60a5fa44'};background:${b.showCard===false?'#131b2a':'#050f1e'};color:${b.showCard===false?'#4a607d':'#60a5fa'};font-size:13px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif">${b.showCard===false?t.showCard:t.hideCard}</button>
+    <button id="quote-toggle-prices" onclick="togglePdfPrices()" style="padding:9px 16px;border-radius:8px;border:1px solid #60a5fa44;background:#0a1a2e;color:#60a5fa;font-size:13px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif">${t.showPrices}</button>
     <button onclick="document.getElementById('quote-overlay').remove()" style="padding:9px 20px;border-radius:8px;border:1px solid #dde4ef44;background:#1a2236;color:#dde4ef;font-size:13px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif">${t.closeBtn}</button>
     <button onclick="window.print()" style="padding:9px 20px;border-radius:8px;border:none;background:#f97316;color:#fff;font-size:13px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif">${t.printBtn}</button>`;
   el.style.cssText='background:#fff;font-family:Arial,Helvetica,sans-serif;padding:48px;color:#1a1a2e;box-sizing:border-box;max-width:794px;width:100%;margin:0 auto;border-radius:8px;';
