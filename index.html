@@ -1124,7 +1124,14 @@ async function dbSet(table,data){
 const TABLE_STATE={customers:"patients",deals:"events",tasks:"appointments",history:"treatments"};
 async function persist(table){
   const sl=document.getElementById("syncing-label");sl.textContent=t.saving;sl.style.display="inline";
-  await dbSet(table,state[TABLE_STATE[table]||table]);
+  let _data=state[TABLE_STATE[table]||table];
+  // "Tüm Firmalar" modunda (activeCompanyId=null) sadece bu kullanıcının şirketine ait hastaları kaydet
+  // Diğer şirketlerin _cid'li hastaları asla karışmasın; _cid alanı runtime-only, kaydetme
+  if(table==="customers"&&activeCompanyId===null){
+    const _myCid=currentUser?.company_id!=null?+currentUser.company_id:1;
+    _data=(_data||[]).filter(p=>!p._cid||+p._cid===_myCid).map(({_cid,...rest})=>rest);
+  }
+  await dbSet(table,_data);
   if(window._supaOffline){
     sl.textContent="⚠️ Supabase bağlantı yok — veriler geçici olarak tarayıcıda tutuluyor!";
     sl.style.display="inline";sl.style.color="#f97316";
@@ -3100,6 +3107,9 @@ function renderCompanies(){
         <div style="font-weight:700;font-size:15px;color:${allCompaniesMode?'#60a5fa':'#dde4ef'};margin-bottom:3px">${t.allCompanies}${allCompaniesMode?` <span style="font-size:11px;background:#60a5fa;color:#fff;border-radius:8px;padding:1px 7px;font-weight:600;vertical-align:middle">${t.activeBadge}</span>`:''}</div>
         <div style="font-size:11px;color:#4a607d">${state.companies.length} ${t.companiesLabel} · 👤 ${allCompaniesMode?state.patients.filter(p=>!p.deleted).length:totalPt} ${t.patientsLabel} · 📅 ${allCompaniesMode?state.events.filter(e=>!e.deleted).length:totalEv} ${t.eventsLabel}</div>
       </div>
+      <div onclick="event.stopPropagation()">
+        <button class="sm-btn" onclick="cleanupDuplicatePatients()" title="Her şirketin verisindeki mükerrer hastaları temizle" style="white-space:nowrap">🧹 Mükerrer Temizle</button>
+      </div>
     </div>
     ${state.companies.map(c=>{
       const userCount=state.users.filter(u=>u.company_id===c.id).length;
@@ -3157,6 +3167,42 @@ async function deleteCompany(id){
   try{const r=await fetch(`${SUPA_URL}/rest/v1/crm_companies?id=eq.${id}`,{method:"DELETE",headers:H});if(!r.ok){toast(t.updateFailed||"Hata","err");return;}
   const _dcname=state.companies.find(c=>c.id===id)?.name||'';
   state.companies=state.companies.filter(c=>c.id!==id);logAction('company_delete',_dcname);toast(t.companyDeleted||"Firma silindi","warn");render();}catch{toast(t.errorMsg||"Hata","err");}
+}
+async function cleanupDuplicatePatients(){
+  if(!isSuperAdmin())return;
+  if(!await confirmDialog(lang==='tr'?'Her şirketin hasta verisi taranacak, mükerrer kayıtlar silinecek. Devam edilsin mi?':'Each company\'s patient data will be scanned and duplicates removed. Continue?',true))return;
+  const sl=document.getElementById("syncing-label");sl.textContent=lang==='tr'?"Taranıyor...":"Scanning...";sl.style.display="inline";
+  try{
+    // Supabase'den tüm customers satırlarını çek
+    const r=await fetch(`${SUPA_URL}/rest/v1/customers?select=id,data`,{headers:H});
+    if(!r.ok){toast("Supabase hatası","err");sl.style.display="none";return;}
+    const rows=await r.json();
+    let totalRemoved=0;
+    for(const row of rows){
+      const cid=row.id;
+      const patients=Array.isArray(row.data)?row.data:[];
+      // Aynı şirket içindeki id mükerrerlerini temizle
+      const seen=new Set();
+      const deduped=patients.filter(p=>{
+        const key=p.id;
+        if(seen.has(key))return false;
+        seen.add(key);return true;
+      });
+      // Başka şirketlere ait hastaları da temizle (_cid farklıysa veya id başka şirkette de varsa)
+      // Not: burada sadece aynı cid içindeki mükerrerleri düzeltiyoruz;
+      // diğer şirketlere karışmış olanlar persist fix'i ile artık olmayacak
+      const removed=patients.length-deduped.length;
+      if(removed>0){
+        totalRemoved+=removed;
+        const pr=await fetch(`${SUPA_URL}/rest/v1/customers?id=eq.${cid}`,{method:"PATCH",headers:{...H,"Prefer":"return=minimal"},body:JSON.stringify({data:deduped})});
+        if(!pr.ok)console.warn(`Firma ${cid} güncellenemedi`);
+      }
+    }
+    sl.style.display="none";
+    // State'i yenile
+    await loadAll();render();
+    toast(totalRemoved>0?(lang==='tr'?`✅ ${totalRemoved} mükerrer kayıt silindi`:`✅ ${totalRemoved} duplicate(s) removed`):(lang==='tr'?'✅ Mükerrer kayıt bulunamadı':'✅ No duplicates found'));
+  }catch(e){sl.style.display="none";toast("Hata: "+e.message,"err");}
 }
 function renderLogs(){
   if(!canSeeLogs())return`<div class="empty">${t.accessDenied}</div>`;
