@@ -3654,6 +3654,10 @@ async function openTreatmentBrochure(patientId){
   const allTx=state.treatments.filter(tx=>tx.type==='treatment'&&tx.active);
   const isTR=lang==='tr';
   const dateStr=new Date().toLocaleDateString('tr-TR');
+  const dName=settings.doctorName||currentUser.display_name||currentUser.username||'';
+  const dTitle=settings.doctorTitle||(isTR?'Diş Hekimi':'Dentist');
+  const website=settings.website||'';
+  const instagram=settings.instagram||'';
 
   // Build treatment rows (same as downloadQuotePDF)
   const rows=[];
