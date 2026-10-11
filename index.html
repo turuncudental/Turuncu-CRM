@@ -1090,6 +1090,7 @@ async function dbGet(table){
   return null;
 }
 const _persistDebounce={};
+const _persistControllers={};
 function debouncedPersist(table,delay=400){
   if(_persistDebounce[table])clearTimeout(_persistDebounce[table]);
   _persistDebounce[table]=setTimeout(()=>persist(table),delay);
@@ -1097,11 +1098,16 @@ function debouncedPersist(table,delay=400){
 async function dbSet(table,data){
   const cid=activeCompanyId!=null&&activeCompanyId>0?activeCompanyId:(currentUser?.company_id!=null&&currentUser.company_id>0?+currentUser.company_id:1);
   if(cid<0)return;
+  // Abort any in-flight request for this table so a stale response can't overwrite newer data
+  if(_persistControllers[table]){try{_persistControllers[table].abort();}catch{}}
+  const ctrl=new AbortController();
+  _persistControllers[table]=ctrl;
+  const sig=ctrl.signal;
   try{localStorage.setItem(`crm_${table}_${cid}`,JSON.stringify([{id:cid,data}]));}catch{}
   try{localStorage.setItem(`crm_${table}_${cid}_pending`,'1');}catch{}
   try{
     // Try PATCH first (update existing row). If no row exists (0 rows updated), fall back to POST (insert).
-    const pr=await fetch(`${SUPA_URL}/rest/v1/${table}?id=eq.${cid}`,{method:"PATCH",headers:{...H,"Prefer":"return=representation"},body:JSON.stringify({data})});
+    const pr=await fetch(`${SUPA_URL}/rest/v1/${table}?id=eq.${cid}`,{method:"PATCH",headers:{...H,"Prefer":"return=representation"},body:JSON.stringify({data}),signal:sig});
     if(pr.ok){
       const patched=await pr.json();
       if(patched&&patched.length>0){
@@ -1110,10 +1116,10 @@ async function dbSet(table,data){
       }
     }
     // Row doesn't exist yet — insert it
-    const r=await fetch(`${SUPA_URL}/rest/v1/${table}`,{method:"POST",headers:{...H,"Prefer":"return=minimal"},body:JSON.stringify({id:cid,data})});
+    const r=await fetch(`${SUPA_URL}/rest/v1/${table}`,{method:"POST",headers:{...H,"Prefer":"return=minimal"},body:JSON.stringify({id:cid,data}),signal:sig});
     if(!r.ok){window._supaOffline=true;}
     else{window._supaOffline=false;try{localStorage.removeItem(`crm_${table}_${cid}_pending`);}catch{}}
-  }catch{window._supaOffline=true;}
+  }catch(e){if(e?.name==='AbortError')return;window._supaOffline=true;}
 }
 const TABLE_STATE={customers:"patients",deals:"events",tasks:"appointments",history:"treatments"};
 async function persist(table){
