@@ -3240,7 +3240,7 @@ function _dpDraw(){
 }
 function makeModal(title,body,onSave,saveLabel){
   const overlay=document.createElement("div");overlay.id="modal-overlay";overlay.className="modal-overlay";
-  overlay.onclick=e=>{if(e.target===overlay)closeModal();};
+  overlay.onclick=e=>{e.stopPropagation();};
   overlay.innerHTML=`<div class="modal"><div class="modal-title"><span>${title}</span><button onclick="closeModal()">✕</button></div>${body}<div class="modal-actions"><button class="cancel" onclick="closeModal()">${onSave?t.cancel:(saveLabel||t.cancel)}</button>${onSave?`<button class="save" onclick="${onSave}">${saveLabel||t.save}</button>`:''}</div></div>`;
   document.body.appendChild(overlay);
 }
