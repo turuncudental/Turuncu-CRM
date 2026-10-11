@@ -2089,10 +2089,6 @@ function renderPtAssessment(p){
         <div class="stat-row"><span style="font-weight:700;color:#dde4ef">${t.totalCost}</span><span style="font-weight:800;color:#34d399;font-size:15px">${currSym()}${total.toLocaleString()}</span></div>
         <div class="stat-row"><span>${t.deposit}</span><span><input type="number" min="0" id="pc-deposit" autocomplete="off" value="${b.deposit||''}" placeholder="0" oninput="this.dataset.touched='1'" onchange="if(this.dataset.touched)updateBookingDeposit(+this.value)" style="width:80px;background:#131b2a;border:1px solid #1a2236;border-radius:6px;padding:3px 6px;color:#dde4ef;font-size:12px;text-align:right"/></span></div>
         <div style="border-top:2px solid #1a2236;margin:6px 0"></div>
-        <div style="display:flex;align-items:center;justify-content:flex-end;gap:6px;margin-bottom:6px">
-          <button onclick="toggleServices()" style="padding:3px 10px;border-radius:14px;border:1px solid ${b.showServices===false?'#3d5270':'#166534'};background:${b.showServices===false?'#131b2a':'#0a2a1a'};color:${b.showServices===false?'#3d5270':'#34d399'};font-size:10px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif">${b.showServices===false?t.showServices:t.hideServices}</button>
-          <button onclick="toggleCardPayment()" style="padding:3px 10px;border-radius:14px;border:1px solid ${b.showCard===false?'#3d5270':'#1e3a5f'};background:${b.showCard===false?'#131b2a':'#050f1e'};color:${b.showCard===false?'#3d5270':'#60a5fa'};font-size:10px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif">${b.showCard===false?t.showCard:t.hideCard}</button>
-        </div>
         <div style="display:grid;grid-template-columns:${b.showCard===false?'1fr':'1fr 1fr'};gap:8px;margin:0 0 8px">
           <div style="background:#1a0d00;border:2px solid #f97316;border-radius:10px;padding:12px;text-align:center">
             <div style="font-size:9px;color:#f97316;font-weight:700;letter-spacing:.5px;margin-bottom:6px">${t.cashLabel}</div>
@@ -2632,10 +2628,6 @@ function renderPtBooking(p){
         <div class="stat-row"><span style="font-weight:700;color:#dde4ef">${t.totalCost}</span><span style="font-weight:800;color:#34d399;font-size:15px">${currSym()}${total.toLocaleString()}</span></div>
         <div class="stat-row"><span>${t.deposit}</span><span><input type="number" min="0" id="pb-deposit" autocomplete="off" value="${b.deposit||''}" placeholder="0" oninput="this.dataset.touched='1'" onchange="if(this.dataset.touched)updateBookingDeposit(+this.value)" style="width:80px;background:#131b2a;border:1px solid #1a2236;border-radius:6px;padding:3px 6px;color:#dde4ef;font-size:12px;text-align:right"/></span></div>
         <div style="border-top:2px solid #f97316;margin:8px 0"></div>
-        <div style="display:flex;align-items:center;justify-content:flex-end;gap:6px;margin-bottom:6px">
-          <button onclick="toggleServices()" style="padding:3px 10px;border-radius:14px;border:1px solid ${b.showServices===false?'#3d5270':'#166534'};background:${b.showServices===false?'#131b2a':'#0a2a1a'};color:${b.showServices===false?'#3d5270':'#34d399'};font-size:10px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif">${b.showServices===false?t.showServices:t.hideServices}</button>
-          <button onclick="toggleCardPayment()" style="padding:3px 10px;border-radius:14px;border:1px solid ${b.showCard===false?'#3d5270':'#1e3a5f'};background:${b.showCard===false?'#131b2a':'#050f1e'};color:${b.showCard===false?'#3d5270':'#60a5fa'};font-size:10px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif">${b.showCard===false?t.showCard:t.hideCard}</button>
-        </div>
         <div style="display:grid;grid-template-columns:${b.showCard===false?'1fr':'1fr 1fr'};gap:8px;margin:0 0 8px">
           <div style="background:#1a0d00;border:2px solid #f97316;border-radius:10px;padding:12px;text-align:center">
             <div style="font-size:9px;color:#f97316;font-weight:700;letter-spacing:.5px;margin-bottom:6px">${t.cashLabel}</div>
@@ -3466,13 +3458,14 @@ function addBookingAccommodation(visitIdx){
   const isImpl=hasImplantInPlan(p);
   const selId=visitIdx!=null?`pb-accom-sel-${visitIdx}`:'pb-accom-sel';
   const nigId=visitIdx!=null?`pb-accom-nights-${visitIdx}`:'pb-accom-nights';
-  const id=+document.getElementById(selId)?.value;if(!id)return;
+  const id=+document.getElementById(selId)?.value;
+  if(!id){toast(lang==='tr'?"⚠️ Önce bir tesis seçin":"⚠️ Please select a facility first");return;}
   const nights=+document.getElementById(nigId)?.value||1;
   const prov=getTreatment(id);if(!prov)return;
   ensureBooking(p);
   const visitTag=isImpl&&visitIdx!=null?visitIdx:undefined;
   p.booking.accommodations.push({providerId:prov.id,name:prov.name,nights,pricePerNight:getEffectivePrice(prov),...(visitTag!=null?{visit:visitTag}:{})});
-  markPtDirty();debouncedPersist("customers");renderPtBody();
+  persist("customers");renderPtBody();
 }
 function updateVisitSplit(v){
   const p=getPatient(currentPatientId);if(!p)return;
@@ -3492,14 +3485,15 @@ function updateVisitSplitByAmount(amount,total){
 }
 function addBookingTravel(){
   const p=getPatient(currentPatientId);if(!p)return;
-  const id=+document.getElementById("pb-travel-sel")?.value;if(!id)return;
+  const id=+document.getElementById("pb-travel-sel")?.value;
+  if(!id){toast(lang==='tr'?"⚠️ Önce bir transfer seçin":"⚠️ Please select a transfer first");return;}
   const persons=+document.getElementById("pb-travel-persons")?.value||1;
   const prov=getTreatment(id);if(!prov)return;
   ensureBooking(p);
   p.booking.travels.push({providerId:prov.id,name:prov.name,persons,price:getEffectivePrice(prov)});
-  markPtDirty();debouncedPersist("customers");renderPtBody();
+  persist("customers");renderPtBody();
 }
-function removeBookingItem(arr,idx){const p=getPatient(currentPatientId);if(!p?.booking)return;p.booking[arr].splice(idx,1);markPtDirty();debouncedPersist("customers");renderPtBody();}
+function removeBookingItem(arr,idx){const p=getPatient(currentPatientId);if(!p?.booking)return;p.booking[arr].splice(idx,1);persist("customers");renderPtBody();}
 function updateBookingQty(arr,idx,val,field="qty"){
   const p=getPatient(currentPatientId);if(!p?.booking?.[arr]?.[idx])return;
   p.booking[arr][idx][field]=Math.max(1,val||1);markPtDirty();debouncedPersist("customers");renderPtBody();
@@ -3797,6 +3791,14 @@ function togglePdfPrices(){
 }
 async function downloadQuotePDF(patientId,_noWarn=false){
   const p=getPatient(patientId);if(!p)return;
+  // Flush any pending debounce so latest booking data is saved before reading
+  if(_persistDebounce["customers"]){
+    clearTimeout(_persistDebounce["customers"]);
+    delete _persistDebounce["customers"];
+    await persist("customers");
+  } else if(_persistInFlight.has("customers")){
+    await new Promise(r=>{const _w=()=>_persistInFlight.has("customers")?setTimeout(_w,50):r();_w();});
+  }
   if(!_noWarn&&ptFormDirty&&currentPtTab==="assessment"){
     if(!await confirmDialog(t.unsavedPlanWarning))return;
     await saveAssessmentSilent();
