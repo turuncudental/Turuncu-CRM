@@ -1089,6 +1089,11 @@ async function dbGet(table){
   try{const local=localStorage.getItem(`crm_${table}_${ckey}`);if(local)return JSON.parse(local);}catch{}
   return null;
 }
+const _persistDebounce={};
+function debouncedPersist(table,delay=400){
+  if(_persistDebounce[table])clearTimeout(_persistDebounce[table]);
+  _persistDebounce[table]=setTimeout(()=>persist(table),delay);
+}
 async function dbSet(table,data){
   const cid=activeCompanyId!=null&&activeCompanyId>0?activeCompanyId:(currentUser?.company_id!=null&&currentUser.company_id>0?+currentUser.company_id:1);
   if(cid<0)return;
@@ -2201,7 +2206,7 @@ function addManualTreatment(){
   if(!p.assessment.planExtras)p.assessment.planExtras={};
   if(!p.assessment.planExtras[activePlan])p.assessment.planExtras[activePlan]=[];
   p.assessment.planExtras[activePlan].push({customName:name,price,qty:1,teeth});
-  logAction('plan_save',buildPlanDetail(p));markPtDirty();persist("customers");renderPtBody();
+  logAction('plan_save',buildPlanDetail(p));markPtDirty();debouncedPersist("customers");renderPtBody();
 }
 function applyTxToTooth(num,txId){
   document.querySelectorAll(".tooth-popup").forEach(p=>p.remove());
@@ -2226,7 +2231,7 @@ function applyTxToTooth(num,txId){
       plan.all.forEach(n=>{delete p.assessment.toothTx[activePlan][n];p.assessment[activePlan][n]='missing';});
       plan.implant.forEach(n=>{p.assessment[activePlan][n]='implant';});
     }
-    markPtDirty();persist("customers");renderPtBody();return;
+    markPtDirty();debouncedPersist("customers");renderPtBody();return;
   }
   const tx=getTreatment(txId);if(!tx)return;
   const _existing=p.assessment.toothTx[activePlan][num];
@@ -2248,7 +2253,7 @@ function applyTxToTooth(num,txId){
     if(_domCond)p.assessment[activePlan][num]=_domCond;else delete p.assessment[activePlan][num];
   }
   if(hasImplantInPlan(p)){if(!p.booking)p.booking={};if((p.booking.visitCount||1)<2)p.booking.visitCount=2;}
-  markPtDirty();persist("customers");renderPtBody();
+  markPtDirty();debouncedPersist("customers");renderPtBody();
 }
 function removeJawTx(jaw){
   const p=getPatient(currentPatientId);if(!p)return;
@@ -2262,7 +2267,7 @@ function removeJawTx(jaw){
     });
   }
   delete jawTxPlan[jaw];
-  markPtDirty();persist("customers");renderPtBody();
+  markPtDirty();debouncedPersist("customers");renderPtBody();
 }
 function removeTxGroup(txId){
   const p=getPatient(currentPatientId);if(!p)return;
@@ -2283,7 +2288,7 @@ function removeTxGroup(txId){
       }
     }
   });
-  logAction('plan_save',`${p.name} — ${_txName} kaldırıldı | ${currSym()}${patientActivePlanTotal(p).toLocaleString()}`);markPtDirty();persist("customers");renderPtBody();
+  logAction('plan_save',`${p.name} — ${_txName} kaldırıldı | ${currSym()}${patientActivePlanTotal(p).toLocaleString()}`);markPtDirty();debouncedPersist("customers");renderPtBody();
 }
 function setActivePlan(pl){activePlan=pl;renderPtBody();}
 function setPatientActivePlan(pl){const p=getPatient(currentPatientId);if(!p)return;if(!p.assessment)p.assessment={};p.assessment.activePlan=pl||null;persist("customers");renderPtBody();}
@@ -2301,12 +2306,12 @@ function removeExtraTreatment(idx){
   const _rem=p.assessment.planExtras[activePlan][idx];
   const _remName=_rem?.customName||(state.treatments.find(t=>t.id===_rem?.txId)?.name||'?');
   p.assessment.planExtras[activePlan].splice(idx,1);
-  logAction('plan_save',`${p.name} — ${_remName} kaldırıldı | ${currSym()}${patientActivePlanTotal(p).toLocaleString()}`);markPtDirty();persist("customers");renderPtBody();
+  logAction('plan_save',`${p.name} — ${_remName} kaldırıldı | ${currSym()}${patientActivePlanTotal(p).toLocaleString()}`);markPtDirty();debouncedPersist("customers");renderPtBody();
 }
 function updateExtraTxQty(idx,qty){
   const p=getPatient(currentPatientId);if(!p?.assessment?.planExtras?.[activePlan]?.[idx])return;
   p.assessment.planExtras[activePlan][idx].qty=Math.max(1,qty||1);
-  markPtDirty();persist("customers");renderPtBody();
+  markPtDirty();debouncedPersist("customers");renderPtBody();
 }
 async function resetActivePlan(){
   if(!await confirmDialog(t.resetPlanConfirm,true))return;
@@ -2360,7 +2365,7 @@ function setToothCond(num,cond){
   } else {
     p.assessment[activePlan][num]=cond;
   }
-  persist("customers");
+  debouncedPersist("customers");
   renderPtBody();
 }
 function setPaintBrush(k){
@@ -3334,7 +3339,7 @@ function addBookingItem(type,treatmentId){
   const existing=p.booking.treatments.find(bt=>bt.treatmentId===treatmentId);
   if(existing)existing.qty=(existing.qty||1)+1;
   else p.booking.treatments.push({treatmentId:tr.id,name:tr.name,qty:1,price:getEffectivePrice(tr)});
-  markPtDirty();persist("customers");renderPtBody();
+  markPtDirty();debouncedPersist("customers");renderPtBody();
 }
 function addBookingAccommodation(visitIdx){
   const p=getPatient(currentPatientId);if(!p)return;
@@ -3347,14 +3352,14 @@ function addBookingAccommodation(visitIdx){
   ensureBooking(p);
   const visitTag=isImpl&&visitIdx!=null?visitIdx:undefined;
   p.booking.accommodations.push({providerId:prov.id,name:prov.name,nights,pricePerNight:getEffectivePrice(prov),...(visitTag!=null?{visit:visitTag}:{})});
-  markPtDirty();persist("customers");renderPtBody();
+  markPtDirty();debouncedPersist("customers");renderPtBody();
 }
 function updateVisitSplit(v){
   const p=getPatient(currentPatientId);if(!p)return;
   ensureBooking(p);
   p.booking.visitSplit=Math.max(1,Math.min(99,Math.round(v)||60));
   delete p.booking.visitSplitAmount;
-  markPtDirty();persist("customers");renderPtBody();
+  markPtDirty();debouncedPersist("customers");renderPtBody();
 }
 function updateVisitSplitByAmount(amount,total){
   if(!total||total<=0)return;
@@ -3363,7 +3368,7 @@ function updateVisitSplitByAmount(amount,total){
   const clamped=Math.max(0,Math.min(total,Math.round(amount)||0));
   p.booking.visitSplitAmount=clamped;
   p.booking.visitSplit=Math.max(1,Math.min(99,Math.round(clamped/total*100)||1));
-  markPtDirty();persist("customers");renderPtBody();
+  markPtDirty();debouncedPersist("customers");renderPtBody();
 }
 function addBookingTravel(){
   const p=getPatient(currentPatientId);if(!p)return;
@@ -3372,18 +3377,18 @@ function addBookingTravel(){
   const prov=getTreatment(id);if(!prov)return;
   ensureBooking(p);
   p.booking.travels.push({providerId:prov.id,name:prov.name,persons,price:getEffectivePrice(prov)});
-  markPtDirty();persist("customers");renderPtBody();
+  markPtDirty();debouncedPersist("customers");renderPtBody();
 }
-function removeBookingItem(arr,idx){const p=getPatient(currentPatientId);if(!p?.booking)return;p.booking[arr].splice(idx,1);markPtDirty();persist("customers");renderPtBody();}
+function removeBookingItem(arr,idx){const p=getPatient(currentPatientId);if(!p?.booking)return;p.booking[arr].splice(idx,1);markPtDirty();debouncedPersist("customers");renderPtBody();}
 function updateBookingQty(arr,idx,val,field="qty"){
   const p=getPatient(currentPatientId);if(!p?.booking?.[arr]?.[idx])return;
-  p.booking[arr][idx][field]=Math.max(1,val||1);markPtDirty();persist("customers");renderPtBody();
+  p.booking[arr][idx][field]=Math.max(1,val||1);markPtDirty();debouncedPersist("customers");renderPtBody();
 }
 let _discountRerendering=false;
 function updateBookingDiscount(val){const p=getPatient(currentPatientId);if(!p?.booking)return;p.booking.discount=val||0;p.booking.discountRate=0;_discountRerendering=true;markPtDirty();renderPtBody();setTimeout(()=>{_discountRerendering=false;},150);}
-function updateBookingDeposit(val){if(_discountRerendering)return;const p=getPatient(currentPatientId);if(!p?.booking)return;p.booking.deposit=val||0;markPtDirty();persist("customers");renderPtBody();}
-function updateBookingDiscountRate(rate,sub){const p=getPatient(currentPatientId);if(!p?.booking)return;p.booking.discountRate=rate||0;p.booking.discount=rate>0?Math.round(sub*rate/100):0;if(rate>0)logAction('discount_applied',`${p.name} — %${rate} (${currSym()}${p.booking.discount})`);_discountRerendering=true;markPtDirty();persist("customers");renderPtBody();setTimeout(()=>{_discountRerendering=false;},150);}
-function updateBookingDiscountAmt(amt,sub){const p=getPatient(currentPatientId);if(!p?.booking)return;p.booking.discount=amt||0;p.booking.discountRate=sub>0?+((amt/sub)*100).toFixed(1):0;_discountRerendering=true;markPtDirty();persist("customers");renderPtBody();setTimeout(()=>{_discountRerendering=false;},150);}
+function updateBookingDeposit(val){if(_discountRerendering)return;const p=getPatient(currentPatientId);if(!p?.booking)return;p.booking.deposit=val||0;markPtDirty();debouncedPersist("customers");renderPtBody();}
+function updateBookingDiscountRate(rate,sub){const p=getPatient(currentPatientId);if(!p?.booking)return;p.booking.discountRate=rate||0;p.booking.discount=rate>0?Math.round(sub*rate/100):0;if(rate>0)logAction('discount_applied',`${p.name} — %${rate} (${currSym()}${p.booking.discount})`);_discountRerendering=true;markPtDirty();debouncedPersist("customers");renderPtBody();setTimeout(()=>{_discountRerendering=false;},150);}
+function updateBookingDiscountAmt(amt,sub){const p=getPatient(currentPatientId);if(!p?.booking)return;p.booking.discount=amt||0;p.booking.discountRate=sub>0?+((amt/sub)*100).toFixed(1):0;_discountRerendering=true;markPtDirty();debouncedPersist("customers");renderPtBody();setTimeout(()=>{_discountRerendering=false;},150);}
 
 // ── NOTES
 async function addPatientNote(){
