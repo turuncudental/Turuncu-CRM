@@ -1895,7 +1895,7 @@ function renderPtAssessment(p){
             <div style="font-size:16px;font-weight:900;color:#60a5fa">${currSym()}${cardBalance.toLocaleString()}</div>
           </div>`}
         </div>
-        ${visitCount>=2&&hasImplantInPlan(p)?(()=>{const _v1=b.visitSplit||60;const _v2=100-_v1;const _a1=Math.round(balance*_v1/100);const _a2=Math.round(balance*_v2/100);return`<div style="border-top:1px solid #1a2236;margin:10px 0 6px"></div>
+        ${visitCount>=2&&hasImplantInPlan(p)?(()=>{const _v1=b.visitSplit||60;const _v2=100-_v1;const _a1=b.visitSplitAmount!=null?b.visitSplitAmount:Math.round(balance*_v1/100);const _a2=balance-_a1;return`<div style="border-top:1px solid #1a2236;margin:10px 0 6px"></div>
         <div style="font-size:10px;color:#4a607d;font-weight:700;margin-bottom:8px;letter-spacing:.5px">${t.twoVisitPlan}</div>
         <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:4px">
           <span style="font-size:11px;color:#4a607d;min-width:58px">1. Visit:</span>
@@ -2378,7 +2378,7 @@ function renderPtBooking(p){
             <div style="font-size:16px;font-weight:900;color:#60a5fa">${currSym()}${cardBalance.toLocaleString()}</div>
           </div>`}
         </div>
-        ${visitCount>=2&&hasImplantInPlan(p)?(()=>{const _v1=b.visitSplit||60;const _v2=100-_v1;const _a1=Math.round(balance*_v1/100);const _a2=Math.round(balance*_v2/100);return`<div style="border-top:1px solid #1a2236;margin:10px 0 6px"></div>
+        ${visitCount>=2&&hasImplantInPlan(p)?(()=>{const _v1=b.visitSplit||60;const _v2=100-_v1;const _a1=b.visitSplitAmount!=null?b.visitSplitAmount:Math.round(balance*_v1/100);const _a2=balance-_a1;return`<div style="border-top:1px solid #1a2236;margin:10px 0 6px"></div>
         <div style="font-size:10px;color:#4a607d;font-weight:700;margin-bottom:8px;letter-spacing:.5px">${t.twoVisitPlan}</div>
         <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:4px">
           <span style="font-size:11px;color:#4a607d;min-width:58px">1. Visit:</span>
@@ -3147,12 +3147,17 @@ function updateVisitSplit(v){
   const p=getPatient(currentPatientId);if(!p)return;
   ensureBooking(p);
   p.booking.visitSplit=Math.max(1,Math.min(99,Math.round(v)||60));
+  delete p.booking.visitSplitAmount;
   markPtDirty();persist("customers");renderPtBody();
 }
 function updateVisitSplitByAmount(amount,total){
   if(!total||total<=0)return;
-  const pct=Math.round(amount/total*100);
-  updateVisitSplit(pct);
+  const p=getPatient(currentPatientId);if(!p)return;
+  ensureBooking(p);
+  const clamped=Math.max(0,Math.min(total,Math.round(amount)||0));
+  p.booking.visitSplitAmount=clamped;
+  p.booking.visitSplit=Math.max(1,Math.min(99,Math.round(clamped/total*100)||1));
+  markPtDirty();persist("customers");renderPtBody();
 }
 function addBookingTravel(){
   const p=getPatient(currentPatientId);if(!p)return;
