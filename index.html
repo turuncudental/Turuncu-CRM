@@ -978,9 +978,10 @@ async function loadAll(){
     if(activeCompanyId===null&&rows.length>1)return rows.flatMap(r=>Array.isArray(r.data)?r.data.map(p=>({...p,_cid:r.id})):[]);
     return Array.isArray(rows[0]?.data)?rows[0].data:(seed||[]);
   };
-  state.patients=mergeRows(p,activeCompanyId===1?SEED_PATIENTS:[]);
-  state.events=mergeRows(e,activeCompanyId===1?SEED_EVENTS:[]);
-  state.appointments=mergeRows(a,activeCompanyId===1?SEED_APPOINTMENTS:[]);
+  // Supabase başarısız olursa mevcut state korunur — asla SEED_PATIENTS yazılmaz
+  state.patients=mergeRows(p,state.patients.length?state.patients:[]);
+  state.events=mergeRows(e,state.events.length?state.events:[]);
+  state.appointments=mergeRows(a,state.appointments.length?state.appointments:[]);
   const trCid=activeCompanyId||currentUser?.company_id||1;
   const trPending=localStorage.getItem(`crm_history_${trCid}_pending`);
   // Find this company's row by id (not [0] which may be a different company's old row)
