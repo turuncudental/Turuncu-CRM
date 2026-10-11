@@ -2213,16 +2213,27 @@ function openTxPanel(){
   }
   const allTx=state.treatments.filter(tx=>tx.type==='treatment'&&tx.active);
   const sym=currSym();
-  panel.innerHTML=`<div style="padding:14px 16px 12px;border-bottom:1px solid #1a2a42;display:flex;justify-content:space-between;align-items:center;background:#0a1220">
-    <div style="font-size:13px;font-weight:800;color:#dde4ef;letter-spacing:.3px">${lang==='tr'?'🖌 Tedavi Seç':'🖌 Select Treatment'}</div>
-    <button onclick="closeTxPanel()" style="padding:4px 10px;border-radius:6px;border:1px solid #1a2a42;background:#131b2a;color:#8899bb;font-size:13px;cursor:pointer;font-family:'DM Sans',sans-serif">✕</button>
+  panel.innerHTML=`<div style="padding:12px 14px 10px;border-bottom:1px solid #1a2a42;background:#0a1220;display:flex;flex-direction:column;gap:8px">
+    <div style="display:flex;justify-content:space-between;align-items:center">
+      <div style="font-size:13px;font-weight:800;color:#dde4ef;letter-spacing:.3px">${lang==='tr'?'🖌 Tedavi Seç':'🖌 Select Treatment'}</div>
+      <button onclick="closeTxPanel()" style="padding:4px 10px;border-radius:6px;border:1px solid #1a2a42;background:#131b2a;color:#8899bb;font-size:13px;cursor:pointer;font-family:'DM Sans',sans-serif">✕</button>
+    </div>
+    <input id="tx-search-inp" type="text" placeholder="${lang==='tr'?'Tedavi ara...':'Search treatment...'}" oninput="filterTxPanel()" style="width:100%;box-sizing:border-box;background:#131b2a;border:1px solid #2a3a54;border-radius:8px;padding:8px 12px;color:#dde4ef;font-size:13px;outline:none;font-family:'DM Sans',sans-serif" autocomplete="off"/>
   </div>
-  <div style="overflow-y:auto;flex:1;padding:10px;display:flex;flex-direction:column;gap:4px">
-    ${allTx.map(tx=>{const isSel=activeTxBrush===tx.id;return`<button onclick="pickTxFromPanel(${tx.id})" style="padding:10px 12px;border-radius:8px;border:1px solid ${isSel?'#f97316':'#1a2a42'};background:${isSel?'#f9731620':'#131b2a'};color:${isSel?'#f97316':'#c8d4e8'};font-size:13px;font-weight:${isSel?700:400};cursor:pointer;text-align:left;font-family:'DM Sans',sans-serif;width:100%;display:flex;justify-content:space-between;align-items:center;gap:8px"><span style="flex:1;line-height:1.3">${tx.name}</span><span style="font-size:12px;color:${isSel?'#fb923c':'#4a607d'};white-space:nowrap">${sym}${getEffectivePrice(tx)}</span></button>`;}).join('')}
+  <div id="tx-panel-list" style="overflow-y:auto;flex:1;padding:10px;display:flex;flex-direction:column;gap:4px">
+    ${allTx.map(tx=>{const isSel=activeTxBrush===tx.id;return`<button onclick="pickTxFromPanel(${tx.id})" data-name="${tx.name.toLowerCase()}" style="padding:10px 12px;border-radius:8px;border:1px solid ${isSel?'#f97316':'#1a2a42'};background:${isSel?'#f9731620':'#131b2a'};color:${isSel?'#f97316':'#c8d4e8'};font-size:13px;font-weight:${isSel?700:400};cursor:pointer;text-align:left;font-family:'DM Sans',sans-serif;width:100%;display:flex;justify-content:space-between;align-items:center;gap:8px"><span style="flex:1;line-height:1.3">${tx.name}</span><span style="font-size:12px;color:${isSel?'#fb923c':'#4a607d'};white-space:nowrap">${sym}${getEffectivePrice(tx)}</span></button>`;}).join('')}
   </div>`;
   backdrop.style.display='block';
   panel.style.display='flex';
-  requestAnimationFrame(()=>panel.style.transform='translateX(0)');
+  requestAnimationFrame(()=>{panel.style.transform='translateX(0)';setTimeout(()=>document.getElementById('tx-search-inp')?.focus(),240);});
+}
+function filterTxPanel(){
+  const q=(document.getElementById('tx-search-inp')?.value||'').trim().toLowerCase();
+  const list=document.getElementById('tx-panel-list');
+  if(!list)return;
+  list.querySelectorAll('button[data-name]').forEach(btn=>{
+    btn.style.display=(!q||btn.dataset.name.includes(q))?'flex':'none';
+  });
 }
 function closeTxPanel(){
   const panel=document.getElementById('tx-float-panel');
