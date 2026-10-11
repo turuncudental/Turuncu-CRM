@@ -3014,18 +3014,39 @@ function renderTrash(){
 function renderSnapshots(){
   if(!isSuperAdmin())return`<div class="empty">${t.accessDenied}</div>`;
   const snaps=state.snapshots||[];
-  if(!snaps.length)return`<div class="empty" style="padding:40px 0"><div style="font-size:32px;margin-bottom:12px">💾</div><div style="font-size:14px;color:#3d5270">${t.noSnapshots||"Henüz yedek yok"}</div></div>`;
   const tbl={customers:t.navPatients||"Hastalar",deals:t.navEvents||"Etkinlikler",tasks:t.navAppointments||"Randevular",history:t.navTreatments||"Tedaviler"};
-  return`<div style="max-width:780px;display:flex;flex-direction:column;gap:8px">${snaps.map(s=>{
-    const d=new Date(s.created_at);
-    const ds=d.toLocaleDateString('tr-TR')+' '+d.toLocaleTimeString('tr-TR',{hour:'2-digit',minute:'2-digit'});
-    const cnt=Array.isArray(s.data)?s.data.filter(x=>!x.deleted).length:'?';
-    return`<div class="card" style="display:flex;justify-content:space-between;align-items:center;padding:10px 14px;gap:10px">
-      <div><div style="font-weight:700;font-size:13px">${tbl[s.table_name]||s.table_name} — ${cnt} ${t.recordsLabel}</div>
-      <div style="font-size:11px;color:#4a607d">${ds} · ${s.created_by||"—"} · ${s.company_name||"—"}</div></div>
-      <button class="sm-btn" onclick="restoreSnapshot(${s.id})">${t.restore||"Geri Yükle"}</button>
-    </div>`;
-  }).join("")}</div>`;
+  const emptyMsg=!snaps.length?`<div class="empty" style="padding:40px 0"><div style="font-size:32px;margin-bottom:12px">💾</div><div style="font-size:14px;color:#3d5270">${t.noSnapshots||"Henüz yedek yok"}</div></div>`:'';
+  return`<div style="max-width:780px">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+      <div style="font-size:13px;color:#4a607d">${lang==='tr'?'Yedekler otomatik olarak kaydedilir. Manuel yedek almak için aşağıdaki butona basın.':'Backups are saved automatically. Press the button below to take a manual backup.'}</div>
+      <button class="btn" style="white-space:nowrap;font-size:12px" onclick="manualSnapshot()">💾 ${lang==='tr'?'Manuel Yedek Al':'Take Manual Backup'}</button>
+    </div>
+    ${emptyMsg}
+    <div style="display:flex;flex-direction:column;gap:8px">${snaps.map(s=>{
+      const d=new Date(s.created_at);
+      const ds=d.toLocaleDateString('tr-TR')+' '+d.toLocaleTimeString('tr-TR',{hour:'2-digit',minute:'2-digit'});
+      const cnt=Array.isArray(s.data)?s.data.filter(x=>!x.deleted).length:'?';
+      return`<div class="card" style="display:flex;justify-content:space-between;align-items:center;padding:10px 14px;gap:10px">
+        <div><div style="font-weight:700;font-size:13px">${tbl[s.table_name]||s.table_name} — ${cnt} ${t.recordsLabel}</div>
+        <div style="font-size:11px;color:#4a607d">${ds} · ${s.created_by||"—"} · ${s.company_name||"—"}</div></div>
+        <button class="sm-btn" onclick="restoreSnapshot(${s.id})">${t.restore||"Geri Yükle"}</button>
+      </div>`;
+    }).join("")}</div>
+  </div>`;
+}
+async function manualSnapshot(){
+  if(!activeCompanyId){toast(lang==='tr'?'Şirket seçili değil':'No company selected','err');return;}
+  const btn=event?.target;if(btn){btn.disabled=true;btn.textContent='⏳';}
+  await Promise.all([
+    takeSnapshot('customers',state.patients),
+    takeSnapshot('deals',state.events),
+    takeSnapshot('tasks',state.appointments),
+    takeSnapshot('history',state.treatments),
+  ]);
+  await loadSnapshots();
+  if(btn){btn.disabled=false;btn.textContent=`💾 ${lang==='tr'?'Manuel Yedek Al':'Take Manual Backup'}`;}
+  toast(lang==='tr'?'✅ Yedek alındı':'✅ Backup taken');
+  if(currentTab==='snapshots'){const c=document.getElementById('content');if(c)c.innerHTML=renderSnapshots();}
 }
 // ==ACTIONS==
 // ── MODAL HELPERS
