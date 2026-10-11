@@ -1967,20 +1967,19 @@ function renderPtAssessment(p){
           <stop offset="100%" stop-color="#5a4a10"/>
         </radialGradient>
       </defs></svg>
-      <div style="background:#131b2a;border:1px solid #1a2236;border-radius:10px;padding:16px;margin-bottom:12px;${activeTxBrush?"border-color:#f9731644":""}">
-        <div class="tooth-chart-wrap">${upperRow}</div>
-        <div style="border-top:1px dashed #1a2236;margin:6px 0"></div>
-        <div class="tooth-chart-wrap">${lowerRow}</div>
+      <div style="display:flex;gap:10px;align-items:flex-start;margin-bottom:4px">
+        <div style="flex:1;min-width:0;background:#131b2a;border:1px solid ${activeTxBrush?"#f9731644":"#1a2236"};border-radius:10px;padding:12px;transition:border-color .2s">
+          <div class="tooth-chart-wrap">${upperRow}</div>
+          <div style="border-top:1px dashed #1a2236;margin:6px 0"></div>
+          <div class="tooth-chart-wrap">${lowerRow}</div>
+        </div>
+        <div style="width:180px;flex-shrink:0;background:#0e1623;border:1px solid #1a2236;border-radius:10px;padding:6px;max-height:290px;overflow-y:auto;display:flex;flex-direction:column;gap:2px">
+          <div style="font-size:9px;color:#4a607d;font-weight:800;padding:3px 6px 6px;letter-spacing:0.6px;border-bottom:1px solid #1a2236;margin-bottom:2px">${lang==='tr'?'TEDAVİ SEÇ → DİŞE TIKLA':'SELECT → CLICK TOOTH'}</div>
+          <button onclick="setTxBrush(activeTxBrush==='__manual__'?null:'__manual__')" style="padding:6px 8px;border-radius:6px;border:1px solid ${activeTxBrush==='__manual__'?'#60a5fa':'transparent'};background:${activeTxBrush==='__manual__'?'#1e3a5f':'transparent'};color:${activeTxBrush==='__manual__'?'#60a5fa':'#60a5fa'};font-size:11px;font-weight:600;cursor:pointer;text-align:left;font-family:'DM Sans',sans-serif">${t.manualAdd}</button>
+          ${allTxCatalog.map(tx=>{const sel=activeTxBrush===tx.id;return`<button onclick="setTxBrush(${sel?'null':tx.id})" style="padding:5px 8px;border-radius:6px;border:1px solid ${sel?'#f97316':'transparent'};background:${sel?'#f9731618':'transparent'};color:${sel?'#f97316':'#c8d4e8'};font-size:11px;font-weight:${sel?700:400};cursor:pointer;text-align:left;font-family:'DM Sans',sans-serif;line-height:1.3;width:100%"><span style="display:block;white-space:normal">${tx.name}</span><span style="font-size:10px;color:${sel?'#fb923c':'#4a607d'}">${currSym()}${getEffectivePrice(tx)}</span></button>`;}).join('')}
+        </div>
       </div>
-      <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:4px">
-        <select id="tx-brush-main" onchange="setTxBrush(this.value)" style="background:#131b2a;border:1px solid ${activeTxBrush?'#f97316':'#1a2236'};border-radius:8px;padding:6px 10px;color:${activeTxBrush?'#f97316':'#dde4ef'};font-size:12px;outline:none;flex:1;min-width:200px">
-          <option value="">${t.selectTxClickTooth}</option>
-          <option value="__manual__"${activeTxBrush==='__manual__'?' selected':''}>${t.manualAdd}</option>
-          ${allTxCatalog.map(tx=>`<option value="${tx.id}"${activeTxBrush===tx.id?' selected':''}>${tx.name} — ${currSym()}${getEffectivePrice(tx)}</option>`).join('')}
-        </select>
-        ${activeTxBrush?`<button onclick="setTxBrush(null)" style="padding:5px 12px;border-radius:8px;border:1px solid #ef444444;background:#2b0f0f;color:#ef4444;font-size:11px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif">${t.cancelTx}</button>`:''}
-      </div>
-      ${activeTxBrush==='__manual__'?`<div style="display:flex;gap:8px;align-items:center;margin-top:6px;flex-wrap:wrap">
+      ${activeTxBrush==='__manual__'?`<div style="display:flex;gap:8px;align-items:center;margin-top:8px;flex-wrap:wrap">
         <input id="pa-manual-name" placeholder="${t.txNamePlaceholder}" style="background:#131b2a;border:1px solid #1a2236;border-radius:8px;padding:6px 10px;color:#dde4ef;font-size:12px;outline:none;flex:1;min-width:150px"/>
         <input id="pa-manual-price" type="number" min="0" placeholder="${t.pricePlaceholder}" style="background:#131b2a;border:1px solid #1a2236;border-radius:8px;padding:6px 10px;color:#dde4ef;font-size:12px;outline:none;width:100px"/>
         <input id="pa-manual-teeth" placeholder="Diş No: 11,21" style="background:#131b2a;border:1px solid #1a2236;border-radius:8px;padding:6px 10px;color:#22c55e;font-size:12px;outline:none;width:110px"/>
