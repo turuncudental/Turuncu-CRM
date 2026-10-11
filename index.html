@@ -996,9 +996,7 @@ async function loadAll(){
     state.treatments=loadedTr||(state.treatments.length?state.treatments:SEED_TREATMENTS);
     if(!loadedTr&&!state.treatments.length)dbSet("history",SEED_TREATMENTS);
   }
-  if(!p||!p[0])dbSet("customers",activeCompanyId===1?SEED_PATIENTS:[]);
-  if(!e||!e[0])dbSet("deals",activeCompanyId===1?SEED_EVENTS:[]);
-  if(!a||!a[0])dbSet("tasks",activeCompanyId===1?SEED_APPOINTMENTS:[]);
+  // Seed verisi asla Supabase'e yazılmaz — sadece display fallback olarak kullanılır
 }
 async function loadUsers(){
   try{
