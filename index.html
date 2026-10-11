@@ -1044,9 +1044,11 @@ async function takeSnapshot(tableName,data){
   }catch{}
 }
 async function loadSnapshots(){
-  if(!activeCompanyId)return;
   try{
-    const r=await fetch(`${SUPA_URL}/rest/v1/crm_snapshots?company_id=eq.${activeCompanyId}&select=*&order=created_at.desc&limit=50`,{headers:H});
+    const url=activeCompanyId
+      ?`${SUPA_URL}/rest/v1/crm_snapshots?company_id=eq.${activeCompanyId}&select=*&order=created_at.desc&limit=50`
+      :`${SUPA_URL}/rest/v1/crm_snapshots?select=*&order=created_at.desc&limit=100`;
+    const r=await fetch(url,{headers:H});
     if(r.ok)state.snapshots=await r.json();
   }catch{state.snapshots=[];}
 }
@@ -3331,7 +3333,13 @@ async function restoreSnapshot(id){
   if(!await confirmDialog(t.confirmRestoreSnapshot||'Bu yedeğe dönmek istediğinize emin misiniz? Mevcut veriler değişecek.',true))return;
   const stateKey={customers:'patients',deals:'events',tasks:'appointments',history:'treatments'}[snap.table_name]||snap.table_name;
   state[stateKey]=snap.data;
-  await dbSet(snap.table_name,snap.data);
+  // Superadmin başka şirkete ait yedeği geri yüklerken doğru company_id'yi kullan
+  const targetCid=snap.company_id||activeCompanyId;
+  try{
+    const pr=await fetch(`${SUPA_URL}/rest/v1/${snap.table_name}?id=eq.${targetCid}`,{method:"PATCH",headers:{...H,"Prefer":"return=representation"},body:JSON.stringify({data:snap.data})});
+    if(pr.ok){const rows=await pr.json();if(!rows||!rows.length){await fetch(`${SUPA_URL}/rest/v1/${snap.table_name}`,{method:"POST",headers:{...H,"Prefer":"return=minimal"},body:JSON.stringify({id:targetCid,data:snap.data})});}}
+    try{localStorage.setItem(`crm_${snap.table_name}_${targetCid}`,JSON.stringify([{id:targetCid,data:snap.data}]));}catch{}
+  }catch{}
   toast(t.snapshotRestored||'Yedek geri yüklendi');render();
 }
 
