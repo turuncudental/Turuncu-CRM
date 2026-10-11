@@ -978,9 +978,10 @@ async function loadAll(){
     if(activeCompanyId===null&&rows.length>1)return rows.flatMap(r=>Array.isArray(r.data)?r.data.map(p=>({...p,_cid:r.id})):[]);
     return Array.isArray(rows[0]?.data)?rows[0].data:(seed||[]);
   };
-  state.patients=mergeRows(p,activeCompanyId===1?SEED_PATIENTS:[]);
-  state.events=mergeRows(e,activeCompanyId===1?SEED_EVENTS:[]);
-  state.appointments=mergeRows(a,activeCompanyId===1?SEED_APPOINTMENTS:[]);
+  // Supabase başarısız olursa mevcut state korunur — asla SEED_PATIENTS yazılmaz
+  state.patients=mergeRows(p,state.patients.length?state.patients:[]);
+  state.events=mergeRows(e,state.events.length?state.events:[]);
+  state.appointments=mergeRows(a,state.appointments.length?state.appointments:[]);
   const trCid=activeCompanyId||currentUser?.company_id||1;
   const trPending=localStorage.getItem(`crm_history_${trCid}_pending`);
   // Find this company's row by id (not [0] which may be a different company's old row)
@@ -996,9 +997,7 @@ async function loadAll(){
     state.treatments=loadedTr||(state.treatments.length?state.treatments:SEED_TREATMENTS);
     if(!loadedTr&&!state.treatments.length)dbSet("history",SEED_TREATMENTS);
   }
-  if(!p||!p[0])dbSet("customers",activeCompanyId===1?SEED_PATIENTS:[]);
-  if(!e||!e[0])dbSet("deals",activeCompanyId===1?SEED_EVENTS:[]);
-  if(!a||!a[0])dbSet("tasks",activeCompanyId===1?SEED_APPOINTMENTS:[]);
+  // Seed verisi asla Supabase'e yazılmaz — sadece display fallback olarak kullanılır
 }
 async function loadUsers(){
   try{
@@ -1046,9 +1045,11 @@ async function takeSnapshot(tableName,data){
   }catch{}
 }
 async function loadSnapshots(){
-  if(!activeCompanyId)return;
   try{
-    const r=await fetch(`${SUPA_URL}/rest/v1/crm_snapshots?company_id=eq.${activeCompanyId}&select=*&order=created_at.desc&limit=50`,{headers:H});
+    const url=activeCompanyId
+      ?`${SUPA_URL}/rest/v1/crm_snapshots?company_id=eq.${activeCompanyId}&select=*&order=created_at.desc&limit=50`
+      :`${SUPA_URL}/rest/v1/crm_snapshots?select=*&order=created_at.desc&limit=100`;
+    const r=await fetch(url,{headers:H});
     if(r.ok)state.snapshots=await r.json();
   }catch{state.snapshots=[];}
 }
@@ -1158,7 +1159,18 @@ async function showApp(){
   document.getElementById("user-name").textContent=currentUser.display_name||currentUser.username;
   document.getElementById("user-role").textContent=roleLabel(currentUser.role);
   document.getElementById("user-role").style.color=color;
+  // Login'de stale localStorage cache'i temizle — her zaman Supabase'den taze veri gelsin
+  if(activeCompanyId){
+    ['customers','deals','tasks','history'].forEach(tbl=>{
+      try{localStorage.removeItem(`crm_${tbl}_${activeCompanyId}`);localStorage.removeItem(`crm_${tbl}_${activeCompanyId}_pending`);}catch{}
+    });
+  }
   await loadAll();
+  // Her girişte otomatik yedekleme al
+  if(activeCompanyId){
+    takeSnapshot('customers',state.patients);
+    takeSnapshot('deals',state.events);
+  }
   const _bb2=document.getElementById("btn-back");if(_bb2)_bb2.textContent=t.backBtn;
   const _sb2=document.getElementById("btn-save-patient");if(_sb2)_sb2.textContent=t.saveBtn;
   const _lc2=document.getElementById("logo-sub-crm");if(_lc2)_lc2.textContent=t.logoCRM;
@@ -1881,34 +1893,45 @@ function renderPtAssessment(p){
             <div style="font-size:16px;font-weight:900;color:#60a5fa">${currSym()}${cardBalance.toLocaleString()}</div>
           </div>`}
         </div>
-        ${visitCount>=2&&hasImplantInPlan(p)?(()=>{const _v1=b.visitSplit||60;const _v2=100-_v1;return`<div style="border-top:1px solid #1a2236;margin:10px 0 6px"></div>
-        <div style="font-size:10px;color:#4a607d;font-weight:700;margin-bottom:6px;letter-spacing:.5px">${t.twoVisitPlan}</div>
-        <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
-          <span style="font-size:11px;color:#4a607d">1. Visit %:</span>
-          <input type="number" min="10" max="90" value="${_v1}" onchange="updateVisitSplit(+this.value)" style="width:52px;background:#131b2a;border:1px solid #1a2236;border-radius:6px;padding:3px 6px;color:#dde4ef;font-size:12px;text-align:center"/>
-          <span style="font-size:11px;color:#4a607d">/ 2. Visit %: ${_v2}</span>
+        ${visitCount>=2&&hasImplantInPlan(p)?(()=>{const _v1=b.visitSplit||60;const _v2=100-_v1;const _a1=Math.round(balance*_v1/100);const _a2=Math.round(balance*_v2/100);return`<div style="border-top:1px solid #1a2236;margin:10px 0 6px"></div>
+        <div style="font-size:10px;color:#4a607d;font-weight:700;margin-bottom:8px;letter-spacing:.5px">${t.twoVisitPlan}</div>
+        <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:4px">
+          <span style="font-size:11px;color:#4a607d;min-width:58px">1. Visit:</span>
+          <input type="number" min="1" max="99" value="${_v1}" onchange="updateVisitSplit(+this.value)" style="width:46px;background:#131b2a;border:1px solid #1a2236;border-radius:6px;padding:3px 6px;color:#dde4ef;font-size:12px;text-align:center"/>
+          <span style="font-size:11px;color:#4a607d">%</span>
+          <span style="font-size:11px;color:#4a607d;margin:0 2px">|</span>
+          <input type="number" min="0" value="${_a1}" onchange="updateVisitSplitByAmount(+this.value,${balance})" style="width:80px;background:#131b2a;border:1px solid #f9731644;border-radius:6px;padding:3px 6px;color:#f97316;font-size:12px;font-weight:700;text-align:right"/>
+          <span style="font-size:11px;color:#f97316;font-weight:700">${currSym()}</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:8px">
+          <span style="font-size:11px;color:#4a607d;min-width:58px">2. Visit:</span>
+          <span style="width:46px;text-align:center;font-size:12px;font-weight:700;color:#dde4ef">${_v2}</span>
+          <span style="font-size:11px;color:#4a607d">%</span>
+          <span style="font-size:11px;color:#4a607d;margin:0 2px">|</span>
+          <span style="width:80px;text-align:right;font-size:12px;font-weight:700;color:#f97316;padding-right:4px">${_a2.toLocaleString()}</span>
+          <span style="font-size:11px;color:#f97316;font-weight:700">${currSym()}</span>
         </div>
         <div style="display:grid;grid-template-columns:${b.showCard===false?'1fr':'1fr 1fr'};gap:6px">
           <div>
             <div style="font-size:9px;color:#34d399;font-weight:700;text-align:center;margin-bottom:4px">${t.cashLabel}</div>
             <div style="background:#0d2b1a;border:1px solid #16532d;border-radius:6px;padding:8px;text-align:center;margin-bottom:4px">
               <div style="font-size:9px;color:#4a607d;margin-bottom:2px">1. Visit — %${_v1}</div>
-              <div style="font-size:13px;font-weight:800;color:#34d399">${currSym()}${Math.round(balance*_v1/100).toLocaleString()}</div>
+              <div style="font-size:13px;font-weight:800;color:#34d399">${currSym()}${_a1.toLocaleString()}</div>
             </div>
             <div style="background:#0d2b1a;border:1px solid #16532d;border-radius:6px;padding:8px;text-align:center">
               <div style="font-size:9px;color:#4a607d;margin-bottom:2px">2. Visit — %${_v2}</div>
-              <div style="font-size:13px;font-weight:800;color:#34d399">${currSym()}${Math.round(balance*_v2/100).toLocaleString()}</div>
+              <div style="font-size:13px;font-weight:800;color:#34d399">${currSym()}${_a2.toLocaleString()}</div>
             </div>
           </div>
           ${b.showCard===false?'':`<div>
             <div style="font-size:9px;color:#60a5fa;font-weight:700;text-align:center;margin-bottom:4px">${t.cardLabel}</div>
             <div style="background:#050f1e;border:1px solid #1e3a5f;border-radius:6px;padding:8px;text-align:center;margin-bottom:4px">
               <div style="font-size:9px;color:#4a607d;margin-bottom:2px">1. Visit — %${_v1}</div>
-              <div style="font-size:12px;font-weight:700;color:#60a5fa">${currSym()}${Math.round(balance*_v1/100*1.02).toLocaleString()}</div>
+              <div style="font-size:12px;font-weight:700;color:#60a5fa">${currSym()}${Math.round(_a1*1.02).toLocaleString()}</div>
             </div>
             <div style="background:#050f1e;border:1px solid #1e3a5f;border-radius:6px;padding:8px;text-align:center">
               <div style="font-size:9px;color:#4a607d;margin-bottom:2px">2. Visit — %${_v2}</div>
-              <div style="font-size:12px;font-weight:700;color:#60a5fa">${currSym()}${Math.round(balance*_v2/100*1.02).toLocaleString()}</div>
+              <div style="font-size:12px;font-weight:700;color:#60a5fa">${currSym()}${Math.round(_a2*1.02).toLocaleString()}</div>
             </div>
           </div>`}
         </div>`})():''}
@@ -2353,34 +2376,45 @@ function renderPtBooking(p){
             <div style="font-size:16px;font-weight:900;color:#60a5fa">${currSym()}${cardBalance.toLocaleString()}</div>
           </div>`}
         </div>
-        ${visitCount>=2&&hasImplantInPlan(p)?(()=>{const _v1=b.visitSplit||60;const _v2=100-_v1;return`<div style="border-top:1px solid #1a2236;margin:10px 0 6px"></div>
-        <div style="font-size:10px;color:#4a607d;font-weight:700;margin-bottom:6px;letter-spacing:.5px">${t.twoVisitPlan}</div>
-        <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
-          <span style="font-size:11px;color:#4a607d">1. Visit %:</span>
-          <input type="number" min="10" max="90" value="${_v1}" onchange="updateVisitSplit(+this.value)" style="width:52px;background:#131b2a;border:1px solid #1a2236;border-radius:6px;padding:3px 6px;color:#dde4ef;font-size:12px;text-align:center"/>
-          <span style="font-size:11px;color:#4a607d">/ 2. Visit %: ${_v2}</span>
+        ${visitCount>=2&&hasImplantInPlan(p)?(()=>{const _v1=b.visitSplit||60;const _v2=100-_v1;const _a1=Math.round(balance*_v1/100);const _a2=Math.round(balance*_v2/100);return`<div style="border-top:1px solid #1a2236;margin:10px 0 6px"></div>
+        <div style="font-size:10px;color:#4a607d;font-weight:700;margin-bottom:8px;letter-spacing:.5px">${t.twoVisitPlan}</div>
+        <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:4px">
+          <span style="font-size:11px;color:#4a607d;min-width:58px">1. Visit:</span>
+          <input type="number" min="1" max="99" value="${_v1}" onchange="updateVisitSplit(+this.value)" style="width:46px;background:#131b2a;border:1px solid #1a2236;border-radius:6px;padding:3px 6px;color:#dde4ef;font-size:12px;text-align:center"/>
+          <span style="font-size:11px;color:#4a607d">%</span>
+          <span style="font-size:11px;color:#4a607d;margin:0 2px">|</span>
+          <input type="number" min="0" value="${_a1}" onchange="updateVisitSplitByAmount(+this.value,${balance})" style="width:80px;background:#131b2a;border:1px solid #f9731644;border-radius:6px;padding:3px 6px;color:#f97316;font-size:12px;font-weight:700;text-align:right"/>
+          <span style="font-size:11px;color:#f97316;font-weight:700">${currSym()}</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:8px">
+          <span style="font-size:11px;color:#4a607d;min-width:58px">2. Visit:</span>
+          <span style="width:46px;text-align:center;font-size:12px;font-weight:700;color:#dde4ef">${_v2}</span>
+          <span style="font-size:11px;color:#4a607d">%</span>
+          <span style="font-size:11px;color:#4a607d;margin:0 2px">|</span>
+          <span style="width:80px;text-align:right;font-size:12px;font-weight:700;color:#f97316;padding-right:4px">${_a2.toLocaleString()}</span>
+          <span style="font-size:11px;color:#f97316;font-weight:700">${currSym()}</span>
         </div>
         <div style="display:grid;grid-template-columns:${b.showCard===false?'1fr':'1fr 1fr'};gap:6px">
           <div>
             <div style="font-size:9px;color:#34d399;font-weight:700;text-align:center;margin-bottom:4px">${t.cashLabel}</div>
             <div style="background:#0d2b1a;border:1px solid #16532d;border-radius:6px;padding:8px;text-align:center;margin-bottom:4px">
               <div style="font-size:9px;color:#4a607d;margin-bottom:2px">1. Visit — %${_v1}</div>
-              <div style="font-size:13px;font-weight:800;color:#34d399">${currSym()}${Math.round(balance*_v1/100).toLocaleString()}</div>
+              <div style="font-size:13px;font-weight:800;color:#34d399">${currSym()}${_a1.toLocaleString()}</div>
             </div>
             <div style="background:#0d2b1a;border:1px solid #16532d;border-radius:6px;padding:8px;text-align:center">
               <div style="font-size:9px;color:#4a607d;margin-bottom:2px">2. Visit — %${_v2}</div>
-              <div style="font-size:13px;font-weight:800;color:#34d399">${currSym()}${Math.round(balance*_v2/100).toLocaleString()}</div>
+              <div style="font-size:13px;font-weight:800;color:#34d399">${currSym()}${_a2.toLocaleString()}</div>
             </div>
           </div>
           ${b.showCard===false?'':`<div>
             <div style="font-size:9px;color:#60a5fa;font-weight:700;text-align:center;margin-bottom:4px">${t.cardLabel}</div>
             <div style="background:#050f1e;border:1px solid #1e3a5f;border-radius:6px;padding:8px;text-align:center;margin-bottom:4px">
               <div style="font-size:9px;color:#4a607d;margin-bottom:2px">1. Visit — %${_v1}</div>
-              <div style="font-size:12px;font-weight:700;color:#60a5fa">${currSym()}${Math.round(balance*_v1/100*1.02).toLocaleString()}</div>
+              <div style="font-size:12px;font-weight:700;color:#60a5fa">${currSym()}${Math.round(_a1*1.02).toLocaleString()}</div>
             </div>
             <div style="background:#050f1e;border:1px solid #1e3a5f;border-radius:6px;padding:8px;text-align:center">
               <div style="font-size:9px;color:#4a607d;margin-bottom:2px">2. Visit — %${_v2}</div>
-              <div style="font-size:12px;font-weight:700;color:#60a5fa">${currSym()}${Math.round(balance*_v2/100*1.02).toLocaleString()}</div>
+              <div style="font-size:12px;font-weight:700;color:#60a5fa">${currSym()}${Math.round(_a2*1.02).toLocaleString()}</div>
             </div>
           </div>`}
         </div>`})():''}
@@ -2795,6 +2829,10 @@ function renderUsers(){
 }
 async function openCompanyPanel(cid){
   activeCompanyId=cid;allCompaniesMode=false;
+  // Eski localStorage cache'i temizle — stale veri Supabase'in önüne geçmesin
+  ['customers','deals','tasks','history'].forEach(tbl=>{
+    try{localStorage.removeItem(`crm_${tbl}_${cid}`);localStorage.removeItem(`crm_${tbl}_${cid}_pending`);}catch{}
+  });
   await loadAll();
   updateLocalCompanyStats();
   setTab('dashboard');
@@ -3106,8 +3144,13 @@ function addBookingAccommodation(visitIdx){
 function updateVisitSplit(v){
   const p=getPatient(currentPatientId);if(!p)return;
   ensureBooking(p);
-  p.booking.visitSplit=Math.max(10,Math.min(90,Math.round(v)||60));
+  p.booking.visitSplit=Math.max(1,Math.min(99,Math.round(v)||60));
   markPtDirty();persist("customers");renderPtBody();
+}
+function updateVisitSplitByAmount(amount,total){
+  if(!total||total<=0)return;
+  const pct=Math.round(amount/total*100);
+  updateVisitSplit(pct);
 }
 function addBookingTravel(){
   const p=getPatient(currentPatientId);if(!p)return;
@@ -3301,7 +3344,13 @@ async function restoreSnapshot(id){
   if(!await confirmDialog(t.confirmRestoreSnapshot||'Bu yedeğe dönmek istediğinize emin misiniz? Mevcut veriler değişecek.',true))return;
   const stateKey={customers:'patients',deals:'events',tasks:'appointments',history:'treatments'}[snap.table_name]||snap.table_name;
   state[stateKey]=snap.data;
-  await dbSet(snap.table_name,snap.data);
+  // Superadmin başka şirkete ait yedeği geri yüklerken doğru company_id'yi kullan
+  const targetCid=snap.company_id||activeCompanyId;
+  try{
+    const pr=await fetch(`${SUPA_URL}/rest/v1/${snap.table_name}?id=eq.${targetCid}`,{method:"PATCH",headers:{...H,"Prefer":"return=representation"},body:JSON.stringify({data:snap.data})});
+    if(pr.ok){const rows=await pr.json();if(!rows||!rows.length){await fetch(`${SUPA_URL}/rest/v1/${snap.table_name}`,{method:"POST",headers:{...H,"Prefer":"return=minimal"},body:JSON.stringify({id:targetCid,data:snap.data})});}}
+    try{localStorage.setItem(`crm_${snap.table_name}_${targetCid}`,JSON.stringify([{id:targetCid,data:snap.data}]));}catch{}
+  }catch{}
   toast(t.snapshotRestored||'Yedek geri yüklendi');render();
 }
 
