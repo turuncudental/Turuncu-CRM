@@ -1967,17 +1967,18 @@ function renderPtAssessment(p){
           <stop offset="100%" stop-color="#5a4a10"/>
         </radialGradient>
       </defs></svg>
-      <div style="display:flex;gap:10px;align-items:flex-start;margin-bottom:4px">
-        <div style="flex:1;min-width:0;background:#131b2a;border:1px solid ${activeTxBrush?"#f9731644":"#1a2236"};border-radius:10px;padding:12px;transition:border-color .2s">
-          <div class="tooth-chart-wrap">${upperRow}</div>
-          <div style="border-top:1px dashed #1a2236;margin:6px 0"></div>
-          <div class="tooth-chart-wrap">${lowerRow}</div>
-        </div>
-        <div style="width:180px;flex-shrink:0;background:#0e1623;border:1px solid #1a2236;border-radius:10px;padding:6px;max-height:290px;overflow-y:auto;display:flex;flex-direction:column;gap:2px">
-          <div style="font-size:9px;color:#4a607d;font-weight:800;padding:3px 6px 6px;letter-spacing:0.6px;border-bottom:1px solid #1a2236;margin-bottom:2px">${lang==='tr'?'TEDAVİ SEÇ → DİŞE TIKLA':'SELECT → CLICK TOOTH'}</div>
-          <button onclick="setTxBrush(activeTxBrush==='__manual__'?null:'__manual__')" style="padding:6px 8px;border-radius:6px;border:1px solid ${activeTxBrush==='__manual__'?'#60a5fa':'transparent'};background:${activeTxBrush==='__manual__'?'#1e3a5f':'transparent'};color:${activeTxBrush==='__manual__'?'#60a5fa':'#60a5fa'};font-size:11px;font-weight:600;cursor:pointer;text-align:left;font-family:'DM Sans',sans-serif">${t.manualAdd}</button>
-          ${allTxCatalog.map(tx=>{const sel=activeTxBrush===tx.id;return`<button onclick="setTxBrush(${sel?'null':tx.id})" style="padding:5px 8px;border-radius:6px;border:1px solid ${sel?'#f97316':'transparent'};background:${sel?'#f9731618':'transparent'};color:${sel?'#f97316':'#c8d4e8'};font-size:11px;font-weight:${sel?700:400};cursor:pointer;text-align:left;font-family:'DM Sans',sans-serif;line-height:1.3;width:100%"><span style="display:block;white-space:normal">${tx.name}</span><span style="font-size:10px;color:${sel?'#fb923c':'#4a607d'}">${currSym()}${getEffectivePrice(tx)}</span></button>`;}).join('')}
-        </div>
+      <div style="background:#131b2a;border:1px solid ${activeTxBrush?"#f9731644":"#1a2236"};border-radius:10px;padding:12px;margin-bottom:8px;transition:border-color .2s">
+        <div class="tooth-chart-wrap">${upperRow}</div>
+        <div style="border-top:1px dashed #1a2236;margin:6px 0"></div>
+        <div class="tooth-chart-wrap">${lowerRow}</div>
+      </div>
+      <div style="display:flex;gap:8px;align-items:center;margin-bottom:4px;flex-wrap:wrap">
+        <button onclick="openTxPanel()" style="padding:7px 16px;border-radius:8px;border:1px solid ${activeTxBrush&&activeTxBrush!=='__manual__'?'#f97316':'#2a3a54'};background:${activeTxBrush&&activeTxBrush!=='__manual__'?'#f9731618':'#131b2a'};color:${activeTxBrush&&activeTxBrush!=='__manual__'?'#f97316':'#8899bb'};font-size:12px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;display:flex;align-items:center;gap:6px">
+          <span>🖌</span><span>${activeBrushTx?activeBrushTx.name:(lang==='tr'?'Tedavi Seç':'Select Treatment')}</span>
+          <span style="font-size:10px;opacity:.6">▼</span>
+        </button>
+        <button onclick="setTxBrush(activeTxBrush==='__manual__'?null:'__manual__')" style="padding:7px 14px;border-radius:8px;border:1px solid ${activeTxBrush==='__manual__'?'#60a5fa':'#2a3a54'};background:${activeTxBrush==='__manual__'?'#1e3a5f':'#131b2a'};color:${activeTxBrush==='__manual__'?'#60a5fa':'#8899bb'};font-size:12px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif">${t.manualAdd}</button>
+        ${activeTxBrush?`<button onclick="setTxBrush(null)" style="padding:7px 12px;border-radius:8px;border:1px solid #3d1515;background:#1a0808;color:#ef4444;font-size:12px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif">✕ ${lang==='tr'?'İptal':'Cancel'}</button>`:''}
       </div>
       ${activeTxBrush==='__manual__'?`<div style="display:flex;gap:8px;align-items:center;margin-top:8px;flex-wrap:wrap">
         <input id="pa-manual-name" placeholder="${t.txNamePlaceholder}" style="background:#131b2a;border:1px solid #1a2236;border-radius:8px;padding:6px 10px;color:#dde4ef;font-size:12px;outline:none;flex:1;min-width:150px"/>
@@ -2194,6 +2195,45 @@ function txToCondition(tx){
   return null;
 }
 function setTxBrush(txId){activeTxBrush=(txId==='__manual__')?'__manual__':(+txId||null);paintBrush=null;renderPtBody();}
+function openTxPanel(){
+  let backdrop=document.getElementById('tx-panel-backdrop');
+  if(!backdrop){
+    backdrop=document.createElement('div');
+    backdrop.id='tx-panel-backdrop';
+    backdrop.style.cssText='position:fixed;inset:0;z-index:4999;background:transparent';
+    backdrop.onclick=()=>closeTxPanel();
+    document.body.appendChild(backdrop);
+  }
+  let panel=document.getElementById('tx-float-panel');
+  if(!panel){
+    panel=document.createElement('div');
+    panel.id='tx-float-panel';
+    panel.style.cssText='position:fixed;top:0;right:0;width:300px;height:100dvh;background:#0d1525;border-left:2px solid #1a2a42;z-index:5000;display:flex;flex-direction:column;box-shadow:-12px 0 40px #000c;transition:transform .22s cubic-bezier(.4,0,.2,1);transform:translateX(100%)';
+    document.body.appendChild(panel);
+  }
+  const allTx=state.treatments.filter(tx=>tx.type==='treatment'&&tx.active);
+  const sym=currSym();
+  panel.innerHTML=`<div style="padding:14px 16px 12px;border-bottom:1px solid #1a2a42;display:flex;justify-content:space-between;align-items:center;background:#0a1220">
+    <div style="font-size:13px;font-weight:800;color:#dde4ef;letter-spacing:.3px">${lang==='tr'?'🖌 Tedavi Seç':'🖌 Select Treatment'}</div>
+    <button onclick="closeTxPanel()" style="padding:4px 10px;border-radius:6px;border:1px solid #1a2a42;background:#131b2a;color:#8899bb;font-size:13px;cursor:pointer;font-family:'DM Sans',sans-serif">✕</button>
+  </div>
+  <div style="overflow-y:auto;flex:1;padding:10px;display:flex;flex-direction:column;gap:4px">
+    ${allTx.map(tx=>{const isSel=activeTxBrush===tx.id;return`<button onclick="pickTxFromPanel(${tx.id})" style="padding:10px 12px;border-radius:8px;border:1px solid ${isSel?'#f97316':'#1a2a42'};background:${isSel?'#f9731620':'#131b2a'};color:${isSel?'#f97316':'#c8d4e8'};font-size:13px;font-weight:${isSel?700:400};cursor:pointer;text-align:left;font-family:'DM Sans',sans-serif;width:100%;display:flex;justify-content:space-between;align-items:center;gap:8px"><span style="flex:1;line-height:1.3">${tx.name}</span><span style="font-size:12px;color:${isSel?'#fb923c':'#4a607d'};white-space:nowrap">${sym}${getEffectivePrice(tx)}</span></button>`;}).join('')}
+  </div>`;
+  backdrop.style.display='block';
+  panel.style.display='flex';
+  requestAnimationFrame(()=>panel.style.transform='translateX(0)');
+}
+function closeTxPanel(){
+  const panel=document.getElementById('tx-float-panel');
+  const backdrop=document.getElementById('tx-panel-backdrop');
+  if(panel){panel.style.transform='translateX(100%)';setTimeout(()=>{panel.style.display='none';},220);}
+  if(backdrop)backdrop.style.display='none';
+}
+function pickTxFromPanel(txId){
+  closeTxPanel();
+  setTxBrush(activeTxBrush===+txId?null:txId);
+}
 function addManualTreatment(){
   const name=(document.getElementById('pa-manual-name')?.value||'').trim();
   const price=+(document.getElementById('pa-manual-price')?.value)||0;
