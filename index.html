@@ -887,6 +887,32 @@ function getEffectivePrice(item){
   if(activeCurrency==='USD'&&(item.salePriceUSD||0)>0)return item.salePriceUSD;
   return item.salePrice||0;
 }
+function getEffectivePriceForCurrency(item,currency){
+  if(!item)return 0;
+  if(currency==='EUR'&&(item.salePriceEUR||0)>0)return item.salePriceEUR;
+  if(currency==='USD'&&(item.salePriceUSD||0)>0)return item.salePriceUSD;
+  return item.salePrice||0;
+}
+function patientActivePlanTotalWithCurrency(p){
+  const a=p.assessment||{};
+  const planKey=a.activePlan||'treatmentPlan';
+  const currency=p.booking?.currency||'GBP';
+  const allTx=state.treatments.filter(tx=>tx.type==='treatment'&&tx.active);
+  const jawTxMap=(a.jawTx||{})[planKey]||{};
+  const jawSub=Object.values(jawTxMap).reduce((s,txId)=>{const tx=allTx.find(t=>t.id===+txId);return s+getEffectivePriceForCurrency(tx,currency);},0);
+  const toothTxMap=(a.toothTx||{})[planKey]||{};
+  const txGroups={};
+  Object.values(toothTxMap).flatMap(v=>Array.isArray(v)?v:[v]).forEach(txId=>{const k=+txId;if(!txGroups[k])txGroups[k]=0;txGroups[k]++;});
+  const autoSub=Object.entries(txGroups).reduce((s,[txId,cnt])=>{const tx=allTx.find(t=>t.id===+txId);return s+cnt*getEffectivePriceForCurrency(tx,currency);},0);
+  const extras=(a.planExtras||{})[planKey]||[];
+  const extrasSub=extras.reduce((s,e)=>e.customName?s+(e.qty||1)*(e.price||0):s+(e.qty||1)*getEffectivePriceForCurrency(allTx.find(t=>t.id===e.txId),currency),0);
+  const txSub=jawSub+autoSub+extrasSub;
+  const b=p.booking||{};
+  const acSub=(b.accommodations||[]).reduce((s,ac)=>s+(ac.nights||1)*(ac.pricePerNight||0),0);
+  const trSub=(b.travels||[]).reduce((s,tr)=>s+(tr.persons||1)*(tr.price||0),0);
+  const sub=txSub+acSub+trSub;
+  return sub-(b.discount||0);
+}
 let paintBrush=null;
 let activeTxBrush=null;
 let catalogTab="treatment";
@@ -1617,7 +1643,8 @@ function renderPatients(){
         <thead><tr>${th('name',t.aptPatient)}${th('country',t.fcountry)}${th('event',t.eventSingle)}${th('status',t.fstatus)}${th('quote',t.quote)}<th></th></tr></thead>
         <tbody>${sortedList.map(p=>{
           const evt=getEvent(p.eventId);
-          const quote=patientActivePlanTotal(p);
+          const quote=patientActivePlanTotalWithCurrency(p);
+          const ptSym=CURR_SYM[p.booking?.currency||'GBP']||'£';
           return`<tr style="cursor:pointer" onclick="openPatient(${p.id})">
             <td>
               <div style="font-weight:700;font-size:13px">${p.name}</div>
@@ -1626,7 +1653,7 @@ function renderPatients(){
             <td style="font-size:12px">${flag(p.country||"")} ${p.country||""}</td>
             <td style="font-size:12px;color:#3d5270">${evt?evt.name:"—"}</td>
             <td>${statusBadge(p.status)}</td>
-            <td style="font-weight:700;color:${quote>0?'#34d399':'#3d5270'}">${quote>0?currSym()+quote.toLocaleString():"—"}</td>
+            <td style="font-weight:700;color:${quote>0?'#34d399':'#3d5270'}">${quote>0?ptSym+quote.toLocaleString():"—"}</td>
             <td><button class="sm-btn" onclick="event.stopPropagation();openPatient(${p.id})">→</button></td>
           </tr>`;
         }).join("")}</tbody>
@@ -1638,7 +1665,8 @@ function renderPatients(){
     <div class="grid3">${filtered.map(p=>{
       const sc=STATUS_COLORS[p.status]||"#4a607d";
       const evt=getEvent(p.eventId);
-      const quote=patientActivePlanTotal(p);
+      const quote=patientActivePlanTotalWithCurrency(p);
+      const ptSym=CURR_SYM[p.booking?.currency||'GBP']||'£';
       return`<div class="card" style="cursor:pointer;transition:border-color .15s;border-color:#1a2236" onclick="openPatient(${p.id})" onmouseover="this.style.borderColor='#f97316'" onmouseout="this.style.borderColor='#1a2236'">
         <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px">
           <div style="width:42px;height:42px;border-radius:50%;background:${sc}22;display:flex;align-items:center;justify-content:center;font-size:17px;font-weight:800;color:${sc};border:2px solid ${sc}44;flex-shrink:0">${p.name[0]}</div>
@@ -1648,7 +1676,7 @@ function renderPatients(){
         <div style="font-size:13px;color:#4a607d;margin-bottom:6px">${flag(p.country)} ${p.country||""}</div>
         ${evt?`<div style="font-size:11px;color:#3d5270;margin-bottom:4px">📅 ${evt.name}</div>`:""}
         <div style="font-size:12px;color:#3d5270">${p.phone||""}</div>
-        ${quote>0?`<div style="font-size:12px;color:#34d399;font-weight:700;margin-top:6px">${currSym()}${quote.toLocaleString()}</div>`:""}
+        ${quote>0?`<div style="font-size:12px;color:#34d399;font-weight:700;margin-top:6px">${ptSym}${quote.toLocaleString()}</div>`:""}
         ${p.consultation?.dentalConcerns?`<div style="font-size:11px;color:#4a607d;margin-top:7px;border-top:1px solid #1a2236;padding-top:7px;line-height:1.4;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical">${p.consultation.dentalConcerns}</div>`:""}
       </div>`;
     }).join("")}</div>
@@ -2871,19 +2899,21 @@ function renderEvents(){
         <table class="data-table" style="width:100%">
           <thead><tr><th>${t.aptPatient}</th><th>${t.fcountry}</th><th>${t.fstatus}</th><th>${t.quote}</th><th></th></tr></thead>
           <tbody>${pats.map(p=>{
-            const quote=patientActivePlanTotal(p);
+            const quote=patientActivePlanTotalWithCurrency(p);
+            const ptSym=CURR_SYM[p.booking?.currency||'GBP']||'£';
             return`<tr style="cursor:pointer" onclick="openPatient(${p.id})">
               <td><div style="font-weight:700;font-size:13px">${p.name}</div><div style="font-size:11px;color:#4a607d">${p.phone||""}</div></td>
               <td style="font-size:12px">${flag(p.country||"")} ${p.country||""}</td>
               <td>${statusBadge(p.status)}</td>
-              <td style="font-weight:700;color:${quote>0?'#34d399':'#3d5270'}">${quote>0?currSym()+quote.toLocaleString():"—"}</td>
+              <td style="font-weight:700;color:${quote>0?'#34d399':'#3d5270'}">${quote>0?ptSym+quote.toLocaleString():"—"}</td>
               <td><button class="sm-btn" onclick="event.stopPropagation();openPatient(${p.id})">→</button></td>
             </tr>`;
           }).join("")}</tbody>
         </table>`:`
         <div class="grid3">${pats.map(p=>{
           const sc=STATUS_COLORS[p.status]||"#4a607d";
-          const quote=patientActivePlanTotal(p);
+          const quote=patientActivePlanTotalWithCurrency(p);
+          const ptSym=CURR_SYM[p.booking?.currency||'GBP']||'£';
           return`<div class="card" style="cursor:pointer;transition:border-color .15s;border-color:#1a2236" onclick="openPatient(${p.id})" onmouseover="this.style.borderColor='#f97316'" onmouseout="this.style.borderColor='#1a2236'">
             <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px">
               <div style="width:40px;height:40px;border-radius:50%;background:${sc}22;display:flex;align-items:center;justify-content:center;font-size:17px;font-weight:800;color:${sc};border:2px solid ${sc}44;flex-shrink:0">${p.name[0]}</div>
@@ -2892,7 +2922,7 @@ function renderEvents(){
             <div style="font-weight:700;font-size:14px;margin-bottom:2px">${p.name}</div>
             <div style="font-size:13px;color:#4a607d;margin-bottom:4px">${flag(p.country||"")} ${p.country||""}</div>
             <div style="font-size:12px;color:#3d5270">${p.phone||""}</div>
-            ${quote>0?`<div style="font-size:12px;color:#34d399;font-weight:700;margin-top:6px">${currSym()}${quote.toLocaleString()}</div>`:""}
+            ${quote>0?`<div style="font-size:12px;color:#34d399;font-weight:700;margin-top:6px">${ptSym}${quote.toLocaleString()}</div>`:""}
             ${p.consultation?.dentalConcerns?`<div style="font-size:11px;color:#4a607d;margin-top:7px;border-top:1px solid #1a2236;padding-top:7px;line-height:1.4;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical">${p.consultation.dentalConcerns}</div>`:""}
           </div>`;
         }).join("")}</div>`}
