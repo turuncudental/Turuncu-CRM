@@ -2091,7 +2091,7 @@ function renderPtAssessment(p){
         <div style="border-top:2px solid #1a2236;margin:6px 0"></div>
         <div style="display:grid;grid-template-columns:1fr;gap:8px;margin:0 0 8px">
           <div style="background:#1a0d00;border:2px solid #f97316;border-radius:10px;padding:12px;text-align:center">
-            <div style="font-size:9px;color:#f97316;font-weight:700;letter-spacing:.5px;margin-bottom:6px">${t.cashLabel}</div>
+            <div style="font-size:9px;color:#f97316;font-weight:700;letter-spacing:.5px;margin-bottom:6px">${lang==='tr'?'TOPLAM ÖDEME':'TOTAL PAYMENT'}</div>
             <div style="font-size:16px;font-weight:900;color:#f97316">${currSym()}${balance.toLocaleString()}</div>
           </div>
         </div>
@@ -2626,7 +2626,7 @@ function renderPtBooking(p){
         <div style="border-top:2px solid #f97316;margin:8px 0"></div>
         <div style="display:grid;grid-template-columns:1fr;gap:8px;margin:0 0 8px">
           <div style="background:#1a0d00;border:2px solid #f97316;border-radius:10px;padding:12px;text-align:center">
-            <div style="font-size:9px;color:#f97316;font-weight:700;letter-spacing:.5px;margin-bottom:6px">${t.cashLabel}</div>
+            <div style="font-size:9px;color:#f97316;font-weight:700;letter-spacing:.5px;margin-bottom:6px">${lang==='tr'?'TOPLAM ÖDEME':'TOTAL PAYMENT'}</div>
             <div style="font-size:16px;font-weight:900;color:#f97316">${currSym()}${balance.toLocaleString()}</div>
           </div>
         </div>
