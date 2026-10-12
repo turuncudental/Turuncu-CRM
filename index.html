@@ -3916,15 +3916,16 @@ async function downloadQuotePDF(patientId,_noWarn=false){
         ${b.discount?`<div class="qp-price" style="display:flex;justify-content:space-between;padding:7px 12px;background:#f8f9fa;border:1px solid #e9ecef;border-bottom:none;border-radius:4px 4px 0 0"><span style="font-size:11px;color:#777">${t.subtotal}</span><span style="font-size:12px;font-weight:600">${currSym()}${sub.toLocaleString()}</span></div>`:""}
         <div style="display:grid;grid-template-columns:${b.showCard===false?'1fr':'1fr 1fr'};gap:10px;margin-top:6px;margin-bottom:8px">
           <div style="background:#fff7ed;border:2px solid #f97316;border-radius:8px;padding:12px;text-align:center">
-            <div style="font-size:9px;color:#9a3412;font-weight:700;letter-spacing:.5px;margin-bottom:6px">💵 CASH</div>
-            <div style="font-size:18px;font-weight:900;color:#c2410c">${currSym()}${balance.toLocaleString()}</div>
+            <div style="font-size:9px;color:#9a3412;font-weight:700;letter-spacing:.5px;margin-bottom:6px">${lang==='tr'?'TOPLAM ÜCRET':'TOTAL PRICE'}</div>
+            <div style="font-size:18px;font-weight:900;color:#c2410c">${currSym()}${sub.toLocaleString()}</div>
           </div>
           ${b.showCard===false?'':`<div style="background:#eff6ff;border:2px solid #3b5bdb;border-radius:8px;padding:12px;text-align:center">
             <div style="font-size:9px;color:#1e40af;font-weight:700;letter-spacing:.5px;margin-bottom:6px">💳 CARD (+2%)</div>
             <div style="font-size:18px;font-weight:900;color:#1d4ed8">${currSym()}${Math.round(balance*1.02).toLocaleString()}</div>
           </div>`}
         </div>
-        ${b.discount?`<div style="display:flex;justify-content:space-between;padding:7px 12px;background:#fff8f0;border:1px solid #fed7aa;border-radius:4px;margin-bottom:6px"><span style="font-size:11px;color:#92400e;font-weight:600">${lang==='tr'?'Yapılan İndirim':'Applied Discount'}</span><span style="font-size:12px;font-weight:700;color:#c2410c">−${currSym()}${(b.discount).toLocaleString()}${b.discountRate>0?` (%${b.discountRate})`:''}  →  ${currSym()}${total.toLocaleString()}</span></div>`:""}
+        ${b.discount?`<div style="display:flex;justify-content:space-between;padding:7px 12px;background:#fff8f0;border:1px solid #fed7aa;border-radius:4px;margin-bottom:6px"><span style="font-size:11px;color:#92400e;font-weight:600">${lang==='tr'?'İndirim':'Discount'}</span><span style="font-size:12px;font-weight:700;color:#c2410c">−${currSym()}${(b.discount).toLocaleString()}</span></div>`:""}
+        ${b.discount?`<div style="display:flex;justify-content:space-between;align-items:center;padding:10px 14px;background:#fff7ed;border:2px solid #f97316;border-radius:6px;margin-bottom:6px"><span style="font-size:10px;color:#9a3412;font-weight:800;letter-spacing:.8px;text-transform:uppercase">${lang==='tr'?'ÖDENMESİ GEREKEN TUTAR':'AMOUNT DUE'}</span><span style="font-size:16px;font-weight:900;color:#c2410c">${currSym()}${balance.toLocaleString()}</span></div>`:""}
         <div style="display:flex;justify-content:space-between;padding:7px 12px;background:#f0fff4;border:1px solid #c6f6d5;border-radius:4px;margin-bottom:6px"><span style="font-size:11px;color:#166534;font-weight:600">${t.depositReceived}</span><span style="font-size:12px;font-weight:700;color:#166534">${currSym()}${(b.deposit||0).toLocaleString()}</span></div>
         ${hasImplantInPlan(p)?(()=>{const _v1=b.visitSplit||60;const _v2=100-_v1;const _a1=b.visitSplitAmount!=null?b.visitSplitAmount:Math.round(balance*_v1/100);const _a2=balance-_a1;return`<div style="border-top:2px solid #e9ecef;margin:8px 0 6px"></div>
         <div style="font-size:9px;font-weight:700;color:#f97316;letter-spacing:1px;margin-bottom:8px">${t.twoVisitPlan}</div>
@@ -4081,15 +4082,16 @@ async function openTreatmentBrochure(patientId){
         ${b.discount?`<div style="display:flex;justify-content:space-between;padding:7px 12px;background:#f8f9fa;border:1px solid #e9ecef;border-bottom:none;border-radius:4px 4px 0 0"><span style="font-size:11px;color:#777">${t.subtotal}</span><span style="font-size:12px;font-weight:600">${cs}${sub.toLocaleString()}</span></div>`:''}
         <div style="display:grid;grid-template-columns:${b.showCard===false?'1fr':'1fr 1fr'};gap:10px;margin-top:6px;margin-bottom:8px">
           <div style="background:#fff7ed;border:2px solid #f97316;border-radius:8px;padding:12px;text-align:center">
-            <div style="font-size:9px;color:#9a3412;font-weight:700;letter-spacing:.5px;margin-bottom:6px">💵 CASH</div>
-            <div style="font-size:18px;font-weight:900;color:#c2410c">${cs}${balance.toLocaleString()}</div>
+            <div style="font-size:9px;color:#9a3412;font-weight:700;letter-spacing:.5px;margin-bottom:6px">${isTR?'TOPLAM ÜCRET':'TOTAL PRICE'}</div>
+            <div style="font-size:18px;font-weight:900;color:#c2410c">${cs}${sub.toLocaleString()}</div>
           </div>
           ${b.showCard===false?'':`<div style="background:#eff6ff;border:2px solid #3b5bdb;border-radius:8px;padding:12px;text-align:center">
             <div style="font-size:9px;color:#1e40af;font-weight:700;letter-spacing:.5px;margin-bottom:6px">💳 CARD (+2%)</div>
             <div style="font-size:18px;font-weight:900;color:#1d4ed8">${cs}${Math.round(balance*1.02).toLocaleString()}</div>
           </div>`}
         </div>
-        ${b.discount?`<div style="display:flex;justify-content:space-between;padding:7px 12px;background:#fff8f0;border:1px solid #fed7aa;border-radius:4px;margin-bottom:6px"><span style="font-size:11px;color:#92400e;font-weight:600">${isTR?'Yapılan İndirim':'Applied Discount'}</span><span style="font-size:12px;font-weight:700;color:#c2410c">−${cs}${(b.discount).toLocaleString()}${b.discountRate>0?` (%${b.discountRate})`:''}  →  ${cs}${total.toLocaleString()}</span></div>`:''}
+        ${b.discount?`<div style="display:flex;justify-content:space-between;padding:7px 12px;background:#fff8f0;border:1px solid #fed7aa;border-radius:4px;margin-bottom:6px"><span style="font-size:11px;color:#92400e;font-weight:600">${isTR?'İndirim':'Discount'}</span><span style="font-size:12px;font-weight:700;color:#c2410c">−${cs}${(b.discount).toLocaleString()}</span></div>`:''}
+        ${b.discount?`<div style="display:flex;justify-content:space-between;align-items:center;padding:10px 14px;background:#fff7ed;border:2px solid #f97316;border-radius:6px;margin-bottom:6px"><span style="font-size:10px;color:#9a3412;font-weight:800;letter-spacing:.8px;text-transform:uppercase">${isTR?'ÖDENMESİ GEREKEN TUTAR':'AMOUNT DUE'}</span><span style="font-size:16px;font-weight:900;color:#c2410c">${cs}${balance.toLocaleString()}</span></div>`:''}
         <div style="display:flex;justify-content:space-between;padding:7px 12px;background:#f0fff4;border:1px solid #c6f6d5;border-radius:4px;margin-bottom:6px"><span style="font-size:11px;color:#166534;font-weight:600">${t.depositReceived}</span><span style="font-size:12px;font-weight:700;color:#166534">${cs}${(b.deposit||0).toLocaleString()}</span></div>
         ${hasImplantInPlan(p)?(()=>{const _v1=b.visitSplit||60;const _v2=100-_v1;const _a1=b.visitSplitAmount!=null?b.visitSplitAmount:Math.round(balance*_v1/100);const _a2=balance-_a1;return`<div style="border-top:2px solid #e9ecef;margin:8px 0 6px"></div>
         <div style="font-size:9px;font-weight:700;color:#f97316;letter-spacing:1px;margin-bottom:8px">${t.twoVisitPlan}</div>
