@@ -2053,7 +2053,7 @@ function renderPtAssessment(p){
       <div style="display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap">
         <select id="pb-travel-sel" style="background:#131b2a;border:1px solid #1a2236;border-radius:8px;padding:6px 10px;color:#dde4ef;font-size:12px;outline:none;flex:1;min-width:180px">
           <option value="">${t.selectTransport}</option>
-          ${activeTrv.map(tr=>`<option value="${tr.id}">${tr.name} (${tr.category}) — ${currSym()}${getEffectivePrice(tr)||tr.salePrice}${t.perPax}</option>`).join("")}
+          ${activeTrv.map(tr=>`<option value="${tr.id}">${tr.name} — ${currSym()}${getEffectivePrice(tr)||tr.salePrice}</option>`).join("")}
         </select>
         <div style="display:flex;align-items:center;gap:6px">
           <input type="number" id="pb-travel-persons" min="1" value="1" style="${inStyle};width:54px"/>
@@ -2587,7 +2587,7 @@ function renderPtBooking(p){
       <div style="display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap">
         <select id="pb-travel-sel" style="background:#131b2a;border:1px solid #1a2236;border-radius:8px;padding:6px 10px;color:#dde4ef;font-size:12px;outline:none;flex:1;min-width:180px">
           <option value="">${t.selectTransport}</option>
-          ${activeTr.map(tr=>`<option value="${tr.id}">${tr.name} (${tr.category}) — ${currSym()}${getEffectivePrice(tr)||tr.salePrice}${t.perPax}</option>`).join("")}
+          ${activeTr.map(tr=>`<option value="${tr.id}">${tr.name} — ${currSym()}${getEffectivePrice(tr)||tr.salePrice}</option>`).join("")}
         </select>
         <div style="display:flex;align-items:center;gap:6px">
           <input type="number" id="pb-travel-persons" min="1" value="1" style="${inStyle};width:54px"/>
