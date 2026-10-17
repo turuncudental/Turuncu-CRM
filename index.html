@@ -869,6 +869,8 @@ const undoStack=[];
 let currentUser=null;
 let currentTab="dashboard",searchQuery="",charts={},adminNavOpen=false;
 let currentPatientId=null,currentPtTab="consultation",ptFormDirty=false;
+let reportPeriod='all';
+let monthlyTarget=+localStorage.getItem('crm_monthly_target')||0;
 let activeCompanyId=null,allCompaniesMode=false;
 function markPtDirty(){ptFormDirty=true;}
 let selectedEventId=null;
@@ -1532,7 +1534,7 @@ function render(){
 }
 function renderTopbarActions(){
   const el=document.getElementById("topbar-actions");let html="";
-  if(canEdit()&&currentTab==="patients")html=`<div style="display:flex;gap:6px;align-items:center"><button onclick="patientViewMode=patientViewMode==='grid'?'list':'grid';render()" style="padding:6px 10px;border-radius:8px;border:1px solid #1a2236;background:#1a2236;color:#dde4ef;font-size:15px;cursor:pointer;line-height:1" title="${patientViewMode==='grid'?t.listView:t.gridView}">${patientViewMode==='grid'?'≡':'⊞'}</button><button class="btn" onclick="openPatientModal(0)">${t.addPatient}</button></div>`;
+  if(canEdit()&&currentTab==="patients")html=`<div style="display:flex;gap:6px;align-items:center"><button onclick="patientViewMode=patientViewMode==='grid'?'list':'grid';render()" style="padding:6px 10px;border-radius:8px;border:1px solid #1a2236;background:#1a2236;color:#dde4ef;font-size:15px;cursor:pointer;line-height:1" title="${patientViewMode==='grid'?t.listView:t.gridView}">${patientViewMode==='grid'?'≡':'⊞'}</button><button class="btn" onclick="downloadPatientsCSV()" style="background:#1a2236;color:#60a5fa;border:1px solid #1a3040">⬇ CSV</button><button class="btn" onclick="openPatientModal(0)">${t.addPatient}</button></div>`;
   else if(canEdit()&&currentTab==="events")html=currentEventDetailId?`<button class="btn" onclick="openPatientModal(0,${currentEventDetailId})">${t.addPatient}</button>`:`<button class="btn" onclick="openEventModal(0)">${t.addEvent}</button>`;
   else if(canEdit()&&currentTab==="appointments")html=`<button class="btn" onclick="openAppointmentModal()">${t.addAppointment}</button>`;
   else if(canEdit()&&currentTab==="treatments"){
@@ -1563,7 +1565,12 @@ function renderDashboard(){
   const conv=total?Math.round(booked/total*100):0;
   const today=new Date().toISOString().slice(0,10);
   const upcomingEvts=activeEvts.filter(e=>e.active&&(e.dateEnd||e.dateStart||e.date||"")>=today).length;
-  const totalRev=activePts.filter(p=>p.status==="booked").reduce((s,p)=>s+patientActivePlanTotal(p),0);
+  const totalRev=activePts.filter(p=>p.status==="booked"||p.status==="deposit").reduce((s,p)=>s+patientActivePlanTotal(p),0);
+  const todayStr=today;
+  const followUps=activePts.filter(p=>p.nextFollowUp===todayStr).length;
+  const thisMonth=today.slice(0,7);
+  const monthRevenue=activePts.filter(p=>(p.status==='booked'||p.status==='deposit')&&(p.createdAt||'').slice(0,7)===thisMonth).reduce((s,p)=>s+patientActivePlanTotal(p),0);
+  const targetPct=monthlyTarget>0?Math.min(100,Math.round(monthRevenue/monthlyTarget*100)):0;
 
   // find next upcoming event for live stats
   const nextEvt=activeEvts.filter(e=>e.active&&(e.dateEnd||e.dateStart||e.date||"")>=today).sort((a,b)=>(a.dateStart||a.date||"").localeCompare(b.dateStart||b.date||""))[0]||activeEvts[0];
@@ -1583,10 +1590,13 @@ function renderDashboard(){
 
   return`<div style="display:flex;flex-direction:column;gap:18px">
     <div class="grid4">
-      <div class="card"><div class="kpi-val" style="color:#60a5fa">${total}</div><div class="kpi-lbl">${t.totalPatients}</div><div class="kpi-sub">${state.patients.filter(p=>p.status==="consultation").length} ${t.consultationCount}</div></div>
+      <div class="card"><div class="kpi-val" style="color:#60a5fa">${total}</div><div class="kpi-lbl">${t.totalPatients}</div><div class="kpi-sub">${activePts.filter(p=>p.status==="walkin").length} Walk-in</div></div>
       <div class="card"><div class="kpi-val" style="color:#a78bfa">${upcomingEvts}</div><div class="kpi-lbl">${t.upcomingEvents}</div><div class="kpi-sub">${state.events.length} ${t.totalEventsCount}</div></div>
-      <div class="card"><div class="kpi-val" style="color:#f59e0b">%${conv}</div><div class="kpi-lbl">${t.convRate}</div><div class="kpi-sub">${booked} / ${total} ${t.footerPatients}</div></div>
-      <div class="card"><div class="kpi-val" style="color:#34d399">${currSym()}${totalRev.toLocaleString()}</div><div class="kpi-lbl">${t.totalRevenue}</div><div class="kpi-sub">${booked} ${t.footerBooked}</div></div>
+      <div class="card" style="cursor:pointer" onclick="setFilterStatus('all');setTab('patients')"><div class="kpi-val" style="color:#f97316">${followUps}</div><div class="kpi-lbl">${lang==='tr'?'Bugün Takip':'Follow-ups Today'}</div><div class="kpi-sub">${lang==='tr'?'Tıkla → Hastalar':'Click → Patients'}</div></div>
+      <div class="card"><div class="kpi-val" style="color:#34d399">${currSym()}${totalRev.toLocaleString()}</div><div class="kpi-lbl">${t.totalRevenue}</div>
+        ${monthlyTarget>0?`<div style="margin-top:6px"><div style="display:flex;justify-content:space-between;font-size:10px;color:#4a607d;margin-bottom:3px"><span>${lang==='tr'?'Aylık Hedef':'Monthly Target'}: ${currSym()}${monthlyTarget.toLocaleString()}</span><span>${targetPct}%</span></div><div style="background:#1a2236;border-radius:4px;height:5px"><div style="background:#34d399;width:${targetPct}%;height:5px;border-radius:4px"></div></div></div>`:`<div class="kpi-sub">${booked} ${t.footerBooked}</div>`}
+        ${canManageUsers()?`<input type="number" placeholder="${lang==='tr'?'Aylık hedef...':'Monthly target...'}" value="${monthlyTarget||''}" onchange="monthlyTarget=+this.value;localStorage.setItem('crm_monthly_target',monthlyTarget);render()" style="margin-top:4px;background:#0d1320;border:1px solid #1a2236;border-radius:6px;padding:3px 7px;color:#4a607d;font-size:11px;width:100%;box-sizing:border-box"/>`:''}
+      </div>
     </div>
     ${nextEvt?`<div class="card">
       <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px">
@@ -1650,11 +1660,13 @@ function renderPatients(){
     return`<div>
       ${statusBar}
       <table class="data-table" style="width:100%">
-        <thead><tr>${th('name',t.aptPatient)}${th('country',t.fcountry)}${th('event',t.eventSingle)}${th('status',t.fstatus)}${th('quote',t.quote)}<th></th></tr></thead>
+        <thead><tr>${th('name',t.aptPatient)}${th('country',t.fcountry)}${th('event',t.eventSingle)}${th('status',t.fstatus)}${th('quote',t.quote)}<th>${lang==='tr'?'Geliş':'Arrival'}</th><th>${lang==='tr'?'Kayıt':'Reg.'}</th><th></th></tr></thead>
         <tbody>${sortedList.map(p=>{
           const evt=getEvent(p.eventId);
           const quote=patientActivePlanTotalWithCurrency(p);
           const ptSym=CURR_SYM[p.booking?.currency||'GBP']||'£';
+          const arrFmt=p.arrivalDate?new Date(p.arrivalDate).toLocaleDateString('tr-TR',{day:'2-digit',month:'2-digit'}):'—';
+          const regFmt=p.createdAt?new Date(p.createdAt).toLocaleDateString('tr-TR',{day:'2-digit',month:'2-digit'}):'—';
           return`<tr style="cursor:pointer" onclick="openPatient(${p.id})">
             <td>
               <div style="font-weight:700;font-size:13px">${p.name}</div>
@@ -1664,6 +1676,8 @@ function renderPatients(){
             <td style="font-size:12px;color:#3d5270">${evt?evt.name:"—"}</td>
             <td>${statusBadge(p.status)}</td>
             <td style="font-weight:700;color:${quote>0?'#34d399':'#3d5270'}">${quote>0?ptSym+quote.toLocaleString():"—"}</td>
+            <td style="font-size:11px;color:#60a5fa;font-weight:600">${arrFmt}</td>
+            <td style="font-size:11px;color:#4a607d">${regFmt}</td>
             <td><button class="sm-btn" onclick="event.stopPropagation();openPatient(${p.id})">→</button></td>
           </tr>`;
         }).join("")}</tbody>
@@ -1711,7 +1725,8 @@ function closePatient(){
 function renderPatientOverlay(){
   const p=getPatient(currentPatientId);if(!p)return;
   document.getElementById("pt-name").textContent=p.name;
-  document.getElementById("pt-meta").textContent=`${flag(p.country)} ${p.country||""} · ${getEvent(p.eventId)?.name||"—"} · ${p.phone||""}`;
+  const _phone=p.phone||'';const _waLink=_phone?` <a href="https://wa.me/${_phone.replace(/[^0-9]/g,'')}" target="_blank" style="color:#25d366;text-decoration:none;font-weight:700" title="WhatsApp">💬</a>`:'';
+  document.getElementById("pt-meta").innerHTML=`${flag(p.country)} ${p.country||""} · ${getEvent(p.eventId)?.name||"—"} · ${_phone}${_waLink}`;
   const _psb=document.getElementById("pt-status-badge");if(_psb)_psb.innerHTML=statusBadge(p.status);
   const tabs=canSeePlanning()?["consultation","assessment","notes","files"]:["consultation","notes","files"];
   document.getElementById("pt-tabs").innerHTML=tabs.map(tab=>`<button class="pt-tab${currentPtTab===tab?" active":""}" onclick="setPtTab('${tab}')">${t["tab"+tab.charAt(0).toUpperCase()+tab.slice(1)]}</button>`).join("");
@@ -1740,8 +1755,11 @@ async function saveConsultationSilent(){
   p.nationality=document.getElementById("pc-nationality")?.value||"";
   p.referral=document.getElementById("pc-referral")?.value?.trim()||"";
   p.city=document.getElementById("pc-city")?.value?.trim()||"";
-  p.status=document.getElementById("pc-status")?.value||p.status;
+  const _newStatus=document.getElementById("pc-status")?.value||p.status;
+  if(_newStatus!==p.status){if(!p.statusHistory)p.statusHistory=[];p.statusHistory.push({from:p.status,to:_newStatus,at:new Date().toISOString(),by:currentUser?.username||''});}
+  p.status=_newStatus;
   if(p.status!==_oldStatus)logAction('status_change',`${p.name}: ${_oldStatus} → ${p.status}`);
+  p.arrivalDate=document.getElementById("pc-arrival")?.value||p.arrivalDate||null;
   p.eventId=+document.getElementById("pc-eventId")?.value||null;
   if(!p.consultation)p.consultation={};
   p.consultation.dentalConcerns=document.getElementById("pc-dentalConcerns")?.value||"";
@@ -1801,11 +1819,15 @@ function renderPtConsultation(p){
       <div class="field"><label>${t.fcity}</label>${cityAutocompleteHTML("pc-city",p.city||"","pc-nationality")}</div>
       <div class="field-row">
         <div class="field"><label>${t.fcountry}</label><select id="pc-nationality">${countryOpts(p.country||p.nationality||"")}</select></div>
-        <div class="field"><label>${t.freferral}</label><input id="pc-referral" value="${p.referral||""}"/></div>
+        <div class="field"><label>${t.freferral}</label><select id="pc-referral" style="background:#131b2a;border:1px solid #1a2236;border-radius:8px;padding:8px 10px;color:#dde4ef;font-size:13px;outline:none;width:100%">${["","Instagram","TikTok","Facebook","Google","YouTube","Hasta Referansı","Fuar / Etkinlik","TV / Medya","Web Sitesi","Diğer"].map(v=>`<option value="${v}"${(p.referral||'')===v?' selected':''}>${v||'— Kaynak Seç —'}</option>`).join('')}</select></div>
       </div>
       <div class="field-row">
         <div class="field"><label>${t.fstatus}</label><select id="pc-status">${statusOpts}</select></div>
         <div class="field"><label>${t.fevent}</label><select id="pc-eventId"><option value="">—</option>${evtOpts}</select></div>
+      </div>
+      <div class="field-row">
+        <div class="field"><label>✈️ ${lang==='tr'?'Geliş Tarihi':'Arrival Date'}</label><input type="date" id="pc-arrival" value="${p.arrivalDate||''}" oninput="markPtDirty()"/></div>
+        <div class="field"><label>📅 ${lang==='tr'?'Sonraki Takip':'Next Follow-up'}</label><input type="date" id="pc-followup" value="${p.nextFollowUp||''}" onchange="updateFollowUp(this.value)"/></div>
       </div>
     </div>
     <div class="card">
@@ -1824,6 +1846,7 @@ function renderPtConsultation(p){
         <label style="display:flex;align-items:center;gap:7px;cursor:pointer;font-size:13px"><input type="checkbox" id="pc-diabetes" ${c.diabetes?"checked":""} style="accent-color:#f97316;width:15px;height:15px"/> ${t.diabetes}</label>
       </div>
       <div class="field"><label>${t.consultNotes}</label><textarea id="pc-notes" rows="2">${c.notes||""}</textarea></div>
+      ${(p.statusHistory&&p.statusHistory.length>0)?`<div style="margin-top:12px"><div style="font-size:11px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">Durum Geçmişi</div><div style="display:flex;flex-direction:column;gap:4px">${(p.statusHistory).slice(-5).reverse().map(h=>`<div style="display:flex;align-items:center;gap:8px;font-size:12px;color:#cbd5e1"><span style="color:#64748b">${h.at?new Date(h.at).toLocaleDateString('tr-TR',{day:'2-digit',month:'2-digit',year:'2-digit'}):'—'}</span><span style="color:#64748b">${h.by||''}</span><span style="background:${STATUS_COLORS[h.from]||'#475569'};color:#fff;padding:1px 6px;border-radius:999px;font-size:11px">${statusLabel(h.from)}</span><span style="color:#475569">→</span><span style="background:${STATUS_COLORS[h.to]||'#475569'};color:#fff;padding:1px 6px;border-radius:999px;font-size:11px">${statusLabel(h.to)}</span></div>`).join('')}</div></div>`:''}
     </div>
   </div>`;
 }
@@ -3062,12 +3085,38 @@ function renderTreatments(){
   </div>`;
 }
 
+function getReportDateRange(){
+  const now=new Date();
+  if(reportPeriod==='thisMonth')return[new Date(now.getFullYear(),now.getMonth(),1),now];
+  if(reportPeriod==='thisQuarter'){const q=Math.floor(now.getMonth()/3);return[new Date(now.getFullYear(),q*3,1),now];}
+  if(reportPeriod==='thisYear')return[new Date(now.getFullYear(),0,1),now];
+  return[new Date('2000-01-01'),now];
+}
+function inReportRange(dateStr){
+  if(!dateStr)return reportPeriod==='all';
+  const[start,end]=getReportDateRange();const d=new Date(dateStr);return d>=start&&d<=end;
+}
+function renderFunnelSection(patients){
+  const order=['walkin','assessed','pricing','hot','deposit','booked'];
+  const counts=order.map(s=>patients.filter(p=>p.status===s).length);
+  const total=counts[0]||1;
+  return`<div class="card" style="margin-bottom:0">
+    <div class="section-title">🔽 ${lang==='tr'?'Dönüşüm Hunisi':'Conversion Funnel'}</div>
+    ${order.map((s,i)=>{const count=counts[i];const pct=Math.round(count/total*100);const prev=i>0?counts[i-1]||1:total;const conv=i===0?100:Math.round(count/prev*100);const c=STATUS_COLORS[s]||'#4a607d';return`<div style="margin-bottom:10px"><div style="display:flex;justify-content:space-between;margin-bottom:4px"><span style="font-size:12px;font-weight:600;color:#dde4ef">${statusLabel(s)}</span><span style="font-size:12px;color:#4a607d">${count}${i>0?` · %${conv} dönüşüm`:''}</span></div><div style="background:#1a2236;border-radius:4px;height:8px"><div style="background:${c};width:${pct}%;height:8px;border-radius:4px;transition:width .3s"></div></div></div>`;}).join('')}
+  </div>`;
+}
 function renderReports(){
-  const total=state.patients.length;
-  const booked=state.patients.filter(p=>p.status==="booked").length;
-  const totalRev=state.patients.filter(p=>p.status==="booked").reduce((s,p)=>s+patientActivePlanTotal(p),0);
+  const periodBtns=[['thisMonth',lang==='tr'?'Bu Ay':'This Month'],['thisQuarter',lang==='tr'?'Bu Çeyrek':'This Quarter'],['thisYear',lang==='tr'?'Bu Yıl':'This Year'],['all',lang==='tr'?'Tüm Zamanlar':'All Time']];
+  const filteredPts=state.patients.filter(p=>!p.deleted&&inReportRange(p.createdAt));
+  const total=filteredPts.length;
+  const booked=filteredPts.filter(p=>p.status==="booked"||p.status==="deposit").length;
+  const totalRev=filteredPts.filter(p=>p.status==="booked"||p.status==="deposit").reduce((s,p)=>s+patientActivePlanTotal(p),0);
   const avg=booked?Math.round(totalRev/booked):0;
   return`<div style="display:flex;flex-direction:column;gap:18px">
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
+      ${periodBtns.map(([v,l])=>`<button onclick="reportPeriod='${v}';render()" style="padding:6px 14px;border-radius:20px;border:1px solid ${reportPeriod===v?'#f97316':'#1a2236'};background:${reportPeriod===v?'#f9731618':'#131b2a'};color:${reportPeriod===v?'#f97316':'#4a607d'};font-size:12px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif">${l}</button>`).join('')}
+    </div>
+    ${renderFunnelSection(filteredPts)}
     <div class="grid2">
       <div class="card"><div class="section-title">${t.patientsByStatus}</div><canvas id="statusChart" height="200"></canvas></div>
       <div class="card"><div class="section-title">${t.revenueByCategory}</div><canvas id="catChart" height="200"></canvas></div>
@@ -3320,9 +3369,12 @@ function renderSnapshots(){
   const tbl={customers:t.navPatients||"Hastalar",deals:t.navEvents||"Etkinlikler",tasks:t.navAppointments||"Randevular",history:t.navTreatments||"Tedaviler"};
   const emptyMsg=!snaps.length?`<div class="empty" style="padding:40px 0"><div style="font-size:32px;margin-bottom:12px">💾</div><div style="font-size:14px;color:#3d5270">${t.noSnapshots||"Henüz yedek yok"}</div></div>`:'';
   return`<div style="max-width:780px">
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:8px">
       <div style="font-size:13px;color:#4a607d">${lang==='tr'?'Yedekler otomatik olarak kaydedilir. Manuel yedek almak için aşağıdaki butona basın.':'Backups are saved automatically. Press the button below to take a manual backup.'}</div>
-      <button class="btn" style="white-space:nowrap;font-size:12px" onclick="manualSnapshot()">💾 ${lang==='tr'?'Manuel Yedek Al':'Take Manual Backup'}</button>
+      <div style="display:flex;gap:8px">
+        <button class="btn" style="white-space:nowrap;font-size:12px;background:#1a2236;color:#60a5fa;border:1px solid #1a3040" onclick="downloadFullBackup()">⬇ ${lang==='tr'?'Tüm Veriyi İndir (JSON)':'Download All Data (JSON)'}</button>
+        <button class="btn" style="white-space:nowrap;font-size:12px" onclick="manualSnapshot()">💾 ${lang==='tr'?'Manuel Yedek Al':'Take Manual Backup'}</button>
+      </div>
     </div>
     ${emptyMsg}
     <div style="display:flex;flex-direction:column;gap:8px">${snaps.map(s=>{
@@ -3336,6 +3388,21 @@ function renderSnapshots(){
       </div>`;
     }).join("")}</div>
   </div>`;
+}
+function downloadPatientsCSV(){
+  const headers=['Ad Soyad','Ülke','Telefon','Durum','Etkinlik','Geliş Tarihi','Referans','Teklif','Kayıt Tarihi'];
+  const rows=state.patients.filter(p=>!p.deleted).map(p=>[p.name||'',p.country||'',p.phone||'',statusLabel(p.status||''),getEvent(p.eventId)?.name||'',p.arrivalDate||'',p.referral||'',patientActivePlanTotal(p)||0,(p.createdAt||'').slice(0,10)].map(v=>'"'+String(v).replace(/"/g,'""')+'"').join(','));
+  const csv=[headers.join(','),...rows].join('\n');
+  const blob=new Blob(['﻿'+csv],{type:'text/csv;charset=utf-8'});
+  const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download=`hastalar_${new Date().toISOString().slice(0,10)}.csv`;a.click();URL.revokeObjectURL(url);
+  toast(lang==='tr'?'CSV indirildi ✓':'CSV downloaded ✓');
+}
+function downloadFullBackup(){
+  const data={exportedAt:new Date().toISOString(),patients:state.patients,events:state.events,appointments:state.appointments,treatments:state.treatments};
+  const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');a.href=url;a.download=`crm_backup_${new Date().toISOString().slice(0,10)}.json`;a.click();URL.revokeObjectURL(url);
+  toast(lang==='tr'?'Yedek indirildi ✓':'Backup downloaded ✓');
 }
 async function manualSnapshot(){
   if(!activeCompanyId){toast(lang==='tr'?'Şirket seçili değil':'No company selected','err');return;}
@@ -3535,6 +3602,7 @@ function updateBookingItemPrice(arr,idx,field,val){
   p.booking[arr][idx][field]=Math.max(0,val||0);markPtDirty();debouncedPersist("customers");renderPtBody();
 }
 let _discountRerendering=false;
+function updateFollowUp(val){const p=getPatient(currentPatientId);if(!p)return;p.nextFollowUp=val||null;markPtDirty();debouncedPersist("customers");}
 function updateBookingDiscount(val){const p=getPatient(currentPatientId);if(!p?.booking)return;p.booking.discount=val||0;p.booking.discountRate=0;_discountRerendering=true;markPtDirty();renderPtBody();setTimeout(()=>{_discountRerendering=false;},150);}
 function updateBookingDeposit(val){if(_discountRerendering)return;const p=getPatient(currentPatientId);if(!p?.booking)return;p.booking.deposit=val||0;markPtDirty();debouncedPersist("customers");renderPtBody();}
 function updateBookingDiscountRate(rate,sub){const p=getPatient(currentPatientId);if(!p?.booking)return;p.booking.discountRate=rate||0;p.booking.discount=rate>0?Math.round(sub*rate/100):0;if(rate>0)logAction('discount_applied',`${p.name} — %${rate} (${currSym()}${p.booking.discount})`);_discountRerendering=true;markPtDirty();debouncedPersist("customers");renderPtBody();setTimeout(()=>{_discountRerendering=false;},150);}
