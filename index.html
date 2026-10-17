@@ -3811,6 +3811,82 @@ function togglePdfPrices(){
   s.textContent=hidden?'':'.qp-price{display:none!important}';
   document.getElementById('quote-toggle-prices').textContent=hidden?t.hidePrices:t.showPrices;
 }
+function buildQuoteChartHTML(p,useLang){
+  const a=p.assessment||{};
+  const planKey=a.activePlan||'treatmentPlan';
+  const chart=a[planKey]||{};
+  const W=20,H=41;
+  function qTooth(num){
+    const cond=chart[num]||"healthy";
+    const isMissing=cond==="missing";
+    const isHealthy=!chart[num]||cond==="healthy";
+    const condColor=TOOTH_COLORS[cond]||"transparent";
+    const svgKey=getToothSVGKey(num);
+    const sh=TOOTH_SVG_DATA[svgKey];
+    const isUpper=num>=11&&num<=28;
+    if(!sh)return'';
+    let svg='';
+    const isCompound=typeof cond==='string'&&cond.startsWith("implant+");
+    const isImplant=cond==='implant'||isCompound;
+    if(isHealthy&&!isMissing){
+      const img=TOOTH_IMAGES[svgKey];if(!img)return'';
+      const ix=(34-img.w)/2;
+      svg=`<image href="data:image/png;base64,${img.d}" x="${ix.toFixed(1)}" y="1" width="${img.w}" height="${img.h}"/>`;
+    }else if(isImplant){
+      const img=TOOTH_IMAGES[svgKey];if(!img)return'';
+      const tix=(34-img.w)/2;const maskId=`qm${num}`;
+      const maskRect=isUpper?`<rect x="0" y="${sh.gY}" width="34" height="${70-sh.gY}" fill="white"/>` :`<rect x="0" y="0" width="34" height="${sh.gY}" fill="white"/>`;
+      const defs=`<defs><mask id="${maskId}">${maskRect}</mask></defs>`;
+      const crownImg=`<image href="data:image/png;base64,${img.d}" x="${tix.toFixed(1)}" y="1" width="${img.w}" height="${img.h}" mask="url(#${maskId})"/>`;
+      const iw=32;const ihNat=Math.round(IMPLANT_IMG.h*(iw/IMPLANT_IMG.w));
+      const six=(34-iw)/2;const siy=isUpper?sh.gY-ihNat:sh.gY;
+      const flip=isUpper?`transform="translate(${(six+iw/2).toFixed(1)},${(siy+ihNat/2).toFixed(1)}) scale(1,-1) translate(${-(six+iw/2).toFixed(1)},${-(siy+ihNat/2).toFixed(1)})"` :'';
+      const screwEl=`<image href="data:image/png;base64,${IMPLANT_IMG.d}" x="${six.toFixed(1)}" y="${siy.toFixed(1)}" width="${iw}" height="${ihNat}" ${flip}/>`;
+      if(isCompound){svg=defs+crownImg+screwEl+`<path d="${sh.crown}" fill="#e2e8f0ee" stroke="#94a3b8" stroke-width="0.8"/>`;}
+      else{svg=defs+crownImg+screwEl;}
+    }else if(isMissing||cond==='extraction'){
+      const col=cond==='extraction'?'#ef4444':'#9ca3af';
+      svg=`<line x1="14" y1="27" x2="20" y2="43" stroke="${col}" stroke-width="2.5" stroke-linecap="round"/><line x1="20" y1="27" x2="14" y2="43" stroke="${col}" stroke-width="2.5" stroke-linecap="round"/>`;
+    }else if(cond==='cavity'){
+      const img=TOOTH_IMAGES[svgKey];if(!img)return'';
+      const ix=(34-img.w)/2;
+      svg=`<image href="data:image/png;base64,${img.d}" x="${ix.toFixed(1)}" y="1" width="${img.w}" height="${img.h}"/><path d="${sh.crown}" fill="${condColor}bb" stroke="${condColor}" stroke-width="0.8"/>`;
+    }else if(cond==='zircrown'){
+      const img=TOOTH_IMAGES[svgKey];if(!img)return'';
+      const ix=(34-img.w)/2;
+      svg=`<image href="data:image/png;base64,${img.d}" x="${ix.toFixed(1)}" y="1" width="${img.w}" height="${img.h}"/><path d="${sh.crown}" fill="#93c5fdbb" stroke="#3b82f6" stroke-width="0.8"/>`;
+    }else if(cond==='crown'||cond==='filling'){
+      const img=TOOTH_IMAGES[svgKey];if(!img)return'';
+      const ix=(34-img.w)/2;const sqS=6;const sqX=(17-sqS/2).toFixed(1);
+      const crownCY=isUpper?sh.gY+(70-sh.gY)*0.5:sh.gY*0.5;const sqY=(crownCY-sqS/2).toFixed(1);
+      svg=`<image href="data:image/png;base64,${img.d}" x="${ix.toFixed(1)}" y="1" width="${img.w}" height="${img.h}"/><rect x="${sqX}" y="${sqY}" width="${sqS}" height="${sqS}" fill="#fbbf24" rx="1"/>`;
+    }else if(cond==='root_canal'||cond==='root_canal+crown'||cond==='root_canal+zircrown'){
+      const img=TOOTH_IMAGES[svgKey];if(!img)return'';
+      const ix=(34-img.w)/2;const rMaskId=`qrc${num}`;const filtId=`qrf${num}`;
+      const rootEnd=isUpper?(sh.photoGY||sh.gY):70;const rootStart=isUpper?0:sh.gY;
+      const defs=`<defs><mask id="${rMaskId}"><rect x="0" y="${rootStart}" width="34" height="${rootEnd-rootStart}" fill="white"/></mask><filter id="${filtId}"><feColorMatrix type="matrix" values="1 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 1 0"/></filter></defs>`;
+      const isZir=cond==='root_canal+zircrown';const hasCrown=cond!=='root_canal';
+      const crownTop=hasCrown?`<path d="${sh.crown}" fill="${isZir?'#93c5fdbb':'#e2e8f0bb'}" stroke="${isZir?'#3b82f6':'#94a3b8'}" stroke-width="0.8"/>`:'';
+      svg=defs+`<image href="data:image/png;base64,${img.d}" x="${ix.toFixed(1)}" y="1" width="${img.w}" height="${img.h}"/>`
+        +`<image href="data:image/png;base64,${img.d}" x="${ix.toFixed(1)}" y="1" width="${img.w}" height="${img.h}" mask="url(#${rMaskId})" filter="url(#${filtId})"/>` +crownTop;
+    }else if(!isMissing&&sh.rx){
+      const roots=sh.rx.map(d=>`<path d="${d}" fill="#d4a96a" stroke="#60500e" stroke-width="0.7"/>`).join('');
+      svg=roots+`<path d="${sh.crown}" fill="${condColor}dd" stroke="${condColor}" stroke-width="0.8"/>`;
+    }
+    const ns="font-size:5.5px;font-weight:700;color:#777;height:7px;line-height:7px;text-align:center;width:${W}px";
+    return`<div style="display:inline-flex;flex-direction:column;align-items:center">${isUpper?`<div style="${ns};margin-bottom:2px">${num}</div>`:''}<svg viewBox="0 0 34 70" width="${W}" height="${H}" style="overflow:visible;display:block">${svg}</svg>${!isUpper?`<div style="${ns}">${num}</div>`:''}</div>`;
+  }
+  const sepDiv=`<div style="width:8px;flex-shrink:0"></div>`;
+  const upperHTML=`<div style="display:flex;align-items:flex-end;justify-content:center">${UPPER_R.map(qTooth).join('')}${sepDiv}${UPPER_L.map(qTooth).join('')}</div>`;
+  const lowerHTML=`<div style="display:flex;align-items:flex-start;justify-content:center;margin-top:3px">${LOWER_R.map(qTooth).join('')}${sepDiv}${LOWER_L.map(qTooth).join('')}</div>`;
+  const usedConds=[...new Set(Object.values(chart).filter(v=>v&&v!=='healthy'))];
+  const legendHTML=usedConds.length?`<div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:8px;justify-content:center">${usedConds.map(k=>`<div style="display:flex;align-items:center;gap:3px;font-size:8px;color:#555"><div style="width:9px;height:9px;border-radius:2px;border:1px solid ${TOOTH_COLORS[k]||'#ccc'};background:${TOOTH_COLORS[k]||'#f0f0f0'}"></div>${condLabel(k)}</div>`).join('')}</div>`:'';
+  return`<div style="margin-bottom:18px;padding:12px 8px 10px;background:#f8f9fa;border-radius:8px;border:1px solid #e9ecef">
+    <div style="font-size:9px;font-weight:800;color:#f97316;letter-spacing:1.5px;margin-bottom:8px;text-align:center">${useLang==='tr'?'TEDAVİ PLANI DENTAL CHART':'TREATMENT PLAN DENTAL CHART'}</div>
+    ${upperHTML}${lowerHTML}
+    ${legendHTML}
+  </div>`;
+}
 async function downloadQuotePDF(patientId,_noWarn=false){
   const p=getPatient(patientId);if(!p)return;
   // Flush any pending debounce so latest booking data is saved before reading
@@ -3886,12 +3962,13 @@ async function downloadQuotePDF(patientId,_noWarn=false){
       <div><div style="font-size:24px;font-weight:900;color:#f97316">🦷 Turuncu Dental</div><div style="font-size:11px;color:#888;margin-top:3px">${t.dentalTourism}</div></div>
       <div style="text-align:right"><div style="font-size:20px;font-weight:900;color:#1a1a2e;letter-spacing:3px">${t.quoteTitle}</div><div style="font-size:10px;color:#777;margin-top:8px">${t.dateLabel} ${dateStr}</div></div>
     </div>
-    <div style="margin-bottom:20px;padding:14px 16px;background:#fff8f0;border-radius:6px;border-left:3px solid #f97316">
+    <div style="margin-bottom:12px;padding:14px 16px;background:#fff8f0;border-radius:6px;border-left:3px solid #f97316">
       <div style="font-size:9px;font-weight:700;color:#f97316;letter-spacing:1px;margin-bottom:6px">${t.patientInfoHeader}</div>
       <div style="font-size:15px;font-weight:700">${p.name}</div>
       ${p.email?`<div style="font-size:11px;color:#777;margin-top:2px">${p.email}</div>`:""}
       ${p.phone?`<div style="font-size:11px;color:#777">${p.phone}</div>`:""}
     </div>
+    ${buildQuoteChartHTML(p,lang)}
     <table style="width:100%;border-collapse:collapse;margin-bottom:18px">
       <thead><tr style="background:#f97316">
         <th style="padding:9px 12px;text-align:left;font-size:10px;font-weight:700;color:#fff">${t.treatmentHeader}</th>
@@ -4062,12 +4139,13 @@ async function openTreatmentBrochure(patientId){
       <div><div style="font-size:24px;font-weight:900;color:#f97316">🦷 ${companyName}</div><div style="font-size:11px;color:#888;margin-top:3px">${t.dentalTourism}</div></div>
       <div style="text-align:right"><div style="font-size:20px;font-weight:900;color:#1a1a2e;letter-spacing:3px">${t.quoteTitle}</div><div style="font-size:10px;color:#777;margin-top:8px">${t.dateLabel} ${dateStr}</div></div>
     </div>
-    <div style="margin-bottom:20px;padding:14px 16px;background:#fff8f0;border-radius:6px;border-left:3px solid #f97316">
+    <div style="margin-bottom:12px;padding:14px 16px;background:#fff8f0;border-radius:6px;border-left:3px solid #f97316">
       <div style="font-size:9px;font-weight:700;color:#f97316;letter-spacing:1px;margin-bottom:6px">${t.patientInfoHeader}</div>
       <div style="font-size:15px;font-weight:700">${p.name}</div>
       ${p.email?`<div style="font-size:11px;color:#777;margin-top:2px">${p.email}</div>`:''}
       ${p.phone?`<div style="font-size:11px;color:#777">${p.phone}</div>`:''}
     </div>
+    ${buildQuoteChartHTML(p,isTR?'tr':'en')}
     <table style="width:100%;border-collapse:collapse;margin-bottom:18px">
       <thead><tr style="background:#f97316">
         <th style="padding:9px 12px;text-align:left;font-size:10px;font-weight:700;color:#fff">${t.treatmentHeader}</th>
