@@ -8,6 +8,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script>
 // Password hashing via Web Crypto API (no CDN dependency)
 const bcrypt={
@@ -1534,7 +1535,7 @@ function render(){
 }
 function renderTopbarActions(){
   const el=document.getElementById("topbar-actions");let html="";
-  if(canEdit()&&currentTab==="patients")html=`<div style="display:flex;gap:6px;align-items:center"><button onclick="patientViewMode=patientViewMode==='grid'?'list':'grid';render()" style="padding:6px 10px;border-radius:8px;border:1px solid #1a2236;background:#1a2236;color:#dde4ef;font-size:15px;cursor:pointer;line-height:1" title="${patientViewMode==='grid'?t.listView:t.gridView}">${patientViewMode==='grid'?'≡':'⊞'}</button><button class="btn" onclick="downloadPatientsCSV()" style="background:#1a2236;color:#60a5fa;border:1px solid #1a3040">⬇ CSV</button><button class="btn" onclick="openPatientModal(0)">${t.addPatient}</button></div>`;
+  if(canEdit()&&currentTab==="patients")html=`<div style="display:flex;gap:6px;align-items:center"><button onclick="patientViewMode=patientViewMode==='grid'?'list':'grid';render()" style="padding:6px 10px;border-radius:8px;border:1px solid #1a2236;background:#1a2236;color:#dde4ef;font-size:15px;cursor:pointer;line-height:1" title="${patientViewMode==='grid'?t.listView:t.gridView}">${patientViewMode==='grid'?'≡':'⊞'}</button><button class="btn" onclick="downloadPatientsCSV()" style="background:#1a2236;color:#60a5fa;border:1px solid #1a3040">⬇ CSV</button><button class="btn" onclick="openImportModal()" style="background:#1a2236;color:#34d399;border:1px solid #1a3040">📥 İçe Aktar</button><button class="btn" onclick="openPatientModal(0)">${t.addPatient}</button></div>`;
   else if(canEdit()&&currentTab==="events")html=currentEventDetailId?`<button class="btn" onclick="openPatientModal(0,${currentEventDetailId})">${t.addPatient}</button>`:`<button class="btn" onclick="openEventModal(0)">${t.addEvent}</button>`;
   else if(canEdit()&&currentTab==="appointments")html=`<button class="btn" onclick="openAppointmentModal()">${t.addAppointment}</button>`;
   else if(canEdit()&&currentTab==="treatments"){
@@ -3421,6 +3422,82 @@ async function manualSnapshot(){
 // ==ACTIONS==
 // ── MODAL HELPERS
 function closeModal(){const m=document.getElementById("modal-overlay");if(m)m.remove();}
+
+// ── EXCEL / CSV İÇE AKTARMA
+let _importData=null;
+const _IMPORT_FIELDS=[['','— Yoksay —'],['name','Ad Soyad'],['phone','Telefon'],['country','Ülke'],['email','E-posta'],['status','Durum'],['referral','Referans Kaynağı'],['arrivalDate','Geliş Tarihi'],['notes','Notlar'],['eventName','Etkinlik']];
+const _IMPORT_ALIASES={name:['ad soyad','ad','isim','name','full name','patient','hasta'],phone:['telefon','phone','tel','cep','mobile','gsm'],country:['ülke','country','ulke','nationality','uyruk'],email:['e-posta','email','mail','eposta'],status:['durum','status'],referral:['referans','kaynak','referral','source','nasıl buldu','nereden'],arrivalDate:['geliş tarihi','arrival date','arrival','tarih','geliş','gelis'],notes:['notlar','notes','not','açıklama','comment'],eventName:['etkinlik','event','organizasyon','grup']};
+function _detectImportCol(header){const h=header.toLowerCase().trim();for(const[f,al]of Object.entries(_IMPORT_ALIASES)){if(al.some(a=>h.includes(a)||a.includes(h)))return f;}return '';}
+function _parseCSV(text){return text.split(/\r?\n/).filter(l=>l.trim()).map(line=>{const r=[];let cur='',inQ=false;for(let i=0;i<line.length;i++){const ch=line[i];if(ch==='"'){if(inQ&&line[i+1]==='"'){cur+='"';i++;}else inQ=!inQ;}else if(ch===','&&!inQ){r.push(cur.trim());cur='';}else cur+=ch;}r.push(cur.trim());return r;});}
+function openImportModal(){
+  _importData=null;
+  const body=`<div id="imp-drop" style="border:2px dashed #1a3040;border-radius:12px;padding:36px;text-align:center;cursor:pointer;transition:border-color .15s;margin-bottom:16px" onclick="document.getElementById('imp-file').click()" ondragover="event.preventDefault();this.style.borderColor='#34d399'" ondragleave="this.style.borderColor='#1a3040'" ondrop="event.preventDefault();this.style.borderColor='#1a3040';_handleImportFile(event.dataTransfer.files[0])"><div style="font-size:36px;margin-bottom:8px">📊</div><div style="color:#dde4ef;font-weight:700;margin-bottom:4px">Excel veya CSV dosyasını sürükle &amp; bırak</div><div style="color:#4a607d;font-size:12px">ya da tıklayarak seç &nbsp;·&nbsp; .xlsx &nbsp;.xls &nbsp;.csv</div><input id="imp-file" type="file" accept=".xlsx,.xls,.csv" style="display:none" onchange="_handleImportFile(this.files[0])"/></div><div id="imp-map"></div>`;
+  makeModal('📥 Excel / CSV İçe Aktar',body,null);
+}
+async function _handleImportFile(file){
+  if(!file)return;
+  _importData=null;
+  const mapEl=document.getElementById('imp-map');
+  if(mapEl)mapEl.innerHTML='<div style="color:#60a5fa;font-size:12px;text-align:center;padding:12px">Okunuyor…</div>';
+  try{
+    let headers,rows;
+    if(file.name.toLowerCase().endsWith('.csv')){
+      const text=await file.text();
+      const parsed=_parseCSV(text);
+      headers=(parsed[0]||[]);
+      rows=parsed.slice(1).filter(r=>r.some(c=>c.trim()));
+    }else{
+      if(typeof XLSX==='undefined')throw new Error('SheetJS yüklenemedi');
+      const buf=await file.arrayBuffer();
+      const wb=XLSX.read(buf,{type:'array'});
+      const ws=wb.Sheets[wb.SheetNames[0]];
+      const data=XLSX.utils.sheet_to_array(ws,{defval:''});
+      headers=(data[0]||[]).map(String);
+      rows=data.slice(1).filter(r=>r.some(c=>String(c).trim()));
+    }
+    _importData={headers,rows};
+    _renderImportUI(headers,rows);
+  }catch(e){if(mapEl)mapEl.innerHTML=`<div style="color:#f87171;font-size:12px">Hata: ${e.message}</div>`;}
+}
+function _renderImportUI(headers,rows){
+  const mapEl=document.getElementById('imp-map');if(!mapEl)return;
+  const sels=headers.map((h,i)=>{const det=_detectImportCol(h);const opts=_IMPORT_FIELDS.map(([v,l])=>`<option value="${v}"${det===v?' selected':''}>${l}</option>`).join('');return`<div style="display:flex;align-items:center;gap:8px;margin-bottom:5px"><div style="width:130px;font-size:12px;color:#dde4ef;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${h}">${h}</div><span style="color:#3d5270">→</span><select id="imp-c-${i}" style="flex:1;background:#131b2a;border:1px solid #1a2236;border-radius:6px;padding:5px 8px;color:#dde4ef;font-size:12px;outline:none">${opts}</select></div>`;}).join('');
+  const prev=rows.slice(0,3);
+  const prevHTML=prev.length?`<div style="margin-top:14px;margin-bottom:6px;font-size:11px;font-weight:700;color:#4a607d;text-transform:uppercase;letter-spacing:.5px">Önizleme — ilk ${prev.length} satır</div><div style="overflow-x:auto;border:1px solid #1a2236;border-radius:8px"><table style="width:100%;border-collapse:collapse;font-size:11px"><thead><tr>${headers.map(h=>`<th style="padding:5px 8px;background:#0d1320;color:#4a607d;font-weight:600;white-space:nowrap;text-align:left">${h}</th>`).join('')}</tr></thead><tbody>${prev.map(r=>`<tr>${headers.map((_,i)=>`<td style="padding:4px 8px;border-top:1px solid #1a2236;color:#dde4ef">${r[i]||''}</td>`).join('')}</tr>`).join('')}</tbody></table></div>`:'';
+  mapEl.innerHTML=`<div style="margin-bottom:8px;font-size:11px;font-weight:700;color:#4a607d;text-transform:uppercase;letter-spacing:.5px">Sütun Eşleştirme</div><div style="font-size:11px;color:#3d5270;margin-bottom:10px">📂 <b style="color:#dde4ef">${rows.length}</b> satır bulundu. Her sütunu CRM alanıyla eşleştir:</div>${sels}${prevHTML}<div style="margin-top:16px;display:flex;justify-content:space-between;align-items:center;gap:10px"><div id="imp-msg" style="font-size:12px;color:#34d399"></div><button class="btn" onclick="_doImport()">📥 ${rows.length} Hastayı İçe Aktar</button></div>`;
+}
+function _doImport(){
+  if(!_importData)return;
+  const{headers,rows}=_importData;
+  const mapping={};
+  headers.forEach((_,i)=>{const s=document.getElementById(`imp-c-${i}`);if(s&&s.value)mapping[s.value]=i;});
+  const get=(field,row)=>mapping[field]!==undefined?String(row[mapping[field]]||'').trim():'';
+  const evtMap={};state.events.forEach(e=>{if(e.name)evtMap[e.name.toLowerCase().trim()]=e.id;});
+  const now=new Date().toISOString();
+  let added=0,skipped=0;
+  rows.forEach((row,ri)=>{
+    const name=get('name',row);if(!name){skipped++;return;}
+    const evtNameRaw=get('eventName',row).toLowerCase();
+    const eventId=evtNameRaw&&evtMap[evtNameRaw]?evtMap[evtNameRaw]:(state.events.find(e=>!e.deleted)?.id||null);
+    const noteText=get('notes',row);
+    state.patients.push({
+      id:Date.now()+ri,name,
+      phone:get('phone',row),country:get('country',row),email:get('email',row),
+      status:get('status',row)||'walkin',referral:get('referral',row),
+      arrivalDate:get('arrivalDate',row)||null,eventId,
+      notes:noteText?[{id:Date.now()+ri+100000,text:noteText,at:now,by:currentUser.username||'import'}]:[],
+      consultation:{dentalConcerns:'',medicalHistory:'',allergies:'',medications:'',smoking:false,pregnant:false,bisphosphonate:false,heartDisease:false,diabetes:false,notes:''},
+      assessment:{currentCondition:{},treatmentPlan:{},dentistNotes:''},
+      booking:{treatments:[],accommodations:[],travels:[],discount:0,deposit:0,notes:''},
+      createdAt:now,assignee:currentUser.username||'',_companyId:activeCompanyId
+    });
+    added++;
+  });
+  persist('customers');updateLocalCompanyStats();logAction('patient_add',`Toplu içe aktarma: ${added} hasta`);
+  const msg=document.getElementById('imp-msg');if(msg)msg.textContent=`✅ ${added} hasta eklendi${skipped?`, ${skipped} satır atlandı`:''}`;
+  toast(`${added} hasta içe aktarıldı ✓`);
+  setTimeout(()=>{closeModal();render();},1500);
+}
 // Custom date picker — bypasses iOS native picker which ignores app language
 const DP_MONTHS={en:["January","February","March","April","May","June","July","August","September","October","November","December"],tr:["Ocak","Şubat","Mart","Nisan","Mayıs","Haziran","Temmuz","Ağustos","Eylül","Ekim","Kasım","Aralık"]};
 const DP_DAYS={en:["Mo","Tu","We","Th","Fr","Sa","Su"],tr:["Pt","Sa","Ça","Pe","Cu","Ct","Pz"]};
