@@ -2093,8 +2093,8 @@ function renderPtAssessment(p){
         <tbody>${(b.travels||[]).map((tr,i)=>`<tr>
           <td style="font-weight:600">✈️ ${tr.name}</td>
           <td><input type="number" min="1" value="${tr.persons||1}" onchange="updateBookingQty('travels',${i},+this.value,'persons')" style="${inStyle}"/></td>
-          <td>${currSym()}${(getEffectivePrice(getTreatment(tr.providerId))||tr.price||0).toLocaleString()}</td>
-          <td style="font-weight:700;color:#f97316">${currSym()}${((tr.persons||1)*(getEffectivePrice(getTreatment(tr.providerId))||tr.price||0)).toLocaleString()}</td>
+          <td><input type="number" min="0" value="${tr.price||0}" onchange="updateBookingItemPrice('travels',${i},'price',+this.value)" style="${inStyle};width:72px"/></td>
+          <td style="font-weight:700;color:#f97316">${currSym()}${((tr.persons||1)*(tr.price||0)).toLocaleString()}</td>
           <td><button class="sm-btn danger" onclick="removeBookingItem('travels',${i})">✕</button></td>
         </tr>`).join("")}</tbody>
       </table>`:""}
@@ -2552,8 +2552,8 @@ function buildAccomSections(p,b,visitCount,activeAc,inStyle){
         <tbody>${vEntries.map(({a,i})=>`<tr>
           <td style="font-weight:600">🏨 ${a.name}</td>
           <td><input type="number" min="1" value="${a.nights||1}" onchange="updateBookingQty('accommodations',${i},+this.value,'nights')" style="${inStyle}"/></td>
-          <td>${currSym()}${(getEffectivePrice(getTreatment(a.providerId))||a.pricePerNight||0).toLocaleString()}</td>
-          <td style="font-weight:700;color:${viColor}">${currSym()}${((a.nights||1)*(getEffectivePrice(getTreatment(a.providerId))||a.pricePerNight||0)).toLocaleString()}</td>
+          <td><input type="number" min="0" value="${a.pricePerNight||0}" onchange="updateBookingItemPrice('accommodations',${i},'pricePerNight',+this.value)" style="${inStyle};width:72px"/></td>
+          <td style="font-weight:700;color:${viColor}">${currSym()}${((a.nights||1)*(a.pricePerNight||0)).toLocaleString()}</td>
           <td><button class="sm-btn danger" onclick="removeBookingItem('accommodations',${i})">✕</button></td>
         </tr>`).join("")}</tbody>
       </table>`:''}
@@ -2568,8 +2568,8 @@ function buildAccomSections(p,b,visitCount,activeAc,inStyle){
 function renderPtBooking(p){
   const b=p.booking||{treatments:[],accommodations:[],travels:[],discount:0,deposit:0,notes:""};
   const txSub=(b.treatments||[]).reduce((s,tr)=>s+(tr.qty||1)*(tr.price||0),0);
-  const acSub=(b.accommodations||[]).reduce((s,a)=>s+(a.nights||1)*(getEffectivePrice(getTreatment(a.providerId))||a.pricePerNight||0),0);
-  const trSub=(b.travels||[]).reduce((s,tr)=>s+(tr.persons||1)*(getEffectivePrice(getTreatment(tr.providerId))||tr.price||0),0);
+  const acSub=(b.accommodations||[]).reduce((s,a)=>s+(a.nights||1)*(a.pricePerNight||0),0);
+  const trSub=(b.travels||[]).reduce((s,tr)=>s+(tr.persons||1)*(tr.price||0),0);
   const sub=txSub+acSub+trSub;
   const discountAmt=b.discount||0;const discountRate=b.discountRate||0;
   const total=sub-discountAmt;
@@ -2627,8 +2627,8 @@ function renderPtBooking(p){
         <tbody>${(b.travels||[]).map((tr,i)=>`<tr>
           <td style="font-weight:600">✈️ ${tr.name}</td>
           <td><input type="number" min="1" value="${tr.persons||1}" onchange="updateBookingQty('travels',${i},+this.value,'persons')" style="${inStyle}"/></td>
-          <td>${currSym()}${(getEffectivePrice(getTreatment(tr.providerId))||tr.price||0).toLocaleString()}</td>
-          <td style="font-weight:700;color:#f97316">${currSym()}${((tr.persons||1)*(getEffectivePrice(getTreatment(tr.providerId))||tr.price||0)).toLocaleString()}</td>
+          <td><input type="number" min="0" value="${tr.price||0}" onchange="updateBookingItemPrice('travels',${i},'price',+this.value)" style="${inStyle};width:72px"/></td>
+          <td style="font-weight:700;color:#f97316">${currSym()}${((tr.persons||1)*(tr.price||0)).toLocaleString()}</td>
           <td><button class="sm-btn danger" onclick="removeBookingItem('travels',${i})">✕</button></td>
         </tr>`).join("")}</tbody>
       </table>`:""}
@@ -3519,6 +3519,10 @@ function removeBookingItem(arr,idx){const p=getPatient(currentPatientId);if(!p?.
 function updateBookingQty(arr,idx,val,field="qty"){
   const p=getPatient(currentPatientId);if(!p?.booking?.[arr]?.[idx])return;
   p.booking[arr][idx][field]=Math.max(1,val||1);markPtDirty();debouncedPersist("customers");renderPtBody();
+}
+function updateBookingItemPrice(arr,idx,field,val){
+  const p=getPatient(currentPatientId);if(!p?.booking?.[arr]?.[idx])return;
+  p.booking[arr][idx][field]=Math.max(0,val||0);markPtDirty();debouncedPersist("customers");renderPtBody();
 }
 let _discountRerendering=false;
 function updateBookingDiscount(val){const p=getPatient(currentPatientId);if(!p?.booking)return;p.booking.discount=val||0;p.booking.discountRate=0;_discountRerendering=true;markPtDirty();renderPtBody();setTimeout(()=>{_discountRerendering=false;},150);}
