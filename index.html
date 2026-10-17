@@ -881,12 +881,10 @@ const _DEFAULT_NOTE_TPLS=[
   {key:"ao4",label:"All-on-4",texttr:"All-on-4 tedavisi fiyatına dahildir: tüm diş çekimleri, 4 implant, geçici ve kalıcı protez, gerekli kemik grefti, sinüs lifting ve membran uygulamaları. Ekstra gizli maliyet yoktur.",texten:"All-on-4 treatment price includes: all extractions, 4 implants, temporary & final prosthesis, any necessary bone grafts, sinus lifting and membrane procedures. No hidden costs."},
   {key:"ao6",label:"All-on-6",texttr:"All-on-6 tedavisi fiyatına dahildir: tüm diş çekimleri, 6 implant, geçici ve kalıcı protez, gerekli kemik grefti, sinüs lifting ve membran uygulamaları. Ekstra gizli maliyet yoktur.",texten:"All-on-6 treatment price includes: all extractions, 6 implants, temporary & final prosthesis, any necessary bone grafts, sinus lifting and membrane procedures. No hidden costs."},
 ];
-function loadNoteTpls(){try{const s=localStorage.getItem('crm_note_tpls');if(s)return JSON.parse(s);}catch(e){}return JSON.parse(JSON.stringify(_DEFAULT_NOTE_TPLS));}
-function saveNoteTpls(tpls){try{localStorage.setItem('crm_note_tpls',JSON.stringify(tpls));}catch(e){}}
+function loadNoteTpls(){return _DEFAULT_NOTE_TPLS;}
 let _activeTplKey=null,_lastTplText='';
 function insertNoteTemplate(key){
-  const tpls=loadNoteTpls();
-  const tpl=tpls.find(x=>x.key===key);
+  const tpl=_DEFAULT_NOTE_TPLS.find(x=>x.key===key);
   if(!tpl)return;
   const text=lang==='tr'?tpl.texttr:tpl.texten;
   const ta=document.getElementById("pa-dentistNotes");
@@ -904,21 +902,6 @@ function insertNoteTemplate(key){
     btn.style.borderColor=active?'#f97316':'#1a2236';
     btn.style.color=active?'#f97316':'#60a5fa';
   });
-}
-function openEditTemplatesModal(){
-  const tpls=loadNoteTpls();
-  const fields=tpls.map(tpl=>`
-    <div style="margin-bottom:16px">
-      <div style="font-size:12px;font-weight:700;color:#f97316;margin-bottom:6px">${tpl.label}</div>
-      <div style="margin-bottom:6px"><label style="font-size:11px;color:#4a607d;font-weight:600">TR</label>
-        <textarea id="tpl-tr-${tpl.key}" rows="3" style="width:100%;box-sizing:border-box;background:#0d1320;border:1px solid #1a2236;border-radius:8px;padding:8px;color:#dde4ef;font-size:12px;resize:vertical;font-family:inherit;margin-top:4px">${tpl.texttr}</textarea></div>
-      <div><label style="font-size:11px;color:#4a607d;font-weight:600">EN</label>
-        <textarea id="tpl-en-${tpl.key}" rows="3" style="width:100%;box-sizing:border-box;background:#0d1320;border:1px solid #1a2236;border-radius:8px;padding:8px;color:#dde4ef;font-size:12px;resize:vertical;font-family:inherit;margin-top:4px">${tpl.texten}</textarea></div>
-    </div>`).join('');
-  makeModal(t.editTemplateTitle,`<div style="padding:4px">${fields}</div>`,()=>{
-    const updated=tpls.map(tpl=>({...tpl,texttr:document.getElementById('tpl-tr-'+tpl.key)?.value||tpl.texttr,texten:document.getElementById('tpl-en-'+tpl.key)?.value||tpl.texten}));
-    saveNoteTpls(updated);toast("✅ "+t.saved);closeModal();
-  },t.save);
 }
 let selectedEventId=null;
 let currentEventDetailId=null;
@@ -2261,7 +2244,6 @@ function renderPtAssessment(p){
       <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-bottom:8px">
         <span style="font-size:11px;color:#4a607d;font-weight:600">${t.noteTemplateLabel}</span>
         ${loadNoteTpls().map(tpl=>`<button data-tpl-key="${tpl.key}" onclick="insertNoteTemplate('${tpl.key}')" style="font-size:11px;padding:3px 10px;border-radius:14px;background:${_activeTplKey===tpl.key?'#f9731622':'#131b2a'};border:1px solid ${_activeTplKey===tpl.key?'#f97316':'#1a2236'};color:${_activeTplKey===tpl.key?'#f97316':'#60a5fa'};cursor:pointer;font-family:inherit;font-weight:600;transition:all .15s">${tpl.label}</button>`).join('')}
-        ${canEdit()?`<button onclick="openEditTemplatesModal()" title="${t.editTemplates}" style="font-size:11px;padding:3px 8px;border-radius:14px;background:transparent;border:1px solid #1a2236;color:#4a607d;cursor:pointer;font-family:inherit">✏️</button>`:''}
       </div>
       <div class="field"><textarea id="pa-dentistNotes" rows="4" oninput="markPtDirty()">${a.dentistNotes||""}</textarea></div>
     </div>
