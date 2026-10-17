@@ -626,6 +626,9 @@ tr:{
   fname:"Ad Soyad *",femail:"E-posta",fphone:"Telefon",fdob:"Doğum Tarihi",fcountry:"Ülke",fnationality:"Uyruk",freferral:"Referans",fcity:"Şehir",fstatus:"Durum",fevent:"Etkinlik",fassignee:"Sorumlu",
   dentalConcerns:"Diş Şikayetleri",medicalHistory:"Tıbbi Geçmiş",allergies:"Alerjiler",medications:"İlaçlar",smoking:"Sigara Kullanıyor",pregnant:"Hamile",bisphosphonate:"Bifosfonat",heartDisease:"Kalp Hastalığı",diabetes:"Diyabet",consultNotes:"Notlar",
   currentCondition:"Mevcut Durum",treatmentPlan:"Tedavi Planı",dentistNotes:"Diş Hekimi Notları (Teklifte Görünmez)",
+  noteTemplateAo4:"All-on-4 tedavisi fiyatına dahildir: tüm diş çekimleri, 4 implant, geçici ve kalıcı protez, gerekli kemik grefti, sinüs lifting ve membran uygulamaları dahildir. Ekstra gizli maliyet yoktur.",
+  noteTemplateAo6:"All-on-6 tedavisi fiyatına dahildir: tüm diş çekimleri, 6 implant, geçici ve kalıcı protez, gerekli kemik grefti, sinüs lifting ve membran uygulamaları dahildir. Ekstra gizli maliyet yoktur.",
+  noteTemplateLabel:"Hızlı Şablon:",
   selectTreatments:"Tedavi Seç",bookingTreatments:"Seçilen Tedaviler",travelType:"Transfer",accommodation:"Konaklama",discount:"İndirim ",deposit:"Deposit ",bookingNotes:"Teklifte Görülecek Notlar",
   subtotal:"Ara Toplam",totalCost:"Toplam",balanceDue:"Kalan Ödeme",
   addNote:"Not Ekle",noNotes:"Henüz not eklenmedi",noteLocked:"🔒 Düzenlenemez (15 dk geçti)",
@@ -752,6 +755,9 @@ en:{
   fname:"Full Name *",femail:"Email",fphone:"Phone",fdob:"Date of Birth",fcountry:"Country",fnationality:"Nationality",freferral:"Referral",fcity:"City",fstatus:"Status",fevent:"Event",fassignee:"Assigned To",
   dentalConcerns:"Dental Concerns",medicalHistory:"Medical History",allergies:"Allergies",medications:"Medications",smoking:"Smoker",pregnant:"Pregnant",bisphosphonate:"Bisphosphonate",heartDisease:"Heart Disease",diabetes:"Diabetes",consultNotes:"Notes",
   currentCondition:"Current Condition",treatmentPlan:"Treatment Plan",dentistNotes:"Dentist Notes (not visible in quote)",
+  noteTemplateAo4:"All-on-4 treatment price includes: all extractions, 4 implants, temporary & final prosthesis, any necessary bone grafts, sinus lifting and membrane procedures. No hidden costs.",
+  noteTemplateAo6:"All-on-6 treatment price includes: all extractions, 6 implants, temporary & final prosthesis, any necessary bone grafts, sinus lifting and membrane procedures. No hidden costs.",
+  noteTemplateLabel:"Quick template:",
   selectTreatments:"Select Treatments",bookingTreatments:"Selected Treatments",travelType:"Travel",accommodation:"Accommodation",discount:"Discount ",deposit:"Deposit ",bookingNotes:"Notes (visible in quote)",
   subtotal:"Subtotal",totalCost:"Total",balanceDue:"Balance Due",
   addNote:"Add Note",noNotes:"No notes yet",noteLocked:"🔒 Locked (15 min passed)",
@@ -874,6 +880,7 @@ let reportPeriod='all';
 let monthlyTarget=+localStorage.getItem('crm_monthly_target')||0;
 let activeCompanyId=null,allCompaniesMode=false;
 function markPtDirty(){ptFormDirty=true;}
+function insertNoteTemplate(tmpl){const ta=document.getElementById("pa-dentistNotes");if(!ta)return;const sep=ta.value.trim()?"\n\n":"";ta.value=ta.value.trim()+sep+tmpl;markPtDirty();}
 let selectedEventId=null;
 let currentEventDetailId=null;
 let eventDetailViewMode="grid";
@@ -2212,6 +2219,11 @@ function renderPtAssessment(p){
     ${!canSeeFinancials()?`<div style="padding:12px;background:#0d1320;border:1px solid #1a2236;border-radius:10px;color:#3d5270;font-size:12px;text-align:center">${t.financialHidden}</div>`:''}
     <div class="card">
       <div class="section-title">${t.dentistNotes}</div>
+      <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-bottom:8px">
+        <span style="font-size:11px;color:#4a607d;font-weight:600">${t.noteTemplateLabel}</span>
+        <button class="btn sec" style="font-size:11px;padding:3px 10px;border-radius:14px" onclick="insertNoteTemplate(t.noteTemplateAo4)">All-on-4</button>
+        <button class="btn sec" style="font-size:11px;padding:3px 10px;border-radius:14px" onclick="insertNoteTemplate(t.noteTemplateAo6)">All-on-6</button>
+      </div>
       <div class="field"><textarea id="pa-dentistNotes" rows="4" oninput="markPtDirty()">${a.dentistNotes||""}</textarea></div>
     </div>
   </div>`;
