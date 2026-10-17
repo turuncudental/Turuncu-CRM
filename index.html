@@ -880,6 +880,7 @@ function markPtDirty(){ptFormDirty=true;}
 const _DEFAULT_NOTE_TPLS=[
   {key:"ao4",label:"All-on-4",texttr:"All-on-4 tedavisi kapsamında; varsa tüm diş çekimleri, vaka uygunsa geçici hareketli protez, ihtiyaç halinde kemik grefti, sinüs lifting ve membran uygulamaları dahil olmak üzere hastanın ihtiyaç duyabileceği tüm ek prosedürler fiyata dahildir. Herhangi bir ek ücret veya gizli maliyet söz konusu olmayacaktır.",texten:"Within the scope of All-on-4 treatment; all extractions if required, temporary removable prosthesis if clinically appropriate, and any additional procedures the patient may need — including bone grafts, sinus lifting and membrane applications — are included in the price. No additional charges or hidden costs will apply."},
   {key:"ao6",label:"All-on-6",texttr:"All-on-6 tedavisi kapsamında; varsa tüm diş çekimleri, vaka uygunsa geçici hareketli protez, ihtiyaç halinde kemik grefti, sinüs lifting ve membran uygulamaları dahil olmak üzere hastanın ihtiyaç duyabileceği tüm ek prosedürler fiyata dahildir. Herhangi bir ek ücret veya gizli maliyet söz konusu olmayacaktır.",texten:"Within the scope of All-on-6 treatment; all extractions if required, temporary removable prosthesis if clinically appropriate, and any additional procedures the patient may need — including bone grafts, sinus lifting and membrane applications — are included in the price. No additional charges or hidden costs will apply."},
+  {key:"zir",label:"Zirkonyum",texttr:"Film incelemesi sonrasında bazı dişlerin altında kist, kök problemi veya çürük gibi durumlar tespit edilebilir. Bu tür bulgularda ilgili dişin çekilmesi, dolgu veya kanal tedavisi gibi ek prosedürler gerekebilir. Mevcut durumu ve yapılması gerekenleri size ayrıntılı olarak açıklayacağız. Tedaviyi en iyi şekilde tamamlamak için gerekli olan her türlü işlem ekstra bir ücret talep edilmeksizin gerçekleştirilecektir.",texten:"Following X-ray examination, conditions such as cysts, root problems or decay may be detected beneath certain teeth. In such cases, additional procedures including extraction, filling or root canal treatment may be required for the affected teeth. We will explain the findings and necessary steps to you in detail. Any procedures required to complete your treatment to the highest standard will be carried out without any additional charge."},
 ];
 function loadNoteTpls(){return _DEFAULT_NOTE_TPLS;}
 let _activeTplKey=null,_lastTplText='';
@@ -887,7 +888,7 @@ function insertNoteTemplate(key){
   const tpl=_DEFAULT_NOTE_TPLS.find(x=>x.key===key);
   if(!tpl)return;
   const text=lang==='tr'?tpl.texttr:tpl.texten;
-  const ta=document.getElementById("pa-dentistNotes");
+  const ta=document.getElementById("pb-notes");
   if(!ta)return;
   if(_activeTplKey===key)return;
   let val=ta.value;
@@ -2229,7 +2230,14 @@ function renderPtAssessment(p){
           </div>`}
         </div>`})():''}
       </div>
-      <div class="field" style="margin-top:12px"><label>${t.bookingNotes}</label><textarea id="pb-notes" rows="2" oninput="markPtDirty()">${b.notes||""}</textarea></div>
+      <div style="margin-top:12px">
+        <label style="display:block;margin-bottom:6px">${t.bookingNotes}</label>
+        <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-bottom:6px">
+          <span style="font-size:11px;color:#4a607d;font-weight:600">${t.noteTemplateLabel}</span>
+          ${_DEFAULT_NOTE_TPLS.map(tpl=>`<button data-tpl-key="${tpl.key}" onclick="insertNoteTemplate('${tpl.key}')" style="font-size:11px;padding:3px 10px;border-radius:14px;background:${_activeTplKey===tpl.key?'#f9731622':'#131b2a'};border:1px solid ${_activeTplKey===tpl.key?'#f97316':'#1a2236'};color:${_activeTplKey===tpl.key?'#f97316':'#60a5fa'};cursor:pointer;font-family:inherit;font-weight:600">${tpl.label}</button>`).join('')}
+        </div>
+        <textarea id="pb-notes" rows="3" oninput="markPtDirty()" style="width:100%;box-sizing:border-box">${b.notes||""}</textarea>
+      </div>
     </div>
     <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
       ${p.assessment?.activePlan===activePlan
@@ -2241,10 +2249,6 @@ function renderPtAssessment(p){
     ${!canSeeFinancials()?`<div style="padding:12px;background:#0d1320;border:1px solid #1a2236;border-radius:10px;color:#3d5270;font-size:12px;text-align:center">${t.financialHidden}</div>`:''}
     <div class="card">
       <div class="section-title">${t.dentistNotes}</div>
-      <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-bottom:8px">
-        <span style="font-size:11px;color:#4a607d;font-weight:600">${t.noteTemplateLabel}</span>
-        ${loadNoteTpls().map(tpl=>`<button data-tpl-key="${tpl.key}" onclick="insertNoteTemplate('${tpl.key}')" style="font-size:11px;padding:3px 10px;border-radius:14px;background:${_activeTplKey===tpl.key?'#f9731622':'#131b2a'};border:1px solid ${_activeTplKey===tpl.key?'#f97316':'#1a2236'};color:${_activeTplKey===tpl.key?'#f97316':'#60a5fa'};cursor:pointer;font-family:inherit;font-weight:600;transition:all .15s">${tpl.label}</button>`).join('')}
-      </div>
       <div class="field"><textarea id="pa-dentistNotes" rows="4" oninput="markPtDirty()">${a.dentistNotes||""}</textarea></div>
     </div>
   </div>`;
@@ -2769,7 +2773,14 @@ function renderPtBooking(p){
         </div>`})():''}
 
       </div>
-      <div class="field" style="margin-top:12px"><label>${t.bookingNotes}</label><textarea id="pb-notes" rows="2" oninput="markPtDirty()">${b.notes||""}</textarea></div>
+      <div style="margin-top:12px">
+        <label style="display:block;margin-bottom:6px">${t.bookingNotes}</label>
+        <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-bottom:6px">
+          <span style="font-size:11px;color:#4a607d;font-weight:600">${t.noteTemplateLabel}</span>
+          ${_DEFAULT_NOTE_TPLS.map(tpl=>`<button data-tpl-key="${tpl.key}" onclick="insertNoteTemplate('${tpl.key}')" style="font-size:11px;padding:3px 10px;border-radius:14px;background:${_activeTplKey===tpl.key?'#f9731622':'#131b2a'};border:1px solid ${_activeTplKey===tpl.key?'#f97316':'#1a2236'};color:${_activeTplKey===tpl.key?'#f97316':'#60a5fa'};cursor:pointer;font-family:inherit;font-weight:600">${tpl.label}</button>`).join('')}
+        </div>
+        <textarea id="pb-notes" rows="3" oninput="markPtDirty()" style="width:100%;box-sizing:border-box">${b.notes||""}</textarea>
+      </div>
     </div>
     <div style="display:flex;gap:10px">
       <button class="btn sec" onclick="downloadQuotePDF(${p.id})">📄 ${t.downloadPDF}</button>
