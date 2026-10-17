@@ -1359,10 +1359,11 @@ async function doLogin(){
     shake();return;
   }
   const btn=document.getElementById("login-btn");btn.textContent=t.loginLoading;btn.disabled=true;
-  let loginOk=false;
+  let loginOk=false,supabaseReachable=false;
   try{
     const r=await fetch(`${SUPA_URL}/rest/v1/crm_users?username=eq.${encodeURIComponent(username)}&select=*`,{headers:H});
     if(r.ok){
+      supabaseReachable=true;
       const data=await r.json();
       if(data&&data.length>0){
         const usr=data[0];let ok=false;
@@ -1372,8 +1373,8 @@ async function doLogin(){
       }
     }
   }catch{}
-  // Supabase'e ulaşılamazsa yedek kullanıcılar
-  const fallback=FALLBACK_USERS.find(u=>u.username===username&&u.password===password);
+  // Supabase'e ulaşılamazsa yedek kullanıcılar (sadece ağ hatası durumunda)
+  const fallback=!supabaseReachable&&FALLBACK_USERS.find(u=>u.username===username&&u.password===password);
   if(fallback){
     loginOk=true;clearAttempts(username);
     currentUser={id:fallback.id,username:fallback.username,role:fallback.role,display_name:fallback.display_name,company_id:fallback.company_id||1,company_name:fallback.company_name||'Turuncu Dental'};
