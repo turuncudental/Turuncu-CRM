@@ -1143,11 +1143,7 @@ function updateFooter(){if(!currentUser)return;document.getElementById("sidebar-
 async function dbGet(table){
   const cid=activeCompanyId;
   const ckey=cid!=null?cid:'all';
-  // Devam eden bir write varsa (_pending) Supabase'den eski veri gelip yeni kaydı ezmesin
-  const pending=localStorage.getItem(`crm_${table}_${ckey}_pending`);
-  if(pending){
-    try{const local=localStorage.getItem(`crm_${table}_${ckey}`);if(local)return JSON.parse(local);}catch{}
-  }
+  // Her zaman Supabase'den taze veri çek; dirty/in-flight koruması loadAll'daki guard ile yapılır
   try{
     const filter=cid?`?id=eq.${cid}&select=*`:`?select=*`;
     const r=await fetch(`${SUPA_URL}/rest/v1/${table}${filter}`,{headers:H});
@@ -4676,6 +4672,8 @@ async function openTreatmentBrochure(patientId){
 
 // ==INIT==
 (async()=>{
+  // Her sayfa yüklemesinde tüm CRM veri cache'lerini temizle — her zaman Supabase'den taze veri gelsin
+  try{Object.keys(localStorage).filter(k=>/^crm_(customers|deals|tasks|history)/.test(k)).forEach(k=>localStorage.removeItem(k));}catch{}
   const savedLang=localStorage.getItem('crm_lang');
   if(savedLang&&T[savedLang]){setLang(savedLang);setLoginLang(savedLang);}
   const saved=sessionStorage.getItem("crm_user");
