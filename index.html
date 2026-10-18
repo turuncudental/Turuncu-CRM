@@ -3050,7 +3050,7 @@ function renderEvents(){
   const filtered=state.events.filter(e=>!e.deleted&&matches([e.name,e.city,e.venue]));
   if(!filtered.length)return`<div class="empty">${t.noEventsFound}</div>`;
   return`<div class="grid3">${filtered.map(e=>{
-    const pats=state.patients.filter(p=>p.eventId==e.id);
+    const pats=state.patients.filter(p=>p.eventId==e.id&&!p.deleted);
     const booked=pats.filter(p=>p.status==="booked").length;
     const totalQuote=pats.reduce((s,p)=>s+patientActivePlanTotal(p),0);
     const totalDeposit=pats.reduce((s,p)=>s+(p.booking?.deposit||0),0);
