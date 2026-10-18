@@ -1260,7 +1260,7 @@ async function loadAll(){
   };
   // Supabase başarısız olursa mevcut state korunur — asla SEED_PATIENTS yazılmaz
   // Eğer kullanıcı henüz kaydedilmemiş değişiklik yaptıysa (debounce/in-flight), eski veriyle ezme
-  const _customersDirty=_preFetchCustDirty||_persistDebounce["customers"]||_pifHas("customers");
+  const _customersDirty=_preFetchCustDirty||_persistDebounce["customers"]||_pifHas("customers")||ptFormDirty;
   if(!_customersDirty)state.patients=mergeRows(p,state.patients.length?state.patients:[]);
   const _eventsDirty=_preFetchDealsDirty||_persistDebounce["deals"]||_pifHas("deals");
   if(!_eventsDirty){
@@ -3754,7 +3754,7 @@ function addBookingAccommodation(visitIdx){
   ensureBooking(p);
   const visitTag=isImpl&&visitIdx!=null?visitIdx:undefined;
   p.booking.accommodations.push({providerId:prov.id,name:prov.name,nights,pricePerNight:getEffectivePrice(prov),...(visitTag!=null?{visit:visitTag}:{})});
-  persist("customers");renderPtBody();
+  markPtDirty();persist("customers");renderPtBody();
 }
 function updateVisitSplit(v){
   const p=getPatient(currentPatientId);if(!p)return;
@@ -3780,7 +3780,7 @@ function addBookingTravel(){
   const prov=getTreatment(id);if(!prov)return;
   ensureBooking(p);
   p.booking.travels.push({providerId:prov.id,name:prov.name,persons,price:getEffectivePrice(prov)});
-  persist("customers");renderPtBody();
+  markPtDirty();persist("customers");renderPtBody();
 }
 function removeBookingItem(arr,idx){const p=getPatient(currentPatientId);if(!p?.booking)return;p.booking[arr].splice(idx,1);persist("customers");renderPtBody();}
 function updateBookingQty(arr,idx,val,field="qty"){
