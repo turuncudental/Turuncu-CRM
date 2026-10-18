@@ -1214,6 +1214,10 @@ async function persist(table){
   updateFooter();
 }
 async function loadAll(){
+  // Fetch başlamadan ÖNCE dirty durumu kaydet — fetch sırasında debounce tamamlanabilir
+  // ve post-fetch kontrolü yanlış false döner (race condition → eski veriyle ezme).
+  const _preFetchCustDirty=_persistDebounce["customers"]||_persistInFlight.has("customers")||ptFormDirty;
+  const _preFetchDealsDirty=_persistDebounce["deals"]||_persistInFlight.has("deals");
   // Always fetch all tables including treatments (for cross-device sync).
   const [p,e,a,tr]=await Promise.all([dbGet("customers"),dbGet("deals"),dbGet("tasks"),dbGet("history")]);
   // Tüm Firmalar modunda (activeCompanyId=null) tüm şirketlerin verisini birleştir
@@ -1224,9 +1228,9 @@ async function loadAll(){
   };
   // Supabase başarısız olursa mevcut state korunur — asla SEED_PATIENTS yazılmaz
   // Eğer kullanıcı henüz kaydedilmemiş değişiklik yaptıysa (debounce/in-flight), eski veriyle ezme
-  const _customersDirty=_persistDebounce["customers"]||_persistInFlight.has("customers");
+  const _customersDirty=_preFetchCustDirty||_persistDebounce["customers"]||_persistInFlight.has("customers");
   if(!_customersDirty)state.patients=mergeRows(p,state.patients.length?state.patients:[]);
-  const _eventsDirty=_persistDebounce["deals"]||_persistInFlight.has("deals");
+  const _eventsDirty=_preFetchDealsDirty||_persistDebounce["deals"]||_persistInFlight.has("deals");
   if(!_eventsDirty){
     const _evRaw=mergeRows(e,state.events.length?state.events:[]);
     const _evSeen=new Set();
