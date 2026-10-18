@@ -886,34 +886,57 @@ const _DEFAULT_NOTE_TPLS=[
 function loadNoteTpls(){return _DEFAULT_NOTE_TPLS;}
 function resolveNoteText(text,targetLang){
   if(!text)return text;
+  const lines=text.split('\n\n');
+  const hasBullets=lines.some(l=>l.startsWith('• '));
+  if(hasBullets){
+    return lines.map(line=>{
+      if(!line.startsWith('• '))return line;
+      const content=line.slice(2).trim();
+      for(const tpl of _DEFAULT_NOTE_TPLS){
+        if(content===tpl.texttr.trim()||content===tpl.texten.trim())
+          return'• '+((targetLang||lang)==='tr'?tpl.texttr:tpl.texten);
+      }
+      return line;
+    }).join('\n\n');
+  }
   const trimmed=text.trim();
   for(const tpl of _DEFAULT_NOTE_TPLS){
-    if(trimmed===tpl.texttr.trim()||trimmed===tpl.texten.trim()){
+    if(trimmed===tpl.texttr.trim()||trimmed===tpl.texten.trim())
       return(targetLang||lang)==='tr'?tpl.texttr:tpl.texten;
-    }
   }
   return text;
 }
-let _activeTplKey=null,_lastTplText='';
-function insertNoteTemplate(key){
-  const tpl=_DEFAULT_NOTE_TPLS.find(x=>x.key===key);
-  if(!tpl)return;
-  const text=lang==='tr'?tpl.texttr:tpl.texten;
+function notesHtml(text,targetLang){
+  const resolved=resolveNoteText(text,targetLang);
+  if(!resolved)return'';
+  const lines=resolved.split('\n\n').filter(Boolean);
+  if(!lines.some(l=>l.startsWith('• ')))return resolved.replace(/\n/g,'<br>');
+  return lines.map(l=>{
+    const isBullet=l.startsWith('• ');
+    const content=(isBullet?l.slice(2):l).replace(/\n/g,'<br>');
+    return isBullet
+      ?`<div style="display:flex;gap:6px;margin-bottom:5px"><span style="flex-shrink:0;font-weight:900;font-size:13px;line-height:1.5">•</span><span style="line-height:1.5">${content}</span></div>`
+      :`<div style="margin-bottom:5px;line-height:1.5">${content}</div>`;
+  }).join('');
+}
+let _activeTplKeys=new Set();
+function _rebuildNotesFromTpls(){
+  const parts=[..._activeTplKeys].map(k=>{const tpl=_DEFAULT_NOTE_TPLS.find(x=>x.key===k);if(!tpl)return'';return'• '+(lang==='tr'?tpl.texttr:tpl.texten);}).filter(Boolean);
   const ta=document.getElementById("pb-notes");
-  if(!ta)return;
-  if(_activeTplKey===key)return;
-  let val=ta.value;
-  if(_lastTplText&&val.endsWith(_lastTplText)){val=val.slice(0,val.length-_lastTplText.length);if(val.endsWith('\n\n'))val=val.slice(0,-2);}
-  const sep=val.trim()?'\n\n':'';
-  ta.value=val.trim()+sep+text;
-  _activeTplKey=key;_lastTplText=sep+text;
+  if(ta){ta.value=parts.join('\n\n');ta.style.height='auto';ta.style.height=ta.scrollHeight+'px';}
   markPtDirty();
   document.querySelectorAll('[data-tpl-key]').forEach(btn=>{
-    const active=btn.dataset.tplKey===key;
+    const active=_activeTplKeys.has(btn.dataset.tplKey);
     btn.style.background=active?'#f9731622':'#131b2a';
     btn.style.borderColor=active?'#f97316':'#1a2236';
     btn.style.color=active?'#f97316':'#60a5fa';
+    btn.style.fontWeight=active?'800':'600';
   });
+}
+function insertNoteTemplate(key){
+  const tpl=_DEFAULT_NOTE_TPLS.find(x=>x.key===key);if(!tpl)return;
+  if(_activeTplKeys.has(key)){_activeTplKeys.delete(key);}else{_activeTplKeys.add(key);}
+  _rebuildNotesFromTpls();
 }
 let selectedEventId=null;
 let currentEventDetailId=null;
@@ -1769,8 +1792,10 @@ function setFilterStatus(s){filterStatus=s;render();}
 
 // ── PATIENT DETAIL OVERLAY
 function openPatient(id){
-  currentPatientId=id;currentPtTab="consultation";ptFormDirty=false;_activeTplKey=null;_lastTplText='';
+  currentPatientId=id;currentPtTab="consultation";ptFormDirty=false;_activeTplKeys=new Set();
   const _op=getPatient(id);activePlan=_op?.assessment?.activePlan||'treatmentPlan';
+  const _savedNotes=_op?.booking?.notes||'';
+  if(_savedNotes){_DEFAULT_NOTE_TPLS.forEach(tpl=>{if(_savedNotes.includes('• '+tpl.texttr)||_savedNotes.includes('• '+tpl.texten)||_savedNotes.trim()===tpl.texttr.trim()||_savedNotes.trim()===tpl.texten.trim()){_activeTplKeys.add(tpl.key);}});}
   if(_op?.booking?.currency&&CURR_SYM[_op.booking.currency])activeCurrency=_op.booking.currency;
   const overlay=document.getElementById("patient-overlay");updateUndoBtn();
   overlay.style.display="flex";
@@ -2266,7 +2291,7 @@ function renderPtAssessment(p){
         <label style="display:block;margin-bottom:6px">${t.bookingNotes}</label>
         <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-bottom:6px">
           <span style="font-size:11px;color:#4a607d;font-weight:600">${t.noteTemplateLabel}</span>
-          ${_DEFAULT_NOTE_TPLS.map(tpl=>`<button data-tpl-key="${tpl.key}" onclick="insertNoteTemplate('${tpl.key}')" style="font-size:11px;padding:3px 10px;border-radius:14px;background:${_activeTplKey===tpl.key?'#f9731622':'#131b2a'};border:1px solid ${_activeTplKey===tpl.key?'#f97316':'#1a2236'};color:${_activeTplKey===tpl.key?'#f97316':'#60a5fa'};cursor:pointer;font-family:inherit;font-weight:600">${tpl.label}</button>`).join('')}
+          ${_DEFAULT_NOTE_TPLS.map(tpl=>`<button data-tpl-key="${tpl.key}" onclick="insertNoteTemplate('${tpl.key}')" style="font-size:11px;padding:3px 10px;border-radius:14px;background:${_activeTplKeys.has(tpl.key)?'#f9731622':'#131b2a'};border:1px solid ${_activeTplKeys.has(tpl.key)?'#f97316':'#1a2236'};color:${_activeTplKeys.has(tpl.key)?'#f97316':'#60a5fa'};cursor:pointer;font-family:inherit;font-weight:${_activeTplKeys.has(tpl.key)?800:600}">${tpl.label}</button>`).join('')}
         </div>
         <textarea id="pb-notes" rows="6" oninput="this.style.height='auto';this.style.height=this.scrollHeight+'px';markPtDirty()" style="width:100%;box-sizing:border-box;resize:none;overflow:hidden;min-height:120px">${b.notes||""}</textarea>
       </div>
@@ -2817,7 +2842,7 @@ function renderPtBooking(p){
         <label style="display:block;margin-bottom:6px">${t.bookingNotes}</label>
         <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-bottom:6px">
           <span style="font-size:11px;color:#4a607d;font-weight:600">${t.noteTemplateLabel}</span>
-          ${_DEFAULT_NOTE_TPLS.map(tpl=>`<button data-tpl-key="${tpl.key}" onclick="insertNoteTemplate('${tpl.key}')" style="font-size:11px;padding:3px 10px;border-radius:14px;background:${_activeTplKey===tpl.key?'#f9731622':'#131b2a'};border:1px solid ${_activeTplKey===tpl.key?'#f97316':'#1a2236'};color:${_activeTplKey===tpl.key?'#f97316':'#60a5fa'};cursor:pointer;font-family:inherit;font-weight:600">${tpl.label}</button>`).join('')}
+          ${_DEFAULT_NOTE_TPLS.map(tpl=>`<button data-tpl-key="${tpl.key}" onclick="insertNoteTemplate('${tpl.key}')" style="font-size:11px;padding:3px 10px;border-radius:14px;background:${_activeTplKeys.has(tpl.key)?'#f9731622':'#131b2a'};border:1px solid ${_activeTplKeys.has(tpl.key)?'#f97316':'#1a2236'};color:${_activeTplKeys.has(tpl.key)?'#f97316':'#60a5fa'};cursor:pointer;font-family:inherit;font-weight:${_activeTplKeys.has(tpl.key)?800:600}">${tpl.label}</button>`).join('')}
         </div>
         <textarea id="pb-notes" rows="6" oninput="this.style.height='auto';this.style.height=this.scrollHeight+'px';markPtDirty()" style="width:100%;box-sizing:border-box;resize:none;overflow:hidden;min-height:120px">${b.notes||""}</textarea>
       </div>
@@ -4201,7 +4226,7 @@ async function downloadQuotePDF(patientId,_noWarn=false){
       </div>
     </div>
     ${b.notes?`<div style="margin-top:16px;padding:12px 16px;background:#fffbeb;border:1px solid #fde68a;border-radius:6px;font-size:11px;color:#92400e;line-height:1.7">
-      📝 <strong>${lang==='tr'?'Not':'Note'}:</strong> ${resolveNoteText(b.notes,lang)}
+      📝 <strong>${lang==='tr'?'Not':'Note'}:</strong> ${notesHtml(b.notes,lang)}
     </div>`:''}
     <div style="margin-top:16px;padding:12px 16px;background:#fff8f0;border:1px solid #fed7aa;border-radius:6px;font-size:10px;color:#92400e;line-height:1.7">
       📋 <strong>${lang==='tr'?'Önemli Bilgi':'Important Note'}:</strong> ${lang==='tr'?'Bu teklif tahmini bir tedavi planlamasıdır ve düzenlenme tarihinden itibaren 30 gün geçerlidir. Klinik muayene sonucunda ek işlemler gerekebilir ve fiyatlar değişkenlik gösterebilir. Uzman ekibimiz her hastamıza özel yaklaşmaktadır; sorularınız için bizimle iletişime geçmekten çekinmeyiniz.':'This is an estimated treatment plan, valid for 30 days from the date of issue. Following a clinical examination, additional procedures may be required and prices may be subject to change. Our specialist team provides a personalized approach to each patient — please do not hesitate to contact us with any questions.'}
@@ -4366,7 +4391,7 @@ async function openTreatmentBrochure(patientId){
       </div>
     </div>
     ${b.notes?`<div style="margin-top:16px;padding:12px 16px;background:#fffbeb;border:1px solid #fde68a;border-radius:6px;font-size:11px;color:#92400e;line-height:1.7">
-      📝 <strong>${isTR?'Not':'Note'}:</strong> ${resolveNoteText(b.notes,isTR?'tr':'en')}
+      📝 <strong>${isTR?'Not':'Note'}:</strong> ${notesHtml(b.notes,isTR?'tr':'en')}
     </div>`:''}
     <div style="margin-top:16px;padding:12px 16px;background:#fff8f0;border:1px solid #fed7aa;border-radius:6px;font-size:10px;color:#92400e;line-height:1.7">
       📋 <strong>${isTR?'Önemli Bilgi':'Important Note'}:</strong> ${isTR?'Bu teklif tahmini bir tedavi planlamasıdır ve düzenlenme tarihinden itibaren 30 gün geçerlidir. Klinik muayene sonucunda ek işlemler gerekebilir ve fiyatlar değişkenlik gösterebilir. Uzman ekibimiz her hastamıza özel yaklaşmaktadır; sorularınız için bizimle iletişime geçmekten çekinmeyiniz.':'This is an estimated treatment plan, valid for 30 days from the date of issue. Following a clinical examination, additional procedures may be required and prices may be subject to change. Our specialist team provides a personalized approach to each patient — please do not hesitate to contact us with any questions.'}
