@@ -1200,8 +1200,8 @@ async function persist(table){
     const _myCid=currentUser?.company_id!=null?+currentUser.company_id:1;
     _data=(_data||[]).filter(p=>!p._cid||+p._cid===_myCid).map(({_cid,...rest})=>rest);
   }
-  if(table==="deals"&&activeCompanyId===null){
-    const _myCid=currentUser?.company_id!=null?+currentUser.company_id:1;
+  if(table==="deals"){
+    const _myCid=activeCompanyId!=null?+activeCompanyId:(currentUser?.company_id!=null?+currentUser.company_id:1);
     _data=(_data||[]).filter(e=>!e._cid||+e._cid===_myCid).map(({_cid,...rest})=>rest);
   }
   await dbSet(table,_data);
@@ -1230,7 +1230,14 @@ async function loadAll(){
   if(!_eventsDirty){
     const _evRaw=mergeRows(e,state.events.length?state.events:[]);
     const _evSeen=new Set();
-    state.events=_evRaw.filter(ev=>{if(_evSeen.has(ev.id))return false;_evSeen.add(ev.id);return true;});
+    let _evDeduped=_evRaw.filter(ev=>{if(_evSeen.has(ev.id))return false;_evSeen.add(ev.id);return true;});
+    if(activeCompanyId!=null){
+      const _cid=+activeCompanyId;
+      const _prev=_evDeduped.length;
+      _evDeduped=_evDeduped.filter(ev=>!ev._cid||+ev._cid===_cid);
+      if(_evDeduped.length<_prev)debouncedPersist("deals",2000);
+    }
+    state.events=_evDeduped;
   }
   state.appointments=mergeRows(a,state.appointments.length?state.appointments:[]);
   const trCid=activeCompanyId||currentUser?.company_id||1;
