@@ -1265,8 +1265,8 @@ async function loadAll(){
     const _fetched=mergeRows(p,state.patients.length?state.patients:[]);
     // GET snapshot alabileceği için açık olan hastanın in-memory verisini asla eski Supabase verisiyle ezme
     if(currentPatientId!=null){
-      const _memPt=state.patients.find(x=>x.id===currentPatientId);
-      state.patients=_fetched.map(x=>x.id===currentPatientId&&_memPt?_memPt:x);
+      const _memPt=state.patients.find(x=>x.id==currentPatientId);
+      state.patients=_fetched.map(x=>x.id==currentPatientId&&_memPt?_memPt:x);
     }else{
       state.patients=_fetched;
     }
