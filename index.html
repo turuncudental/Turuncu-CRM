@@ -1200,6 +1200,10 @@ async function persist(table){
     const _myCid=currentUser?.company_id!=null?+currentUser.company_id:1;
     _data=(_data||[]).filter(p=>!p._cid||+p._cid===_myCid).map(({_cid,...rest})=>rest);
   }
+  if(table==="deals"&&activeCompanyId===null){
+    const _myCid=currentUser?.company_id!=null?+currentUser.company_id:1;
+    _data=(_data||[]).filter(e=>!e._cid||+e._cid===_myCid).map(({_cid,...rest})=>rest);
+  }
   await dbSet(table,_data);
   _persistInFlight.delete(table);
   if(window._supaOffline){
@@ -1222,7 +1226,12 @@ async function loadAll(){
   // Eğer kullanıcı henüz kaydedilmemiş değişiklik yaptıysa (debounce/in-flight), eski veriyle ezme
   const _customersDirty=_persistDebounce["customers"]||_persistInFlight.has("customers");
   if(!_customersDirty)state.patients=mergeRows(p,state.patients.length?state.patients:[]);
-  state.events=mergeRows(e,state.events.length?state.events:[]);
+  const _eventsDirty=_persistDebounce["deals"]||_persistInFlight.has("deals");
+  if(!_eventsDirty){
+    const _evRaw=mergeRows(e,state.events.length?state.events:[]);
+    const _evSeen=new Set();
+    state.events=_evRaw.filter(ev=>{if(_evSeen.has(ev.id))return false;_evSeen.add(ev.id);return true;});
+  }
   state.appointments=mergeRows(a,state.appointments.length?state.appointments:[]);
   const trCid=activeCompanyId||currentUser?.company_id||1;
   const trPending=localStorage.getItem(`crm_history_${trCid}_pending`);
