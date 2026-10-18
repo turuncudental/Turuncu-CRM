@@ -2046,7 +2046,7 @@ function renderPtAssessment(p){
       txGroupsMap[k].toothNums.push(+num);
     });
   });
-  const groupedRows=Object.values(txGroupsMap).map(g=>({...g,tx:allTxCatalog.find(t=>t.id===g.txId)})).filter(g=>g.tx);
+  const groupedRows=Object.values(txGroupsMap).map(g=>({...g,tx:allTxCatalog.find(t=>t.id===g.txId)})).filter(g=>g.tx&&g.tx.category!=='Genel');
   const extraRows=((a.planExtras||{})[activePlan]||[]).map((e,i)=>e.customName?{...e,idx:i,tx:{name:e.customName,salePrice:e.price||0}}:{...e,idx:i,tx:allTxCatalog.find(tx=>tx.id===e.txId)}).filter(e=>e.tx);
   const jawTxMap=(a.jawTx||{})[activePlan]||{};
   const jawRows=Object.entries(jawTxMap).map(([jaw,txId])=>({jaw,txId:+txId,tx:allTxCatalog.find(t=>t.id===+txId)})).filter(r=>r.tx);
@@ -2419,6 +2419,8 @@ function applyTxToTooth(num,txId){
     markPtDirty();debouncedPersist("customers");renderPtBody();return;
   }
   const tx=getTreatment(txId);if(!tx)return;
+  // Genel kategori tedavileri (Cleaning, Sedation, General Anesthesia, vs.) diş bazlı uygulanamaz
+  if(tx.category==='Genel')return;
   const _existing=p.assessment.toothTx[activePlan][num];
   const _existingIds=Array.isArray(_existing)?[..._existing]:(_existing!=null?[_existing]:[]);
   const _allTxList=state.treatments.filter(tx=>tx.type==='treatment'&&tx.active);
