@@ -2054,7 +2054,7 @@ function renderPtAssessment(p){
       txGroupsMap[k].toothNums.push(+num);
     });
   });
-  const groupedRows=Object.values(txGroupsMap).map(g=>({...g,tx:allTxCatalog.find(t=>t.id===g.txId)})).filter(g=>g.tx&&g.tx.category!=='Genel');
+  const groupedRows=Object.values(txGroupsMap).map(g=>({...g,tx:allTxCatalog.find(t=>t.id===g.txId)})).filter(g=>g.tx);
   const extraRows=((a.planExtras||{})[activePlan]||[]).map((e,i)=>e.customName?{...e,idx:i,tx:{name:e.customName,salePrice:e.price||0}}:{...e,idx:i,tx:allTxCatalog.find(tx=>tx.id===e.txId)}).filter(e=>e.tx);
   const jawTxMap=(a.jawTx||{})[activePlan]||{};
   const jawRows=Object.entries(jawTxMap).map(([jaw,txId])=>({jaw,txId:+txId,tx:allTxCatalog.find(t=>t.id===+txId)})).filter(r=>r.tx);
@@ -2427,8 +2427,6 @@ function applyTxToTooth(num,txId){
     markPtDirty();debouncedPersist("customers");renderPtBody();return;
   }
   const tx=getTreatment(txId);if(!tx)return;
-  // Genel kategori tedavileri (Cleaning, Sedation, General Anesthesia, vs.) diş bazlı uygulanamaz
-  if(tx.category==='Genel')return;
   const _existing=p.assessment.toothTx[activePlan][num];
   const _existingIds=Array.isArray(_existing)?[..._existing]:(_existing!=null?[_existing]:[]);
   const _allTxList=state.treatments.filter(tx=>tx.type==='treatment'&&tx.active);
@@ -2455,7 +2453,12 @@ function applyTxToTooth(num,txId){
     p.assessment.toothTx[activePlan][num]=_newIds.length===1?_newIds[0]:_newIds;
     const _allConds=_newIds.map(id=>txToCondition(_allTxList.find(t=>t.id===+id))).filter(Boolean);
     const _domCond=deriveDomCondition(_allConds);
-    if(_domCond)p.assessment[activePlan][num]=_domCond;else delete p.assessment[activePlan][num];
+    if(_domCond){p.assessment[activePlan][num]=_domCond;}else{
+      // Yalnızca daha önce chart condition'ı olan bir tedavi kaldırıldıysa condition'ı sil
+      // Genel tedavi (Sedation vs.) eklerken mevcut chart değişmesin
+      const _hadChart=_existingIds.some(id=>txToCondition(_allTxList.find(t=>t.id===+id))!==null);
+      if(_hadChart)delete p.assessment[activePlan][num];
+    }
   }
   if(hasImplantInPlan(p)){if(!p.booking)p.booking={};if((p.booking.visitCount||1)<2)p.booking.visitCount=2;}
   markPtDirty();debouncedPersist("customers");renderPtBody();
@@ -4141,7 +4144,7 @@ async function downloadQuotePDF(patientId,_noWarn=false){
         const _showSvcPdf=b.showServices!==false;
         const allRows=[...rows.map(r=>({name:r.name,qty:r.qty,price:r.price,unit:'',teeth:r.teeth||[]})),...(_showSvcPdf?(b.accommodations||[]).map(ac=>({name:'🏨 '+ac.name+(_implPdf?` — ${(ac.visit??0)===0?'1. Visit':'2. Visit'}`:''),qty:ac.nights||1,price:ac.pricePerNight||0,unit:t.nights.toLowerCase(),teeth:[]})):[]),...(_showSvcPdf?(b.travels||[]).map(tr=>({name:'✈️ '+tr.name,qty:tr.persons||1,price:tr.price||0,unit:'',teeth:[]})):[])];
         return allRows.length?allRows.map((r,i)=>`<tr style="background:${i%2?"#fff8f0":"#fff"}">
-          <td style="padding:9px 12px;font-size:12px">${r.name}${r.teeth&&r.teeth.length?`<div style="font-size:9px;color:#888;margin-top:1px">${lang==='tr'?'Diş':'Teeth'}: ${r.teeth.join(', ')}</div>`:''}</td>
+          <td style="padding:9px 12px;font-size:12px">${r.name}${r.teeth&&r.teeth.length&&showToothNums(r.name)?`<div style="font-size:9px;color:#888;margin-top:1px">${lang==='tr'?'Diş':'Teeth'}: ${r.teeth.join(', ')}</div>`:''}</td>
           <td style="padding:9px 12px;text-align:center;font-size:12px;color:#555">${r.qty}${r.unit?' '+r.unit:''}</td>
           <td class="qp-price" style="padding:9px 12px;text-align:right;font-size:12px;color:#555">${currSym()}${(r.price||0).toLocaleString()}</td>
           <td class="qp-price" style="padding:9px 12px;text-align:right;font-size:12px;font-weight:700">${currSym()}${(r.qty*r.price).toLocaleString()}</td>
@@ -4287,7 +4290,7 @@ async function openTreatmentBrochure(patientId){
     ...(_showSvcBro?(b.travels||[]).map(tr=>({name:'✈️ '+tr.name,qty:tr.persons||1,price:tr.price||0,unit:'',teeth:[]})):[])
   ];
   const rowsHTML=allRows.length?allRows.map((r,i)=>`<tr style="background:${i%2?'#fff8f0':'#fff'}">
-    <td style="padding:9px 12px;font-size:12px">${r.name}${r.teeth&&r.teeth.length?`<div style="font-size:9px;color:#888;margin-top:1px">${isTR?'Diş':'Teeth'}: ${r.teeth.join(', ')}</div>`:''}</td>
+    <td style="padding:9px 12px;font-size:12px">${r.name}${r.teeth&&r.teeth.length&&showToothNums(r.name)?`<div style="font-size:9px;color:#888;margin-top:1px">${isTR?'Diş':'Teeth'}: ${r.teeth.join(', ')}</div>`:''}</td>
     <td style="padding:9px 12px;text-align:center;font-size:12px;color:#555">${r.qty}${r.unit?' '+r.unit:''}</td>
     <td style="padding:9px 12px;text-align:right;font-size:12px;color:#555">${cs}${(r.price||0).toLocaleString()}</td>
     <td style="padding:9px 12px;text-align:right;font-size:12px;font-weight:700">${cs}${(r.qty*r.price).toLocaleString()}</td>
@@ -4536,7 +4539,7 @@ async function openTreatmentBrochure(patientId){
   // === PAGE 6: SUGGESTED TREATMENT ===
   const planChartData=a[planKey]||{};
   const rowsHTML6=rows.length?rows.map((r,i)=>`<tr style="background:${i%2?'#fff7ed':'#fff'}">
-    <td style="padding:8px 12px;font-size:12px;color:#1e293b">${r.name}${r.teeth&&r.teeth.length?`<div style="font-size:9px;color:#888;margin-top:1px">${isTR?'Diş':'Teeth'}: ${r.teeth.join(', ')}</div>`:''}</td>
+    <td style="padding:8px 12px;font-size:12px;color:#1e293b">${r.name}${r.teeth&&r.teeth.length&&showToothNums(r.name)?`<div style="font-size:9px;color:#888;margin-top:1px">${isTR?'Diş':'Teeth'}: ${r.teeth.join(', ')}</div>`:''}</td>
     <td style="padding:8px 12px;text-align:center;font-size:12px;color:#64748b">${r.qty}</td>
     <td style="padding:8px 12px;text-align:right;font-size:12px;color:#64748b">${cs}${r.price.toLocaleString()}</td>
     <td style="padding:8px 12px;text-align:right;font-size:12px;font-weight:700;color:#c2410c">${cs}${(r.qty*r.price).toLocaleString()}</td>
