@@ -3763,7 +3763,7 @@ function addBookingAccommodation(visitIdx){
   ensureBooking(p);
   const visitTag=isImpl&&visitIdx!=null?visitIdx:undefined;
   p.booking.accommodations.push({providerId:prov.id,name:prov.name,nights,pricePerNight:getEffectivePrice(prov),...(visitTag!=null?{visit:visitTag}:{})});
-  markPtDirty();persist("customers");renderPtBody();
+  markPtDirty();debouncedPersist("customers");renderPtBody();
 }
 function updateVisitSplit(v){
   const p=getPatient(currentPatientId);if(!p)return;
@@ -3789,7 +3789,7 @@ function addBookingTravel(){
   const prov=getTreatment(id);if(!prov)return;
   ensureBooking(p);
   p.booking.travels.push({providerId:prov.id,name:prov.name,persons,price:getEffectivePrice(prov)});
-  markPtDirty();persist("customers");renderPtBody();
+  markPtDirty();debouncedPersist("customers");renderPtBody();
 }
 function removeBookingItem(arr,idx){const p=getPatient(currentPatientId);if(!p?.booking)return;p.booking[arr].splice(idx,1);persist("customers");renderPtBody();}
 function updateBookingQty(arr,idx,val,field="qty"){
