@@ -1184,7 +1184,10 @@ async function dbGet(table){
 }
 const _persistDebounce={};
 const _persistControllers={};
-const _persistInFlight=new Set();
+const _persistInFlight={};
+const _pifAdd=t=>{_persistInFlight[t]=(_persistInFlight[t]||0)+1;};
+const _pifDel=t=>{if((_persistInFlight[t]||0)>0)_persistInFlight[t]--;};
+const _pifHas=t=>(_persistInFlight[t]||0)>0;
 function debouncedPersist(table,delay=400){
   if(_persistDebounce[table])clearTimeout(_persistDebounce[table]);
   _persistDebounce[table]=setTimeout(()=>{
@@ -1221,7 +1224,7 @@ async function dbSet(table,data){
 const TABLE_STATE={customers:"patients",deals:"events",tasks:"appointments",history:"treatments"};
 async function persist(table){
   const sl=document.getElementById("syncing-label");sl.textContent=t.saving;sl.style.display="inline";
-  _persistInFlight.add(table);
+  _pifAdd(table);
   let _data=state[TABLE_STATE[table]||table];
   // "Tüm Firmalar" modunda (activeCompanyId=null) sadece bu kullanıcının şirketine ait hastaları kaydet
   // Diğer şirketlerin _cid'li hastaları asla karışmasın; _cid alanı runtime-only, kaydetme
@@ -1234,7 +1237,7 @@ async function persist(table){
     _data=(_data||[]).filter(e=>!e._cid||+e._cid===_myCid).map(({_cid,...rest})=>rest);
   }
   await dbSet(table,_data);
-  _persistInFlight.delete(table);
+  _pifDel(table);
   if(window._supaOffline){
     sl.textContent="⚠️ Supabase bağlantı yok — veriler geçici olarak tarayıcıda tutuluyor!";
     sl.style.display="inline";sl.style.color="#f97316";
@@ -1245,8 +1248,8 @@ async function persist(table){
 async function loadAll(){
   // Fetch başlamadan ÖNCE dirty durumu kaydet — fetch sırasında debounce tamamlanabilir
   // ve post-fetch kontrolü yanlış false döner (race condition → eski veriyle ezme).
-  const _preFetchCustDirty=_persistDebounce["customers"]||_persistInFlight.has("customers")||ptFormDirty;
-  const _preFetchDealsDirty=_persistDebounce["deals"]||_persistInFlight.has("deals");
+  const _preFetchCustDirty=_persistDebounce["customers"]||_pifHas("customers")||ptFormDirty;
+  const _preFetchDealsDirty=_persistDebounce["deals"]||_pifHas("deals");
   // Always fetch all tables including treatments (for cross-device sync).
   const [p,e,a,tr]=await Promise.all([dbGet("customers"),dbGet("deals"),dbGet("tasks"),dbGet("history")]);
   // Tüm Firmalar modunda (activeCompanyId=null) tüm şirketlerin verisini birleştir
@@ -1257,9 +1260,9 @@ async function loadAll(){
   };
   // Supabase başarısız olursa mevcut state korunur — asla SEED_PATIENTS yazılmaz
   // Eğer kullanıcı henüz kaydedilmemiş değişiklik yaptıysa (debounce/in-flight), eski veriyle ezme
-  const _customersDirty=_preFetchCustDirty||_persistDebounce["customers"]||_persistInFlight.has("customers");
+  const _customersDirty=_preFetchCustDirty||_persistDebounce["customers"]||_pifHas("customers");
   if(!_customersDirty)state.patients=mergeRows(p,state.patients.length?state.patients:[]);
-  const _eventsDirty=_preFetchDealsDirty||_persistDebounce["deals"]||_persistInFlight.has("deals");
+  const _eventsDirty=_preFetchDealsDirty||_persistDebounce["deals"]||_pifHas("deals");
   if(!_eventsDirty){
     const _evRaw=mergeRows(e,state.events.length?state.events:[]);
     const _evSeen=new Set();
@@ -4087,8 +4090,8 @@ async function downloadQuotePDF(patientId,_noWarn=false){
     clearTimeout(_persistDebounce["customers"]);
     delete _persistDebounce["customers"];
     await persist("customers");
-  } else if(_persistInFlight.has("customers")){
-    await new Promise(r=>{const _w=()=>_persistInFlight.has("customers")?setTimeout(_w,50):r();_w();});
+  } else if(_pifHas("customers")){
+    await new Promise(r=>{const _w=()=>_pifHas("customers")?setTimeout(_w,50):r();_w();});
   }
   if(!_noWarn&&ptFormDirty&&currentPtTab==="assessment"){
     if(!await confirmDialog(t.unsavedPlanWarning))return;
