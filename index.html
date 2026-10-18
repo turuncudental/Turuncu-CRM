@@ -2289,7 +2289,6 @@ function renderPtAssessment(p){
 
 function toothClick(e,num){
   e.stopPropagation();
-  console.log('[toothClick] num='+num+' activeTxBrush='+activeTxBrush+' paintBrush='+paintBrush);
   if(activeTxBrush!==null&&activeTxBrush!=='__manual__'){applyTxToTooth(num,activeTxBrush);return;}
   if(paintBrush!==null){setToothCond(num,paintBrush);return;}
   document.querySelectorAll(".tooth-popup").forEach(p=>p.remove());
@@ -2405,9 +2404,8 @@ function addManualTreatment(){
   logAction('plan_save',buildPlanDetail(p));markPtDirty();debouncedPersist("customers");renderPtBody();
 }
 function applyTxToTooth(num,txId){
-  console.log('[applyTxToTooth] num='+num+' txId='+txId+' currentPatientId='+currentPatientId+' activePlan='+activePlan);
   document.querySelectorAll(".tooth-popup").forEach(p=>p.remove());
-  const p=getPatient(currentPatientId);if(!p){console.log('[applyTxToTooth] patient NOT found');return;}
+  const p=getPatient(currentPatientId);if(!p)return;
   if(!p.assessment)p.assessment={};
   if(!p.assessment[activePlan])p.assessment[activePlan]={};
   if(!p.assessment.toothTx)p.assessment.toothTx={};
@@ -2430,8 +2428,7 @@ function applyTxToTooth(num,txId){
     }
     markPtDirty();debouncedPersist("customers");renderPtBody();return;
   }
-  const tx=getTreatment(txId);if(!tx){console.log('[applyTxToTooth] getTreatment returned null for txId='+txId+' state.treatments.length='+state.treatments.length);return;}
-  console.log('[applyTxToTooth] tx found:',tx.name,'category:',tx.category);
+  const tx=getTreatment(txId);if(!tx)return;
   const _existing=p.assessment.toothTx[activePlan][num];
   const _existingIds=Array.isArray(_existing)?[..._existing]:(_existing!=null?[_existing]:[]);
   const _allTxList=state.treatments.filter(tx=>tx.type==='treatment'&&tx.active);
@@ -2452,7 +2449,6 @@ function applyTxToTooth(num,txId){
   const _idx=_existingIds.findIndex(id=>+id===+txId);
   const _wasAdded=_idx<0;
   const _newIds=_idx>=0?_existingIds.filter(id=>+id!==+txId):[..._existingIds,txId];
-  console.log('[applyTxToTooth] _existingIds='+JSON.stringify(_existingIds)+' _idx='+_idx+' _wasAdded='+_wasAdded+' _newIds='+JSON.stringify(_newIds));
   if(_newIds.length===0){
     delete p.assessment.toothTx[activePlan][num];
     delete p.assessment[activePlan][num];
