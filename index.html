@@ -1916,6 +1916,7 @@ function renderPtAssessment(p){
   const a=p.assessment||{currentCondition:{},treatmentPlan:{},dentistNotes:""};
   const chart=a[activePlan]||{};
   const gId='treatmentPlan';
+  const toothTxMap=(a.toothTx||{})[activePlan]||{};
   function toothHTML(num){
     const cond=chart[num]||"healthy";
     const isMissing=cond==="missing";
@@ -1923,7 +1924,9 @@ function renderPtAssessment(p){
     const condColor=TOOTH_COLORS[cond]||"transparent";
     const sh=TOOTH_SVG_DATA[getToothSVGKey(num)];
     const isUpper=num>=11&&num<=28;
-    const numStyle="font-size:7px;font-weight:800;color:#3d5270;height:9px;line-height:9px;text-align:center;width:34px";
+    const hasTxEntry=toothTxMap[num]!=null;
+    const numColor=hasTxEntry?'#f97316':'#3d5270';
+    const numStyle=`font-size:7px;font-weight:${hasTxEntry?900:800};color:${numColor};height:9px;line-height:9px;text-align:center;width:34px`;
     const cursor=paintBrush?"crosshair":"pointer";
     let svgContent;
     // Parse compound conditions like "implant+crown"
@@ -2043,7 +2046,6 @@ function renderPtAssessment(p){
   const legend=condKeys.map(k=>`<div class="legend-item${paintBrush===k?" active":""}" data-cond="${k}" onclick="setPaintBrush('${k}')"><div class="legend-dot" style="background:${TOOTH_COLORS[k]||"#131b2a"};border:1px solid ${TOOTH_COLORS[k]!=="transparent"?TOOTH_COLORS[k]:"#1a2236"}"></div>${condLabel(k)}</div>`).join("");
   const clearBtn="";
   const allTxCatalog=state.treatments.filter(tx=>tx.type==='treatment'&&tx.active);
-  const toothTxMap=(a.toothTx||{})[activePlan]||{};
   const txGroupsMap={};
   Object.entries(toothTxMap).forEach(([num,txVal])=>{
     const ids=Array.isArray(txVal)?txVal:[txVal];
@@ -2446,8 +2448,9 @@ function applyTxToTooth(num,txId){
     toast(lang==='tr'?"⚠️ Bu dişte dolgu, kanal veya çekim tedavisi var. İmplant için önce bunları kaldırın.":"⚠️ This tooth has filling, root canal or extraction. Remove those treatments before adding an implant.");
     return;
   }
-  const _idx=_existingIds.indexOf(txId);
-  const _newIds=_idx>=0?_existingIds.filter(id=>id!==txId):[..._existingIds,txId];
+  const _idx=_existingIds.findIndex(id=>+id===+txId);
+  const _wasAdded=_idx<0;
+  const _newIds=_idx>=0?_existingIds.filter(id=>+id!==+txId):[..._existingIds,txId];
   if(_newIds.length===0){
     delete p.assessment.toothTx[activePlan][num];
     delete p.assessment[activePlan][num];
@@ -2463,6 +2466,7 @@ function applyTxToTooth(num,txId){
     }
   }
   if(hasImplantInPlan(p)){if(!p.booking)p.booking={};if((p.booking.visitCount||1)<2)p.booking.visitCount=2;}
+  toast(_wasAdded?(lang==='tr'?`✅ ${tx.name} planlamaya eklendi (Diş ${num})`:`✅ ${tx.name} added to plan (Tooth ${num})`):(lang==='tr'?`🗑 ${tx.name} planladan kaldırıldı (Diş ${num})`:`🗑 ${tx.name} removed from plan (Tooth ${num})`));
   markPtDirty();debouncedPersist("customers");renderPtBody();
 }
 function removeJawTx(jaw){
