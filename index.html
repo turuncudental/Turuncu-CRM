@@ -1856,6 +1856,8 @@ function renderPtBody(){
   else if(currentPtTab==="booking")body.innerHTML=renderPtBooking(p);
   else if(currentPtTab==="notes")body.innerHTML=renderPtNotes(p);
   else if(currentPtTab==="files")body.innerHTML=renderPtFiles(p);
+  // Auto-resize notes textarea to fit existing content
+  requestAnimationFrame(()=>{const ta=document.getElementById("pb-notes");if(ta){ta.style.height='auto';ta.style.height=ta.scrollHeight+'px';}});
 }
 function renderPtConsultation(p){
   const c=p.consultation||{};
@@ -2268,7 +2270,7 @@ function renderPtAssessment(p){
           <span style="font-size:11px;color:#4a607d;font-weight:600">${t.noteTemplateLabel}</span>
           ${_DEFAULT_NOTE_TPLS.map(tpl=>`<button data-tpl-key="${tpl.key}" onclick="insertNoteTemplate('${tpl.key}')" style="font-size:11px;padding:3px 10px;border-radius:14px;background:${_activeTplKey===tpl.key?'#f9731622':'#131b2a'};border:1px solid ${_activeTplKey===tpl.key?'#f97316':'#1a2236'};color:${_activeTplKey===tpl.key?'#f97316':'#60a5fa'};cursor:pointer;font-family:inherit;font-weight:600">${tpl.label}</button>`).join('')}
         </div>
-        <textarea id="pb-notes" rows="3" oninput="markPtDirty()" style="width:100%;box-sizing:border-box">${b.notes||""}</textarea>
+        <textarea id="pb-notes" rows="6" oninput="this.style.height='auto';this.style.height=this.scrollHeight+'px';markPtDirty()" style="width:100%;box-sizing:border-box;resize:none;overflow:hidden;min-height:120px">${b.notes||""}</textarea>
       </div>
     </div>
     <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
@@ -2814,7 +2816,7 @@ function renderPtBooking(p){
           <span style="font-size:11px;color:#4a607d;font-weight:600">${t.noteTemplateLabel}</span>
           ${_DEFAULT_NOTE_TPLS.map(tpl=>`<button data-tpl-key="${tpl.key}" onclick="insertNoteTemplate('${tpl.key}')" style="font-size:11px;padding:3px 10px;border-radius:14px;background:${_activeTplKey===tpl.key?'#f9731622':'#131b2a'};border:1px solid ${_activeTplKey===tpl.key?'#f97316':'#1a2236'};color:${_activeTplKey===tpl.key?'#f97316':'#60a5fa'};cursor:pointer;font-family:inherit;font-weight:600">${tpl.label}</button>`).join('')}
         </div>
-        <textarea id="pb-notes" rows="3" oninput="markPtDirty()" style="width:100%;box-sizing:border-box">${b.notes||""}</textarea>
+        <textarea id="pb-notes" rows="6" oninput="this.style.height='auto';this.style.height=this.scrollHeight+'px';markPtDirty()" style="width:100%;box-sizing:border-box;resize:none;overflow:hidden;min-height:120px">${b.notes||""}</textarea>
       </div>
     </div>
     <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
