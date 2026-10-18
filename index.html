@@ -1261,7 +1261,16 @@ async function loadAll(){
   // Supabase başarısız olursa mevcut state korunur — asla SEED_PATIENTS yazılmaz
   // Eğer kullanıcı henüz kaydedilmemiş değişiklik yaptıysa (debounce/in-flight), eski veriyle ezme
   const _customersDirty=_preFetchCustDirty||_persistDebounce["customers"]||_pifHas("customers")||ptFormDirty;
-  if(!_customersDirty)state.patients=mergeRows(p,state.patients.length?state.patients:[]);
+  if(!_customersDirty){
+    const _fetched=mergeRows(p,state.patients.length?state.patients:[]);
+    // GET snapshot alabileceği için açık olan hastanın in-memory verisini asla eski Supabase verisiyle ezme
+    if(currentPatientId!=null){
+      const _memPt=state.patients.find(x=>x.id===currentPatientId);
+      state.patients=_fetched.map(x=>x.id===currentPatientId&&_memPt?_memPt:x);
+    }else{
+      state.patients=_fetched;
+    }
+  }
   const _eventsDirty=_preFetchDealsDirty||_persistDebounce["deals"]||_pifHas("deals");
   if(!_eventsDirty){
     const _evRaw=mergeRows(e,state.events.length?state.events:[]);
