@@ -17,6 +17,25 @@ jobs:
         with:
           version: latest
 
+      - name: Check required secrets
+        run: |
+          missing=0
+          for name in SUPABASE_ACCESS_TOKEN SUPABASE_PROJECT_REF META_VERIFY_TOKEN META_ACCESS_TOKEN META_APP_SECRET; do
+            if [ -z "${!name}" ]; then
+              echo "::error::Required secret $name is empty or not set"
+              missing=1
+            fi
+          done
+          if [ "$missing" -ne 0 ]; then
+            exit 1
+          fi
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
+          META_VERIFY_TOKEN: ${{ secrets.META_VERIFY_TOKEN }}
+          META_ACCESS_TOKEN: ${{ secrets.META_ACCESS_TOKEN }}
+          META_APP_SECRET: ${{ secrets.META_APP_SECRET }}
+
       - name: Deploy meta-leads function
         run: |
           supabase functions deploy meta-leads --no-verify-jwt \
@@ -29,6 +48,7 @@ jobs:
           supabase secrets set \
             META_VERIFY_TOKEN=${{ secrets.META_VERIFY_TOKEN }} \
             META_ACCESS_TOKEN=${{ secrets.META_ACCESS_TOKEN }} \
+            META_APP_SECRET=${{ secrets.META_APP_SECRET }} \
             COMPANY_ID=1 \
             --project-ref ${{ secrets.SUPABASE_PROJECT_REF }}
         env:
