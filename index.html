@@ -2353,7 +2353,7 @@ function toothClick(e,num){
 }
 
 function deriveDomCondition(allConds){
-  const priority=['extraction','implant','zircrown','crown','root_canal','filling'];
+  const priority=['implant','extraction','zircrown','crown','root_canal','filling'];
   const priorConds=allConds.filter(c=>priority.includes(c));
   if(!priorConds.length)return allConds[0]||null;
   const minIdx=Math.min(...priorConds.map(c=>priority.indexOf(c)));
@@ -2479,8 +2479,8 @@ function applyTxToTooth(num,txId){
     toast(lang==='tr'?"⚠️ Bu diş implant! Dolgu, kanal veya çekim uygulanamaz — yalnızca zirkonyum/kron uygulanabilir.":"⚠️ This tooth has an implant! Filling, root canal or extraction cannot be applied — only zirconia/crown is possible.");
     return;
   }
-  if(_newCond==='implant'&&_existConds.some(c=>_implantIncompat.includes(c))){
-    toast(lang==='tr'?"⚠️ Bu dişte dolgu, kanal veya çekim tedavisi var. İmplant için önce bunları kaldırın.":"⚠️ This tooth has filling, root canal or extraction. Remove those treatments before adding an implant.");
+  if(_newCond==='implant'&&_existConds.some(c=>['root_canal','filling'].includes(c))){
+    toast(lang==='tr'?"⚠️ Bu dişte dolgu veya kanal tedavisi var. İmplant için önce bunları kaldırın.":"⚠️ This tooth has filling or root canal. Remove those treatments before adding an implant.");
     return;
   }
   const _idx=_existingIds.findIndex(id=>+id===+txId);
