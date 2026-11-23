@@ -40,6 +40,22 @@ jobs:
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
 
+      # Giriş öncesi token olmadığı için JWT doğrulaması kapalı; şifreyi fonksiyon kendisi kontrol eder
+      - name: Deploy crm-login function
+        run: |
+          supabase functions deploy crm-login --no-verify-jwt \
+            --project-ref ${{ secrets.SUPABASE_PROJECT_REF }}
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+
+      # Yalnızca giriş yapmış kullanıcılar çağırabilir (JWT doğrulaması açık)
+      - name: Deploy crm-users function
+        run: |
+          supabase functions deploy crm-users \
+            --project-ref ${{ secrets.SUPABASE_PROJECT_REF }}
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+
       # NOT: Edge Function secret'ları (META_ACCESS_TOKEN, META_VERIFY_TOKEN,
       # META_APP_SECRET, META_COMPANY_ID) yalnızca Supabase panelinden yönetilir.
       # Workflow bunları artık YAZMAZ; aksi halde her deploy'da canlıdaki
