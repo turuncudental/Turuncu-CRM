@@ -1263,13 +1263,14 @@ function debouncedPersist(table,delay=400){
     persist(table);
   },delay);
 }
-async function dbSet(table,data){
-  const cid=activeCompanyId!=null&&activeCompanyId>0?activeCompanyId:(currentUser?.company_id!=null&&currentUser.company_id>0?+currentUser.company_id:1);
+async function dbSet(table,data,cidOverride){
+  const cid=cidOverride!=null?+cidOverride:(activeCompanyId!=null&&activeCompanyId>0?activeCompanyId:(currentUser?.company_id!=null&&currentUser.company_id>0?+currentUser.company_id:1));
   if(cid<0)return;
-  // Abort any in-flight request for this table so a stale response can't overwrite newer data
-  if(_persistControllers[table]){try{_persistControllers[table].abort();}catch{}}
+  // Abort any in-flight request for this table+company so a stale response can't overwrite newer data
+  const _ck=table+":"+cid;
+  if(_persistControllers[_ck]){try{_persistControllers[_ck].abort();}catch{}}
   const ctrl=new AbortController();
-  _persistControllers[table]=ctrl;
+  _persistControllers[_ck]=ctrl;
   const sig=ctrl.signal;
   try{localStorage.setItem(`crm_${table}_${cid}`,JSON.stringify([{id:cid,data}]));}catch{}
   try{localStorage.setItem(`crm_${table}_${cid}_pending`,'1');}catch{}
@@ -1294,17 +1295,26 @@ async function persist(table){
   const sl=document.getElementById("syncing-label");sl.textContent=t.saving;sl.style.display="inline";
   _pifAdd(table);
   let _data=state[TABLE_STATE[table]||table];
-  // "Tüm Firmalar" modunda (activeCompanyId=null) sadece bu kullanıcının şirketine ait hastaları kaydet
-  // Diğer şirketlerin _cid'li hastaları asla karışmasın; _cid alanı runtime-only, kaydetme
-  if(table==="customers"&&activeCompanyId===null){
+  if(activeCompanyId===null&&(table==="customers"||table==="deals"||table==="tasks")){
+    // "Tüm Firmalar" modu: her kayıt kendi firmasının satırına yazılır (_cid/_companyId = kaynak firma).
+    // Eskiden randevular hep firma 1'e yazılıyordu -> firmalar arası kopya kayıtlar oluşuyordu.
     const _myCid=currentUser?.company_id!=null?+currentUser.company_id:1;
-    _data=(_data||[]).filter(p=>!p._cid||+p._cid===_myCid).map(({_cid,...rest})=>rest);
+    const _groups=new Map();
+    for(const it of (_data||[])){
+      const c=+(it._cid??it._companyId??_myCid);
+      const {_cid,_companyId,...rest}=it;
+      if(!_groups.has(c))_groups.set(c,[]);
+      _groups.get(c).push(rest);
+    }
+    await Promise.all([..._groups].map(([c,rows])=>dbSet(table,rows,c)));
+  }else{
+    // Firma modu: sadece o firmanın kayıtları; çalışma anındaki _cid/_companyId alanları kaydedilmez
+    if(table==="deals"||table==="tasks"||table==="customers"){
+      const _myCid=activeCompanyId!=null?+activeCompanyId:(currentUser?.company_id!=null?+currentUser.company_id:1);
+      _data=(_data||[]).filter(e=>{const c=e._cid??e._companyId;return c==null||+c===_myCid;}).map(({_cid,_companyId,...rest})=>rest);
+    }
+    await dbSet(table,_data);
   }
-  if(table==="deals"){
-    const _myCid=activeCompanyId!=null?+activeCompanyId:(currentUser?.company_id!=null?+currentUser.company_id:1);
-    _data=(_data||[]).filter(e=>!e._cid||+e._cid===_myCid).map(({_cid,...rest})=>rest);
-  }
-  await dbSet(table,_data);
   _pifDel(table);
   if(window._supaOffline){
     sl.textContent="⚠️ Supabase bağlantı yok — veriler geçici olarak tarayıcıda tutuluyor!";
@@ -1323,7 +1333,7 @@ async function loadAll(){
   // Tüm Firmalar modunda (activeCompanyId=null) tüm şirketlerin verisini birleştir
   const mergeRows=(rows,seed)=>{
     if(!Array.isArray(rows)||!rows.length)return seed||[];
-    if(activeCompanyId===null&&rows.length>1)return rows.flatMap(r=>Array.isArray(r.data)?r.data.map(p=>({...p,_cid:r.id})):[]);
+    if(activeCompanyId===null)return rows.flatMap(r=>Array.isArray(r.data)?r.data.map(p=>({...p,_cid:r.id})):[]); // tek satır olsa da kaynak firma etiketlenir
     return Array.isArray(rows[0]?.data)?rows[0].data:(seed||[]);
   };
   // Supabase başarısız olursa mevcut state korunur — asla SEED_PATIENTS yazılmaz
