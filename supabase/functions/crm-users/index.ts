@@ -11,7 +11,7 @@
 //   change_password { current, new }       (herkes) kendi şifresini değiştirir
 //
 // Şifre kuralı: en az 8 karakter, harf + rakam, kullanıcı adıyla aynı olamaz.
-// Deploy: JWT doğrulaması AÇIK (varsayılan).
+// Deploy: --no-verify-jwt (token'ı fonksiyon kendisi auth.getUser ile doğrular).
 
 import {
   admin, ADMIN_ROLES, callerFromRequest, cors, hashPassword, json, passwordProblem, publicUser, ROLES,
