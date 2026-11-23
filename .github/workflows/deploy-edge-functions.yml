@@ -48,10 +48,10 @@ jobs:
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
 
-      # Yalnızca giriş yapmış kullanıcılar çağırabilir (JWT doğrulaması açık)
+      # Token'ı fonksiyon kendisi doğrular (auth.getUser); paneldeki eski tip JWT kontrolü yeni Auth token'larını reddedebileceği için kapalı
       - name: Deploy crm-users function
         run: |
-          supabase functions deploy crm-users --yes \
+          supabase functions deploy crm-users --no-verify-jwt --yes \
             --project-ref ${{ secrets.SUPABASE_PROJECT_REF }}
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
