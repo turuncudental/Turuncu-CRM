@@ -1235,11 +1235,13 @@ async function dbGet(table){
   const cid=activeCompanyId;
   const ckey=cid!=null?cid:'all';
   // Her zaman Supabase'den taze veri çek; dirty/in-flight koruması loadAll'daki guard ile yapılır
+  _lastFetched[table]=null;
   try{
     const filter=cid?`?id=eq.${cid}&select=*`:`?select=*`;
     const r=await fetch(`${SUPA_URL}/rest/v1/${table}${filter}`,{headers:H});
     if(r.ok){
       const rows=await r.json();
+      _lastFetched[table]=Array.isArray(rows)?rows:null;
       if(rows&&rows.length>0){
         localStorage.setItem(`crm_${table}_${ckey}`,JSON.stringify(rows));
         return rows;
@@ -1263,6 +1265,42 @@ function debouncedPersist(table,delay=400){
     persist(table);
   },delay);
 }
+// ── EŞZAMANLI KAYIT: aynı firmada birden fazla kişi aynı anda çalışabilsin.
+// Kaydederken tüm liste yerine yalnızca DEĞİŞEN kayıtlar gönderilir; sunucu (crm_merge_items)
+// bunları mevcut listeye atomik olarak birleştirir. Böylece A kişisinin kaydı B'nin aynı anda
+// yaptığı (başka hastadaki) değişikliği ezmez. "baseline": son sunucudan alınan / yazılan hali.
+const MERGE_TABLES=new Set(["customers","deals","tasks"]);
+const _lastFetched={};
+const _baseline=new Map(); // "table:cid" -> Map(id -> json)
+const _bkey=(table,cid)=>table+":"+cid;
+const _itemKey=it=>it&&it.id!=null?String(it.id):null;
+function setBaselineFromRows(table,rows){
+  if(!Array.isArray(rows))return;
+  for(const r of rows){
+    const m=new Map();
+    for(const it of (Array.isArray(r.data)?r.data:[])){const k=_itemKey(it);if(k)m.set(k,JSON.stringify(it));}
+    _baseline.set(_bkey(table,r.id),m);
+  }
+}
+async function mergeWrite(table,cid,data,sig){
+  const bk=_bkey(table,cid);const base=_baseline.get(bk);
+  const upserts=[];const seen=new Set();
+  for(const it of (data||[])){
+    const k=_itemKey(it);if(!k)continue;seen.add(k);
+    const js=JSON.stringify(it);
+    if(!base||base.get(k)!==js)upserts.push(it);
+  }
+  const removeIds=base?[...base.keys()].filter(k=>!seen.has(k)):[];
+  if(!upserts.length&&!removeIds.length)return true; // değişiklik yok
+  const r=await fetch(`${SUPA_URL}/rest/v1/rpc/crm_merge_items`,{method:"POST",headers:{...H},
+    body:JSON.stringify({p_table:table,p_company:cid,p_upserts:upserts,p_remove_ids:removeIds}),signal:sig});
+  if(!r.ok)return false;
+  const nb=base?new Map(base):new Map();
+  for(const it of upserts)nb.set(_itemKey(it),JSON.stringify(it));
+  for(const k of removeIds)nb.delete(k);
+  _baseline.set(bk,nb);
+  return true;
+}
 async function dbSet(table,data,cidOverride){
   const cid=cidOverride!=null?+cidOverride:(activeCompanyId!=null&&activeCompanyId>0?activeCompanyId:(currentUser?.company_id!=null&&currentUser.company_id>0?+currentUser.company_id:1));
   if(cid<0)return;
@@ -1274,6 +1312,14 @@ async function dbSet(table,data,cidOverride){
   const sig=ctrl.signal;
   try{localStorage.setItem(`crm_${table}_${cid}`,JSON.stringify([{id:cid,data}]));}catch{}
   try{localStorage.setItem(`crm_${table}_${cid}_pending`,'1');}catch{}
+  if(MERGE_TABLES.has(table)){
+    try{
+      const ok=await mergeWrite(table,cid,data,sig);
+      window._supaOffline=!ok;
+      if(ok){try{localStorage.removeItem(`crm_${table}_${cid}_pending`);}catch{}}
+    }catch(e){if(e?.name==='AbortError')return;window._supaOffline=true;}
+    return;
+  }
   try{
     // Try PATCH first (update existing row). If no row exists (0 rows updated), fall back to POST (insert).
     const pr=await fetch(`${SUPA_URL}/rest/v1/${table}?id=eq.${cid}`,{method:"PATCH",headers:{...H,"Prefer":"return=representation"},body:JSON.stringify({data}),signal:sig});
@@ -1341,6 +1387,7 @@ async function loadAll(){
   const _customersDirty=_preFetchCustDirty||_persistDebounce["customers"]||_pifHas("customers")||ptFormDirty;
   if(!_customersDirty){
     const _fetched=mergeRows(p,state.patients.length?state.patients:[]);
+    if(_lastFetched.customers)setBaselineFromRows("customers",_lastFetched.customers);
     // GET snapshot alabileceği için açık olan hastanın in-memory verisini asla eski Supabase verisiyle ezme
     if(currentPatientId!=null){
       const _memPt=state.patients.find(x=>x.id==currentPatientId);
@@ -1352,6 +1399,7 @@ async function loadAll(){
   const _eventsDirty=_preFetchDealsDirty||_persistDebounce["deals"]||_pifHas("deals");
   if(!_eventsDirty){
     const _evRaw=mergeRows(e,state.events.length?state.events:[]);
+    if(_lastFetched.deals)setBaselineFromRows("deals",_lastFetched.deals);
     const _evSeen=new Set();
     let _evDeduped=_evRaw.filter(ev=>{if(_evSeen.has(ev.id))return false;_evSeen.add(ev.id);return true;});
     if(activeCompanyId!=null){
@@ -1363,6 +1411,7 @@ async function loadAll(){
     state.events=_evDeduped;
   }
   state.appointments=mergeRows(a,state.appointments.length?state.appointments:[]);
+  if(_lastFetched.tasks)setBaselineFromRows("tasks",_lastFetched.tasks);
   const trCid=activeCompanyId||currentUser?.company_id||1;
   const trPending=localStorage.getItem(`crm_history_${trCid}_pending`);
   // Find this company's row by id (not [0] which may be a different company's old row)
