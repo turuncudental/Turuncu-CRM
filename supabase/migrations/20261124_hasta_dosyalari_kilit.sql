@@ -1,3 +1,4 @@
+-- 24 Kasım 2026 ÇALIŞTIRILDI (A ve B). Test: herkese açık link 400, anon imzalama reddedildi, admin imzalı link 200.
 -- Hasta dosyaları klasörünü (patient-files) kilitle.
 -- Önce: klasör "public" -> linki bilen herkes röntgen/fotoğrafları açabiliyordu.
 -- Sonra: sadece giriş yapmış kullanıcılar, yalnızca kendi firmasının hastalarının dosyalarına
@@ -30,7 +31,7 @@ create policy patient_files_delete on storage.objects for delete to authenticate
 -- (patient_files_insert: Adım 3'te zaten yalnızca authenticated)
 
 -- ===== B) Klasörü gizli yap (sayfa güncellemesi yayına girdikten SONRA) =====
--- update storage.buckets set public = false where id = 'patient-files';
+update storage.buckets set public = false where id = 'patient-files';  -- 24 Kasım 2026 ÇALIŞTIRILDI
 
 -- ===== GERİ ALMA =====
 -- update storage.buckets set public = true where id = 'patient-files';
