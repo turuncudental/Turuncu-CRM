@@ -331,6 +331,74 @@ const SUPA_URL="https://abtmfoetnhswccliuawn.supabase.co";
 const SUPA_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFidG1mb2V0bmhzd2NjbGl1YXduIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk0NTMwMzIsImV4cCI6MjA5NTAyOTAzMn0.G_gyNgy1HZmaGSRvZ9aLDO-XneqU_K036APAEArhFMU";
 const H={"Content-Type":"application/json","apikey":SUPA_KEY,"Authorization":"Bearer "+SUPA_KEY};
 
+// ── OTURUM (Güvenlik Adım 2): giriş sunucuda (crm-login) yapılır, veritabanına
+// kullanıcının imzalı token'ı ile bağlanılır. Token ~1 saatte bir otomatik yenilenir.
+const FN_URL=SUPA_URL+"/functions/v1";
+let authSession=null; // {access_token, refresh_token, expires_at(sn)}
+let _refreshTimer=null,_refreshing=null;
+function applySession(s){
+  authSession=s||null;
+  if(_refreshTimer){clearTimeout(_refreshTimer);_refreshTimer=null;}
+  if(authSession){
+    H.Authorization="Bearer "+authSession.access_token;
+    try{sessionStorage.setItem("crm_session",JSON.stringify(authSession));}catch{}
+    const ms=Math.max(5000,authSession.expires_at*1000-Date.now()-120000);
+    _refreshTimer=setTimeout(()=>refreshSession(),ms);
+  }else{
+    H.Authorization="Bearer "+SUPA_KEY;
+    try{sessionStorage.removeItem("crm_session");}catch{}
+  }
+}
+function refreshSession(){
+  if(_refreshing)return _refreshing;
+  if(!authSession?.refresh_token)return Promise.resolve(false);
+  _refreshing=(async()=>{
+    try{
+      const r=await _origFetch(`${SUPA_URL}/auth/v1/token?grant_type=refresh_token`,{method:"POST",headers:{"Content-Type":"application/json","apikey":SUPA_KEY},body:JSON.stringify({refresh_token:authSession.refresh_token})});
+      if(r.ok){
+        const j=await r.json();
+        applySession({access_token:j.access_token,refresh_token:j.refresh_token,expires_at:j.expires_at||Math.floor(Date.now()/1000)+(j.expires_in||3600)});
+        return true;
+      }
+      if(r.status>=400&&r.status<500){sessionExpired();return false;}
+    }catch{}
+    // Ağ hatası: 30 sn sonra tekrar dene
+    if(_refreshTimer)clearTimeout(_refreshTimer);
+    _refreshTimer=setTimeout(()=>refreshSession(),30000);
+    return false;
+  })().finally(()=>{_refreshing=null;});
+  return _refreshing;
+}
+function sessionExpired(){
+  if(!currentUser){applySession(null);return;}
+  try{toast(t.sessionExpired||"Oturumunuz sona erdi, lütfen tekrar giriş yapın.","warn");}catch{}
+  doLogout(true);
+}
+// Supabase'e giden her istekten önce token süresi kontrol edilir; gerekirse önce yenilenir
+const _origFetch=window.fetch.bind(window);
+window.fetch=async(input,init)=>{
+  const url=typeof input==="string"?input:(input&&input.url)||"";
+  if(authSession&&url.startsWith(SUPA_URL)&&!url.includes("/auth/v1/")&&!url.includes("/functions/v1/crm-login")){
+    if(authSession.expires_at*1000-Date.now()<60000)await refreshSession();
+    if(authSession&&init&&init.headers&&!(init.headers instanceof Headers)&&typeof init.headers.Authorization==="string"){
+      init={...init,headers:{...init.headers,Authorization:"Bearer "+authSession.access_token}};
+    }
+  }
+  return _origFetch(input,init);
+};
+document.addEventListener("visibilitychange",()=>{
+  if(document.visibilityState==="visible"&&authSession&&authSession.expires_at*1000-Date.now()<180000)refreshSession();
+});
+// Kullanıcı yönetimi sunucu fonksiyonu (crm-users)
+async function crmUsers(action,payload={}){
+  try{
+    const r=await fetch(`${FN_URL}/crm-users`,{method:"POST",headers:{...H},body:JSON.stringify({action,...payload})});
+    let j={};try{j=await r.json();}catch{}
+    if(r.status===401)sessionExpired();
+    return{ok:r.ok,status:r.status,...j};
+  }catch{return{ok:false,status:0,error:null};}
+}
+
 // ── WORLD COUNTRIES (name, flag emoji, nationality)
 const WORLD_COUNTRIES=[
   {n:"Türkiye",f:"🇹🇷",nat:"Türk"},{n:"United Kingdom",f:"🇬🇧",nat:"British"},{n:"Germany",f:"🇩🇪",nat:"German"},
@@ -1195,13 +1263,14 @@ function debouncedPersist(table,delay=400){
     persist(table);
   },delay);
 }
-async function dbSet(table,data){
-  const cid=activeCompanyId!=null&&activeCompanyId>0?activeCompanyId:(currentUser?.company_id!=null&&currentUser.company_id>0?+currentUser.company_id:1);
+async function dbSet(table,data,cidOverride){
+  const cid=cidOverride!=null?+cidOverride:(activeCompanyId!=null&&activeCompanyId>0?activeCompanyId:(currentUser?.company_id!=null&&currentUser.company_id>0?+currentUser.company_id:1));
   if(cid<0)return;
-  // Abort any in-flight request for this table so a stale response can't overwrite newer data
-  if(_persistControllers[table]){try{_persistControllers[table].abort();}catch{}}
+  // Abort any in-flight request for this table+company so a stale response can't overwrite newer data
+  const _ck=table+":"+cid;
+  if(_persistControllers[_ck]){try{_persistControllers[_ck].abort();}catch{}}
   const ctrl=new AbortController();
-  _persistControllers[table]=ctrl;
+  _persistControllers[_ck]=ctrl;
   const sig=ctrl.signal;
   try{localStorage.setItem(`crm_${table}_${cid}`,JSON.stringify([{id:cid,data}]));}catch{}
   try{localStorage.setItem(`crm_${table}_${cid}_pending`,'1');}catch{}
@@ -1226,17 +1295,26 @@ async function persist(table){
   const sl=document.getElementById("syncing-label");sl.textContent=t.saving;sl.style.display="inline";
   _pifAdd(table);
   let _data=state[TABLE_STATE[table]||table];
-  // "Tüm Firmalar" modunda (activeCompanyId=null) sadece bu kullanıcının şirketine ait hastaları kaydet
-  // Diğer şirketlerin _cid'li hastaları asla karışmasın; _cid alanı runtime-only, kaydetme
-  if(table==="customers"&&activeCompanyId===null){
+  if(activeCompanyId===null&&(table==="customers"||table==="deals"||table==="tasks")){
+    // "Tüm Firmalar" modu: her kayıt kendi firmasının satırına yazılır (_cid/_companyId = kaynak firma).
+    // Eskiden randevular hep firma 1'e yazılıyordu -> firmalar arası kopya kayıtlar oluşuyordu.
     const _myCid=currentUser?.company_id!=null?+currentUser.company_id:1;
-    _data=(_data||[]).filter(p=>!p._cid||+p._cid===_myCid).map(({_cid,...rest})=>rest);
+    const _groups=new Map();
+    for(const it of (_data||[])){
+      const c=+(it._cid??it._companyId??_myCid);
+      const {_cid,_companyId,...rest}=it;
+      if(!_groups.has(c))_groups.set(c,[]);
+      _groups.get(c).push(rest);
+    }
+    await Promise.all([..._groups].map(([c,rows])=>dbSet(table,rows,c)));
+  }else{
+    // Firma modu: sadece o firmanın kayıtları; çalışma anındaki _cid/_companyId alanları kaydedilmez
+    if(table==="deals"||table==="tasks"||table==="customers"){
+      const _myCid=activeCompanyId!=null?+activeCompanyId:(currentUser?.company_id!=null?+currentUser.company_id:1);
+      _data=(_data||[]).filter(e=>{const c=e._cid??e._companyId;return c==null||+c===_myCid;}).map(({_cid,_companyId,...rest})=>rest);
+    }
+    await dbSet(table,_data);
   }
-  if(table==="deals"){
-    const _myCid=activeCompanyId!=null?+activeCompanyId:(currentUser?.company_id!=null?+currentUser.company_id:1);
-    _data=(_data||[]).filter(e=>!e._cid||+e._cid===_myCid).map(({_cid,...rest})=>rest);
-  }
-  await dbSet(table,_data);
   _pifDel(table);
   if(window._supaOffline){
     sl.textContent="⚠️ Supabase bağlantı yok — veriler geçici olarak tarayıcıda tutuluyor!";
@@ -1255,7 +1333,7 @@ async function loadAll(){
   // Tüm Firmalar modunda (activeCompanyId=null) tüm şirketlerin verisini birleştir
   const mergeRows=(rows,seed)=>{
     if(!Array.isArray(rows)||!rows.length)return seed||[];
-    if(activeCompanyId===null&&rows.length>1)return rows.flatMap(r=>Array.isArray(r.data)?r.data.map(p=>({...p,_cid:r.id})):[]);
+    if(activeCompanyId===null)return rows.flatMap(r=>Array.isArray(r.data)?r.data.map(p=>({...p,_cid:r.id})):[]); // tek satır olsa da kaynak firma etiketlenir
     return Array.isArray(rows[0]?.data)?rows[0].data:(seed||[]);
   };
   // Supabase başarısız olursa mevcut state korunur — asla SEED_PATIENTS yazılmaz
@@ -1303,14 +1381,17 @@ async function loadAll(){
   // Seed verisi asla Supabase'e yazılmaz — sadece display fallback olarak kullanılır
 }
 async function loadUsers(){
-  try{
-    const filter=isSuperAdmin()?`?select=id,username,role,display_name,company_id,company_name&order=id`:`?company_id=eq.${currentUser.company_id}&select=id,username,role,display_name,company_id,company_name&order=id`;
-    const r=await fetch(`${SUPA_URL}/rest/v1/crm_users${filter}`,{headers:H});
-    if(r.ok){
-      state.users=await r.json();
-      state.companies=[...new Map(state.users.filter(u=>u.company_id).map(u=>[u.company_id,{id:u.company_id,name:u.company_name||`Firma ${u.company_id}`}])).values()];
-    }
-  }catch{}
+  if(!canManageUsers()){state.users=currentUser?[currentUser]:[];return;}
+  const res=await crmUsers('list');
+  if(res.ok&&Array.isArray(res.users)){
+    state.users=res.users;
+    state.companies=[...new Map(state.users.filter(u=>u.company_id).map(u=>[u.company_id,{id:u.company_id,name:u.company_name||`Firma ${u.company_id}`}])).values()];
+  }
+}
+async function unlockUser(id){
+  const res=await crmUsers('unlock',{id});
+  if(!res.ok){toast(res.error||t.updateFailed,"err");return;}
+  state.users=state.users.map(u=>u.id===id?{...u,locked:false}:u);toast(t.userUnlocked||"Hesap kilidi açıldı");render();
 }
 function buildPlanDetail(p){
   if(!p)return'';
@@ -1399,62 +1480,39 @@ async function setAllCompanies(){
 }
 
 // ── AUTH
-// Supabase erişilemezse bu yedek kullanıcılar devreye girer
-const FALLBACK_USERS=[
-  {id:1,username:"admin",password:"admin123",role:"admin",display_name:"Admin",company_id:1,company_name:"Turuncu Dental"},
-  {id:2,username:"satis",password:"satis123",role:"satis",display_name:"Satış",company_id:1,company_name:"Turuncu Dental"},
-];
+// Giriş sunucuda doğrulanır (crm-login). 3 hatalı denemede hesap 15 dk kilitlenir.
 function shake(){const b=document.querySelector(".login-box");b.classList.remove("shake");setTimeout(()=>b.classList.add("shake"),10);}
-const LOGIN_MAX=5,LOGIN_LOCK_MS=15*60*1000;
-function getAttempts(u){try{return JSON.parse(localStorage.getItem("crm_att_"+u))||{count:0,until:0};}catch{return{count:0,until:0};}}
-function setAttempts(u,d){localStorage.setItem("crm_att_"+u,JSON.stringify(d));}
-function clearAttempts(u){localStorage.removeItem("crm_att_"+u);}
 async function doLogin(){
   const username=document.getElementById("login-username").value.trim();
   const password=document.getElementById("login-password").value;
-  if(!username||!password){document.getElementById("login-err").textContent=t.loginErr;shake();return;}
-  const att=getAttempts(username);
-  if(att.until>Date.now()){
-    const mins=Math.ceil((att.until-Date.now())/60000);
-    document.getElementById("login-err").textContent=(t.loginLocked||`Hesap kilitli. ${mins} dakika sonra tekrar deneyin.`).replace("{m}",mins);
-    shake();return;
-  }
+  const errEl=document.getElementById("login-err");
+  if(!username||!password){errEl.textContent=t.loginErr;shake();return;}
   const btn=document.getElementById("login-btn");btn.textContent=t.loginLoading;btn.disabled=true;
-  let loginOk=false,supabaseReachable=false;
   try{
-    const r=await fetch(`${SUPA_URL}/rest/v1/crm_users?username=eq.${encodeURIComponent(username)}&select=*`,{headers:H});
-    if(r.ok){
-      supabaseReachable=true;
-      const data=await r.json();
-      if(data&&data.length>0){
-        const usr=data[0];let ok=false;
-        if(usr.password&&usr.password.startsWith('$pbkdf2$')){ok=await bcrypt.compare(password,usr.password);}
-        else{ok=(usr.password===password);if(ok){const h=await bcrypt.hash(password,10);fetch(`${SUPA_URL}/rest/v1/crm_users?id=eq.${usr.id}`,{method:'PATCH',headers:{...H,'Prefer':'return=minimal'},body:JSON.stringify({password:h})}).catch(()=>{});}}
-        if(ok){loginOk=true;clearAttempts(username);currentUser=usr;activeCompanyId=isSuperAdmin()?null:(currentUser.company_id!=null?+currentUser.company_id:-1);sessionStorage.setItem("crm_user",JSON.stringify(currentUser));await showApp();logAction('login','');btn.textContent=t.loginBtn;btn.disabled=false;return;}
-      }
+    const r=await fetch(`${FN_URL}/crm-login`,{method:"POST",headers:{"Content-Type":"application/json","apikey":SUPA_KEY},body:JSON.stringify({username,password})});
+    let j={};try{j=await r.json();}catch{}
+    if(r.ok&&j.session&&j.user){
+      errEl.textContent="";
+      applySession(j.session);
+      currentUser=j.user;
+      activeCompanyId=isSuperAdmin()?null:(currentUser.company_id!=null?+currentUser.company_id:-1);
+      sessionStorage.setItem("crm_user",JSON.stringify(currentUser));
+      document.getElementById("login-password").value="";
+      await showApp();logAction('login','');
+    }else if(r.status===423){
+      const m=j.minutes||15;
+      errEl.textContent=(t.loginLocked||"Hesap kilitlendi. {m} dakika sonra tekrar deneyin.").replace("{m}",m);shake();
+    }else if(r.status===401){
+      errEl.textContent=(j.remaining>0)?(t.loginAttemptsLeft||"Yanlış şifre. {n} deneme hakkınız kaldı.").replace("{n}",j.remaining):t.loginErr;shake();
+    }else{
+      errEl.textContent=t.loginServerErr||"Giriş şu an yapılamıyor. Lütfen biraz sonra tekrar deneyin.";shake();
     }
-  }catch{}
-  // Supabase'e ulaşılamazsa yedek kullanıcılar (sadece ağ hatası durumunda)
-  const fallback=!supabaseReachable&&FALLBACK_USERS.find(u=>u.username===username&&u.password===password);
-  if(fallback){
-    loginOk=true;clearAttempts(username);
-    currentUser={id:fallback.id,username:fallback.username,role:fallback.role,display_name:fallback.display_name,company_id:fallback.company_id||1,company_name:fallback.company_name||'Turuncu Dental'};
-    activeCompanyId=isSuperAdmin()?null:(currentUser.company_id!=null?+currentUser.company_id:-1);
-    sessionStorage.setItem("crm_user",JSON.stringify(currentUser));
-    await showApp();
-    logAction('login','');
-  }
-  if(!loginOk){
-    const newCount=att.count+1;
-    const locked=newCount>=LOGIN_MAX;
-    setAttempts(username,{count:newCount,until:locked?Date.now()+LOGIN_LOCK_MS:0});
-    const remaining=LOGIN_MAX-newCount;
-    const msg=locked?(t.loginLocked||"Hesap 15 dakika kilitlendi.").replace("{m}","15"):remaining>0?(t.loginAttemptsLeft||`Yanlış şifre. ${remaining} deneme hakkınız kaldı.`).replace("{n}",remaining):t.loginErr;
-    document.getElementById("login-err").textContent=msg;shake();
+  }catch{
+    errEl.textContent=t.loginNetErr||"Sunucuya ulaşılamadı. İnternet bağlantınızı kontrol edin.";shake();
   }
   btn.textContent=t.loginBtn;btn.disabled=false;
 }
-function doLogout(){logAction('logout','');currentUser=null;activeCompanyId=null;sessionStorage.removeItem("crm_user");localStorage.removeItem("crm_tab");document.getElementById("app").style.display="none";document.getElementById("login-screen").style.display="flex";document.getElementById("login-password").value="";}
+function doLogout(expired){if(!expired)logAction('logout','');const _tok=authSession?.access_token;if(_tok&&!expired){_origFetch(`${SUPA_URL}/auth/v1/logout?scope=local`,{method:"POST",headers:{"apikey":SUPA_KEY,"Authorization":"Bearer "+_tok}}).catch(()=>{});}applySession(null);currentUser=null;activeCompanyId=null;sessionStorage.removeItem("crm_user");localStorage.removeItem("crm_tab");document.getElementById("app").style.display="none";document.getElementById("login-screen").style.display="flex";document.getElementById("login-password").value="";}
 async function showApp(){
   document.getElementById("login-screen").style.display="none";document.getElementById("app").style.display="flex";
   const color=ROLE_COLORS[currentUser.role]||"#f97316";
@@ -3283,8 +3341,10 @@ function renderUsers(){
           <div style="font-weight:700;font-size:14px">${u.display_name||u.username}${isMe?` <span style="font-size:10px;background:#1a2236;border-radius:10px;padding:1px 7px;color:#4a607d">${t.youLabel}</span>`:""}</div>
           <div style="font-size:12px;color:#4a607d">@${u.username}${isSuperAdmin()&&u.company_name&&(u.role!=='admin'&&u.role!=='superadmin')&&state.companies.length>1?` · <span style="color:#60a5fa">${u.company_name}</span>`:""}</div>
         </div>
+        ${u.locked?`<span class="badge" style="background:#f8717118;color:#f87171" title="${t.lockedHint||'3 hatalı giriş denemesi – 15 dk kilitli'}">🔒 ${t.lockedLabel||'Kilitli'}</span>`:""}
         <span class="badge" style="background:${color}18;color:${color}">${rl}</span>
         <div style="display:flex;gap:6px">
+          ${u.locked?`<button class="sm-btn" onclick="unlockUser(${u.id})">${t.unlockBtn||'Kilidi Aç'}</button>`:""}
           <button class="sm-btn" onclick="openUserModal(${u.id})">${t.editBtn}</button>
           ${isSuperAdmin()?`<button class="sm-btn" onclick="openChangePasswordModal(${u.id})" title="${t.changePassword||'Şifre Değiştir'}">🔑</button>`:""}
           ${!isMe?`<button class="sm-btn danger" onclick="deleteUser(${u.id})">✕</button>`:""}
@@ -3359,7 +3419,7 @@ async function saveCompany(editId){
       const r=await fetch(`${SUPA_URL}/rest/v1/crm_companies?id=eq.${editId}`,{method:"PATCH",headers:{...H,"Prefer":"return=minimal"},body:JSON.stringify({name})});
       if(!r.ok){toast(t.updateFailed||"Hata","err");return;}
       state.companies=state.companies.map(c=>c.id===editId?{...c,name}:c);
-      await fetch(`${SUPA_URL}/rest/v1/crm_users?company_id=eq.${editId}`,{method:"PATCH",headers:{...H,"Prefer":"return=minimal"},body:JSON.stringify({company_name:name})});
+      await crmUsers('rename_company',{company_id:editId,name});
       state.users=state.users.map(u=>u.company_id===editId?{...u,company_name:name}:u);
       logAction('company_edit',name);toast("✅ "+(t.companyUpdated||"Firma güncellendi"));
     }catch{toast(t.errorMsg||"Hata","err");return;}
@@ -4010,11 +4070,15 @@ async function saveUser(editId){
   if(!editId&&!password){toast(t.passRequired,"err");return;}
   if(editId){
     const isAdminRole=role==='admin'||role==='superadmin';
-    const upd={display_name:displayName,role};if(password)upd.password=await bcrypt.hash(password,10);if(isAdminRole){upd.company_id=null;upd.company_name=null;}
-    try{const r=await fetch(`${SUPA_URL}/rest/v1/crm_users?id=eq.${editId}`,{method:"PATCH",headers:{...H,"Prefer":"return=minimal"},body:JSON.stringify(upd)});if(!r.ok){toast(t.updateFailed,"err");return;}
+    const _cur=state.users.find(u=>u.id===editId);
+    const _esel=document.getElementById("u-company-sel")?.value||"";
+    const payload={id:editId,display_name:displayName,role};if(password)payload.password=password;
+    if(!isAdminRole)payload.company_id=_esel?+_esel.split("|")[0]:(_cur?.company_id??currentUser.company_id??null);
+    try{const res=await crmUsers('update',payload);if(!res.ok){toast(res.error||t.updateFailed,"err");return;}
+    const upd=res.user||{display_name:displayName,role};
     state.users=state.users.map(u=>u.id===editId?{...u,...upd}:u);
     if(editId===currentUser.id){currentUser={...currentUser,display_name:displayName,role};sessionStorage.setItem("crm_user",JSON.stringify(currentUser));const color=ROLE_COLORS[role]||"#f97316";document.getElementById("user-name").textContent=displayName||username;document.getElementById("user-avatar").textContent=(displayName||username)[0].toUpperCase();document.getElementById("user-role").textContent=roleLabel(role);document.getElementById("user-role").style.color=color;}
-    logAction('user_edit',displayName||username);toast(t.userUpdated);}catch{toast(t.errorMsg,"err");return;}
+    toast(t.userUpdated);}catch{toast(t.errorMsg,"err");return;}
   } else {
     if(state.users.some(u=>u.username===username)){toast(t.usernameExists,"err");return;}
     const isAdminRole=role==='admin'||role==='superadmin';
@@ -4022,7 +4086,7 @@ async function saveUser(editId){
     const [_cid,_cname]=isSuperAdmin()?(_csel?_csel.split("|"):["",""]):[String(currentUser.company_id||1),currentUser.company_name||""];
     const companyId=isAdminRole?null:(+_cid||currentUser.company_id||1);
     const companyName=isAdminRole?'':((_cname||currentUser.company_name||''));
-    try{const r=await fetch(`${SUPA_URL}/rest/v1/crm_users`,{method:"POST",headers:{...H,"Prefer":"return=representation"},body:JSON.stringify({username,password:await bcrypt.hash(password,10),role,display_name:displayName,company_id:companyId||undefined,company_name:companyName||undefined})});if(!r.ok){let em=t.addFailed;try{const ej=await r.json();em=(ej.message||ej.hint||ej.details||t.addFailed);}catch{}toast(em,"err");return;}const added=(await r.json());state.users.push({id:(Array.isArray(added)?added[0]:added).id,username,role,display_name:displayName,company_id:companyId,company_name:companyName});logAction('user_add',`${displayName||username}${companyName?` (${companyName})`:''}`);toast(t.userAdded);}catch{toast(t.errorMsg,"err");return;}
+    try{const res=await crmUsers('create',{username,password,role,display_name:displayName,company_id:companyId});if(!res.ok){toast(res.error||t.addFailed,"err");return;}const added=res.user;state.users.push({id:added.id,username,role,display_name:displayName,company_id:added.company_id,company_name:added.company_name});toast(t.userAdded);}catch{toast(t.errorMsg,"err");return;}
   }
   closeModal();render();
 }
@@ -4042,31 +4106,21 @@ async function saveChangePassword(uid,isOwn){
   const confirmPwd=document.getElementById('cp-confirm')?.value;
   if(!newPwd){toast(t.passRequired||'Şifre zorunludur','err');return;}
   if(newPwd!==confirmPwd){toast(t.passwordMismatch||'Şifreler eşleşmiyor','err');return;}
+  let res;
   if(isOwn){
     const currentPwd=document.getElementById('cp-current')?.value;
     if(!currentPwd){toast(t.passRequired||'Mevcut şifre zorunludur','err');return;}
-    try{
-      const r=await fetch(`${SUPA_URL}/rest/v1/crm_users?id=eq.${uid}&select=password`,{headers:H});
-      if(r.ok){
-        const data=await r.json();
-        const stored=data?.[0]?.password||'';
-        const ok=await bcrypt.compare(currentPwd,stored);
-        if(!ok){toast(t.wrongCurrentPassword||'Mevcut şifre yanlış','err');return;}
-      }
-    }catch{toast(t.errorMsg||'Hata','err');return;}
+    res=await crmUsers('change_password',{current:currentPwd,new:newPwd});
+  }else{
+    res=await crmUsers('update',{id:uid,password:newPwd});
   }
-  try{
-    const hashed=await bcrypt.hash(newPwd,10);
-    const r=await fetch(`${SUPA_URL}/rest/v1/crm_users?id=eq.${uid}`,{method:'PATCH',headers:{...H,'Prefer':'return=minimal'},body:JSON.stringify({password:hashed})});
-    if(!r.ok){toast(t.updateFailed||'Güncelleme başarısız','err');return;}
-    logAction('user_edit',`${t.passwordChanged||'Password changed'} — #${uid}`);
-    toast(t.passwordChanged||'Şifre başarıyla değiştirildi ✅');closeModal();
-  }catch{toast(t.errorMsg||'Hata','err');}
+  if(!res.ok){toast(res.error||t.updateFailed||'Güncelleme başarısız','err');return;}
+  toast(t.passwordChanged||'Şifre başarıyla değiştirildi ✅');closeModal();
 }
 async function deleteUser(id){
   if(!canManageUsers())return;if(id===currentUser.id){toast(t.cantDeleteSelf,"err");return;}
   const _du=state.users.find(u=>u.id===id);
-  try{const r=await fetch(`${SUPA_URL}/rest/v1/crm_users?id=eq.${id}`,{method:"DELETE",headers:H});if(!r.ok){toast(t.updateFailed,"err");return;}state.users=state.users.filter(u=>u.id!==id);logAction('user_delete',_du?.display_name||_du?.username||'');toast(t.userDeleted,"warn");render();}catch{toast(t.errorMsg,"err");}
+  try{const res=await crmUsers('delete',{id});if(!res.ok){toast(res.error||t.updateFailed,"err");return;}state.users=state.users.filter(u=>u.id!==id);toast(t.userDeleted,"warn");render();}catch{toast(t.errorMsg,"err");}
 }
 
 // ── PDF QUOTE
@@ -4692,7 +4746,14 @@ async function openTreatmentBrochure(patientId){
   const savedLang=localStorage.getItem('crm_lang');
   if(savedLang&&T[savedLang]){setLang(savedLang);setLoginLang(savedLang);}
   const saved=sessionStorage.getItem("crm_user");
-  if(saved){try{currentUser=JSON.parse(saved);activeCompanyId=isSuperAdmin()?null:(currentUser.company_id!=null?+currentUser.company_id:-1);await showApp();}catch{sessionStorage.removeItem("crm_user");}}
+  let savedSess=null;try{savedSess=JSON.parse(sessionStorage.getItem("crm_session")||"null");}catch{}
+  if(saved&&savedSess?.access_token){
+    try{
+      applySession(savedSess);
+      if(savedSess.expires_at*1000-Date.now()<60000){const ok=await refreshSession();if(!ok)throw new Error("expired");}
+      currentUser=JSON.parse(saved);activeCompanyId=isSuperAdmin()?null:(currentUser.company_id!=null?+currentUser.company_id:-1);await showApp();
+    }catch{applySession(null);currentUser=null;sessionStorage.removeItem("crm_user");}
+  }else if(saved){sessionStorage.removeItem("crm_user");}
 })();
 document.addEventListener("click",e=>{const dp=document.getElementById("dp-overlay");if(dp&&dp.style.display!=="none"&&!dp.contains(e.target)&&!e.target.classList.contains("dp-input"))_dpClose();});
 </script>
