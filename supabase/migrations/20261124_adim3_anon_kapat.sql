@@ -1,3 +1,4 @@
+-- 24 Kasım 2026 13:5x'te ÇALIŞTIRILDI ("RLS ile çalıştır" seçeneğiyle: yedek tablolarda RLS açık). Sonuç: anon politikası kalmadı; anon anahtarla tüm tablolar boş liste döndürüyor.
 -- Güvenlik Adım 3: "arka kapı"yı kapat – anon (herkese açık anahtar) erişimini kaldır.
 --
 -- ÖN KOŞUL: Yeni giriş sistemli sayfa ana adreste yayında (PR #119) ve en az bir
