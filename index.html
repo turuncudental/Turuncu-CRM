@@ -2973,6 +2973,36 @@ function renderPtNotes(p){
 }
 // ==FILES==
 const PF_BUCKET='patient-files';
+// Hasta dosyaları gizli klasörde: dosyalar herkese açık link yerine giriş yapmış kullanıcıya
+// 1 saat geçerli imzalı (geçici) linklerle gösterilir.
+const _sfCache=new Map(); // path -> {url, exp}
+const _SF_PIXEL='data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7';
+function pfPath(f){
+  if(!f)return null;if(f.path)return f.path;
+  const u=f.url||'';const k='/'+PF_BUCKET+'/';const i=u.indexOf(k);
+  return i>=0?decodeURIComponent(u.slice(i+k.length).split('?')[0]):null;
+}
+function pfAttr(f,attr){
+  const u=f?.url||'';
+  if(u.startsWith('data:')||u.startsWith('blob:'))return `${attr}="${u}"`;
+  const p=pfPath(f);if(!p)return `${attr}="${u}"`;
+  const c=_sfCache.get(p);if(c&&c.exp>Date.now()+60000)return `${attr}="${c.url}"`;
+  const ph=attr==='src'?_SF_PIXEL:'javascript:void(0)';
+  return `data-sf="${String(p).replace(/"/g,'&quot;')}" data-sf-attr="${attr}" ${attr}="${ph}"`;
+}
+async function hydrateSignedUrls(){
+  const els=[...document.querySelectorAll('[data-sf]')];if(!els.length)return;
+  const need=[...new Set(els.map(e=>e.getAttribute('data-sf')))].filter(p=>{const c=_sfCache.get(p);return!(c&&c.exp>Date.now()+60000);});
+  if(need.length&&authSession){
+    try{
+      const r=await fetch(`${SUPA_URL}/storage/v1/object/sign/${PF_BUCKET}`,{method:'POST',headers:{...H,'Content-Type':'application/json'},body:JSON.stringify({expiresIn:3600,paths:need})});
+      if(r.ok){const arr=await r.json();for(const it of (Array.isArray(arr)?arr:[])){if(it&&it.signedURL&&it.path)_sfCache.set(it.path,{url:SUPA_URL+'/storage/v1'+it.signedURL,exp:Date.now()+3500*1000});}}
+    }catch{}
+  }
+  for(const e of els){const c=_sfCache.get(e.getAttribute('data-sf'));if(c){e.setAttribute(e.getAttribute('data-sf-attr'),c.url);e.removeAttribute('data-sf');}}
+}
+let _sfTimer=null;
+new MutationObserver(()=>{if(_sfTimer)return;_sfTimer=setTimeout(()=>{_sfTimer=null;if(document.querySelector('[data-sf]'))hydrateSignedUrls();},60);}).observe(document.documentElement,{childList:true,subtree:true});
 async function uploadToStorage(file,patientId,compressedDataUrl){
   const safeName=file.name.replace(/[^a-zA-Z0-9._-]/g,'_');
   const path=`${patientId}/${Date.now()}_${safeName}`;
@@ -2981,7 +3011,7 @@ async function uploadToStorage(file,patientId,compressedDataUrl){
   else{body=file;ct=file.type||'application/octet-stream';}
   const r=await fetch(`${SUPA_URL}/storage/v1/object/${PF_BUCKET}/${path}`,{
     method:'POST',
-    headers:{'apikey':SUPA_KEY,'Authorization':'Bearer '+SUPA_KEY,'Content-Type':ct,'x-upsert':'true'},
+    headers:{'apikey':SUPA_KEY,'Authorization':H.Authorization,'Content-Type':ct,'x-upsert':'true'},
     body
   });
   if(!r.ok){const e=await r.json().catch(()=>({}));throw new Error(e.error||e.message||t.uploadFailed);}
@@ -3034,11 +3064,11 @@ function previewFile(idx){
     <div style="display:flex;justify-content:space-between;align-items:center;gap:10px">
       <span style="color:#dde4ef;font-size:13px;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:55vw">${f.name}</span>
       <div style="display:flex;gap:8px;flex-shrink:0">
-        <a href="${f.url}" target="_blank" style="padding:6px 14px;border-radius:8px;border:1px solid #60a5fa;color:#60a5fa;font-size:12px;font-weight:700;text-decoration:none">⬇ İndir</a>
+        <a ${pfAttr(f,'href')} target="_blank" style="padding:6px 14px;border-radius:8px;border:1px solid #60a5fa;color:#60a5fa;font-size:12px;font-weight:700;text-decoration:none">⬇ İndir</a>
         <button onclick="document.querySelector('[data-pov]').remove()" style="padding:6px 12px;border-radius:8px;border:1px solid #1a2236;background:#1a2236;color:#dde4ef;font-size:14px;cursor:pointer;font-family:'DM Sans',sans-serif">✕</button>
       </div>
     </div>
-    <img src="${f.url}" style="max-width:88vw;max-height:80vh;border-radius:10px;object-fit:contain;display:block"/>
+    <img ${pfAttr(f,'src')} style="max-width:88vw;max-height:80vh;border-radius:10px;object-fit:contain;display:block"/>
   </div>`;
   document.body.appendChild(ov);
 }
@@ -3072,14 +3102,14 @@ function renderPtFiles(p){
         const catIcon=catIcons[f.category]||'📎';
         return`<div style="background:#0d1320;border:1px solid #1a2236;border-radius:10px;overflow:hidden;display:flex;flex-direction:column">
           <div style="position:relative;height:110px;background:#131b2a;${isImg?'cursor:zoom-in':''};overflow:hidden" ${isImg?`onclick="previewFile(${i})"`:''}">
-            ${isImg?`<img src="${f.url}" style="width:100%;height:100%;object-fit:cover" loading="lazy" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'"/><div style="display:none;width:100%;height:100%;align-items:center;justify-content:center;font-size:36px">🖼️</div>`:`<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:44px">${fileIcon}</div>`}
+            ${isImg?`<img ${pfAttr(f,'src')} style="width:100%;height:100%;object-fit:cover" loading="lazy" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'"/><div style="display:none;width:100%;height:100%;align-items:center;justify-content:center;font-size:36px">🖼️</div>`:`<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:44px">${fileIcon}</div>`}
             <span style="position:absolute;top:5px;left:5px;font-size:10px;background:#00000099;border-radius:10px;padding:2px 7px;color:#dde4ef">${catIcon} ${catLabels[f.category]||f.category||t.fileCatOther}</span>
           </div>
           <div style="padding:8px;display:flex;flex-direction:column;gap:4px;flex:1">
             <div style="font-size:10px;color:#dde4ef;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${f.name}">${f.name}</div>
             <div style="font-size:9px;color:#3d5270;flex:1">${new Date(f.uploadedAt).toLocaleDateString('tr-TR')}</div>
             <div style="display:flex;gap:5px;margin-top:4px">
-              <a href="${f.url}" target="_blank" style="flex:1;text-align:center;padding:4px 0;border-radius:6px;border:1px solid #1a2236;color:#60a5fa;font-size:10px;font-weight:700;text-decoration:none;display:block">⬇</a>
+              <a ${pfAttr(f,'href')} target="_blank" style="flex:1;text-align:center;padding:4px 0;border-radius:6px;border:1px solid #1a2236;color:#60a5fa;font-size:10px;font-weight:700;text-decoration:none;display:block">⬇</a>
               ${canEdit()?`<button onclick="deletePatientFile(${i})" style="padding:4px 8px;border-radius:6px;border:1px solid #ef444433;background:#2b0f0f;color:#ef4444;font-size:10px;cursor:pointer;font-family:'DM Sans',sans-serif">✕</button>`:''}
             </div>
           </div>
